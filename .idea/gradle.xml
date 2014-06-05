@@ -12,6 +12,7 @@
             <option value="$PROJECT_DIR$/gson" />
             <option value="$PROJECT_DIR$/joda" />
             <option value="$PROJECT_DIR$/playground" />
+            <option value="$PROJECT_DIR$/tasks" />
           </set>
         </option>
       </GradleProjectSettings>

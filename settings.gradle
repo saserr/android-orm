@@ -1,1 +1,1 @@
-include ':core', ':joda', ':gson', ':playground'
+include ':core', ':joda', ':gson', ':playground', ':tasks'
