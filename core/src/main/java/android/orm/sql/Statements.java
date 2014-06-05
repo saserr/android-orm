@@ -20,6 +20,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.Pair;
 
@@ -46,8 +47,9 @@ public final class Statements {
     private static final String NO_COLUMNS = "Columns cannot be empty";
 
     @NonNull
-    public static Statement createTable(@NonNls @NonNull final String name,
-                                        @NonNull final Collection<Column<?>> columns) {
+    public static <K> Statement createTable(@NonNls @NonNull final String name,
+                                            @NonNull final Collection<Column<?>> columns,
+                                            @Nullable final PrimaryKey<K> primaryKey) {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException(NO_COLUMNS);
         }
@@ -57,6 +59,10 @@ public final class Statements {
 
         for (final Column<?> column : columns) {
             result.append(column.toSQL()).append(",\n");
+        }
+
+        if (primaryKey != null) {
+            result.append(primaryKey.toSQL()).append(",\n");
         }
 
         final int length = result.length();
@@ -130,19 +136,21 @@ public final class Statements {
     }
 
     @NonNull
-    public static <V> Statement renameColumn(@NonNls @NonNull final String table,
-                                             @NonNls @NonNull final String oldName,
-                                             @NonNull final Column<V> column) {
+    public static <K, V> Statement renameColumn(@NonNull final Table<K> table,
+                                                @NonNls @NonNull final String oldName,
+                                                @NonNull final Column<V> column) {
         return new RenameColumn<>(table, oldName, column);
     }
 
     @NonNull
-    public static Statement alterColumns(@NonNls @NonNull final String table,
-                                         @NonNull final Collection<Pair<String, Column<?>>> columns) {
+    public static <K> Statement alterColumns(@NonNull final Table<K> table,
+                                             @NonNull final Collection<Pair<String, Column<?>>> columns) {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException(NO_COLUMNS);
         }
 
+        final String original = table.getName();
+        final PrimaryKey<K> primaryKey = table.getPrimaryKey();
         final Collection<Column<?>> remaining = new ArrayList<>(columns.size());
         final Collection<Pair<String, String>> toTemporary = new ArrayList<>(columns.size());
         final Collection<Pair<String, String>> fromTemporary = new ArrayList<>(columns.size());
@@ -153,21 +161,21 @@ public final class Statements {
             fromTemporary.add(Pair.create(column.getName(), column.getName()));
         }
 
-        @NonNls final String temporary = "temp." + table;
+        @NonNls final String temporary = "temp." + original;
 
         return compose(
                 // defer foreign keys integrity check until end of the transaction
                 statement("pragma defer_foreign_keys=on;"),
                 // create a temporary table
-                createTable(temporary, remaining),
+                createTable(temporary, remaining, primaryKey),
                 // copy data to temporary table
-                copyData(table, temporary, toTemporary),
+                copyData(original, temporary, toTemporary),
                 // drop the original table
-                dropTable(table),
+                dropTable(original),
                 // recreate the original table with remaining columns
-                createTable(table, remaining),
+                createTable(original, remaining, primaryKey),
                 // copy data from temporary table
-                copyData(temporary, table, fromTemporary),
+                copyData(temporary, original, fromTemporary),
                 // drop the temporary table
                 dropTable(temporary)
         );
@@ -254,14 +262,13 @@ public final class Statements {
         }
     }
 
-    private static class RenameColumn<V> implements Statement {
+    private static class RenameColumn<K, V> implements Statement {
 
         @NonNls
         private static final String TABLE_INFO = "pragma table_info(?);";
 
-        @NonNls
         @NonNull
-        private final String mTable;
+        private final Table<K> mTable;
         @NonNls
         @NonNull
         private final String mOldName;
@@ -270,7 +277,7 @@ public final class Statements {
         @NonNull
         private final Statement mStatement;
 
-        private RenameColumn(@NonNls @NonNull final String table,
+        private RenameColumn(@NonNls @NonNull final Table<K> table,
                              @NonNls @NonNull final String oldName,
                              @NonNull final Column<V> column) {
             super();
@@ -284,14 +291,15 @@ public final class Statements {
 
         @Override
         public final void execute(@NonNull final SQLiteDatabase database) {
+            final String table = mTable.getName();
             final String newName = mColumn.getName();
 
-            if (containsColumn(database, mTable, mOldName)) {
+            if (containsColumn(database, table, mOldName)) {
                 mStatement.execute(database);
-            } else if (containsColumn(database, mTable, newName)) {
-                Log.w(TAG, "Column '" + mOldName + "' in table '" + mTable + "' is probably already renamed to '" + newName + "! Skipping column rename"); //NON-NLS
+            } else if (containsColumn(database, table, newName)) {
+                Log.w(TAG, "Column '" + mOldName + "' in table '" + table + "' is probably already renamed to '" + newName + "! Skipping column rename"); //NON-NLS
             } else {
-                throw new SQLException("Column '" + mOldName + "' in table '" + mTable + "' is missing! Cannot rename it to '" + newName + '\'');
+                throw new SQLException("Column '" + mOldName + "' in table '" + table + "' is missing! Cannot rename it to '" + newName + '\'');
             }
         }
 

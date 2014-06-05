@@ -25,12 +25,10 @@ import android.orm.util.Producer;
 import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.StringDef;
 
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,7 +54,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @NonNull
     private final String mWildcard;
     private final boolean mNullable;
-    private final boolean mPrimaryKey;
     private final boolean mUnique;
     private final boolean mRequired;
 
@@ -77,11 +74,8 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         mWildcard = type.getWildcard();
 
         mNullable = !contains(Constraint.NotNull.class);
-        mPrimaryKey = contains(Constraint.PrimaryKey.class);
-        mUnique = mPrimaryKey || contains(Constraint.Unique.class);
-        mRequired = !((mPrimaryKey && Integer.equals(type)) ||
-                contains(Constraint.Default.class) ||
-                mNullable);
+        mUnique = contains(Constraint.Unique.class);
+        mRequired = contains(Constraint.Default.class) || mNullable;
     }
 
     @NonNls
@@ -110,10 +104,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
     public final boolean isNullable() {
         return mNullable;
-    }
-
-    public final boolean isPrimaryKey() {
-        return mPrimaryKey;
     }
 
     public final boolean isUnique() {
@@ -149,16 +139,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         if ((operation == Insert) && mRequired && !output.contains(mName)) {
             throw new SQLException("Required column " + mName + " is missing");
         }
-    }
-
-    @NonNull
-    public Column<V> asPrimaryKey() {
-        return with(new Constraint.PrimaryKey<V>());
-    }
-
-    @NonNull
-    public Column<V> asPrimaryKey(@NonNull final ConflictResolution onConflict) {
-        return with(new Constraint.PrimaryKey<V>(onConflict));
     }
 
     @NonNull
@@ -272,7 +252,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @NonNull
-    public static Reference references(@NonNull final Table table, @NonNull final String name) {
+    public static <K> Reference references(@NonNull final Table<K> table, @NonNull final String name) {
         return new Reference(table, name);
     }
 
@@ -281,29 +261,25 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         public static final Type<Long> TYPE = Integer;
 
         @NonNull
-        private final Table mTable;
+        private final Table<?> mTable;
         @NonNull
         private final String mName;
-        @Action
-        @NonNls
         @Nullable
-        private final String mOnDelete;
-        @Action
-        @NonNls
+        private final Action mOnDelete;
         @Nullable
-        private final String mOnUpdate;
+        private final Action mOnUpdate;
         @NonNull
         private final List<Constraint<Long>> mConstraints;
 
-        private Reference(@NonNull final Table table, @NonNull final String name) {
+        private <K> Reference(@NonNull final Table<K> table, @NonNull final String name) {
             this(table, name, null, null, Collections.<Constraint<Long>>emptyList());
         }
 
-        private Reference(@NonNull final Table table,
-                          @NonNls @NonNull final String name,
-                          @Action @NonNls @Nullable final String onDelete,
-                          @Action @NonNls @Nullable final String onUpdate,
-                          @NonNull final List<Constraint<Long>> constraints) {
+        private <K> Reference(@NonNull final Table<K> table,
+                              @NonNls @NonNull final String name,
+                              @Nullable final Action onUpdate,
+                              @Nullable final Action onDelete,
+                              @NonNull final List<Constraint<Long>> constraints) {
             super(name, TYPE, append(constraints, new References(table, onDelete, onUpdate)));
 
             mTable = table;
@@ -314,30 +290,18 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         }
 
         @NonNull
-        public final Table getTable() {
+        public final Table<?> getTable() {
             return mTable;
         }
 
         @NonNull
-        public final Reference onDelete(@Action @NonNls @NonNull final String action) {
+        public final Reference onDelete(@NonNull final Action action) {
             return new Reference(mTable, mName, action, mOnUpdate, mConstraints);
         }
 
         @NonNull
-        public final Reference onUpdate(@Action @NonNls @NonNull final String action) {
+        public final Reference onUpdate(@NonNull final Action action) {
             return new Reference(mTable, mName, mOnDelete, action, mConstraints);
-        }
-
-        @NonNull
-        @Override
-        public final Reference asPrimaryKey() {
-            return with(new Constraint.PrimaryKey<Long>());
-        }
-
-        @NonNull
-        @Override
-        public final Reference asPrimaryKey(@NonNull final ConflictResolution onConflict) {
-            return with(new Constraint.PrimaryKey<Long>(onConflict));
         }
 
         @NonNull
@@ -384,25 +348,57 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
             return new Reference(mTable, mName, mOnDelete, mOnUpdate, constraints);
         }
 
-        @Retention(RetentionPolicy.CLASS)
-        @StringDef({
-                Action.SetNull,
-                Action.SetDefault,
-                Action.Cascade,
-                Action.Restrict,
-                Action.NoAction
-        })
-        public @interface Action {
+        public interface Action extends Fragment {
+
             @NonNls
-            String SetNull = "set null";
-            @NonNls
-            String SetDefault = "set default";
-            @NonNls
-            String Cascade = "cascade";
-            @NonNls
-            String Restrict = "restrict";
-            @NonNls
-            String NoAction = "no action";
+            @NonNull
+            @Override
+            String toSQL();
+
+            Action SetNull = new Action() {
+                @NonNls
+                @NotNull
+                @Override
+                public String toSQL() {
+                    return "set null";
+                }
+            };
+
+            Action SetDefault = new Action() {
+                @NonNls
+                @NonNull
+                @Override
+                public String toSQL() {
+                    return "set default";
+                }
+            };
+
+            Action Cascade = new Action() {
+                @NonNls
+                @NonNull
+                @Override
+                public String toSQL() {
+                    return "cascade";
+                }
+            };
+
+            Action Restrict = new Action() {
+                @NonNls
+                @NonNull
+                @Override
+                public String toSQL() {
+                    return "restrict";
+                }
+            };
+
+            Action NoAction = new Action() {
+                @NonNls
+                @NonNull
+                @Override
+                public String toSQL() {
+                    return "no action";
+                }
+            };
         }
 
         @NonNull
@@ -420,9 +416,9 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
             @NonNull
             private final String mSQL;
 
-            private References(@NonNull final Table table,
-                               @Action @NonNls @Nullable final String onDelete,
-                               @Action @NonNls @Nullable final String onUpdate) {
+            private <K> References(@NonNull final Table<K> table,
+                                   @Nullable final Action onDelete,
+                                   @Nullable final Action onUpdate) {
                 super();
 
                 @NonNls
@@ -430,10 +426,10 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
                 result.append("references ").append(Helper.escape(table.getName()));
 
                 if (onDelete != null) {
-                    result.append(" on delete ").append(onDelete);
+                    result.append(" on delete ").append(onDelete.toSQL());
                 }
                 if (onUpdate != null) {
-                    result.append(" on update ").append(onUpdate);
+                    result.append(" on update ").append(onUpdate.toSQL());
                 }
 
                 mSQL = result.toString();
@@ -464,39 +460,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         @NonNls
         @NonNull
         String toSQL(@NonNull final String column);
-
-        class PrimaryKey<V> implements Constraint<V> {
-
-            @NonNls
-            @NonNull
-            private final String mSQL;
-
-            public PrimaryKey() {
-                super();
-
-                mSQL = "primary key";
-            }
-
-            public PrimaryKey(@NonNull final ConflictResolution onConflict) {
-                super();
-
-                mSQL = "primary key on conflict " + onConflict.toSQL();
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> beforeWrite(@Operation final int operation,
-                                              @NonNull final Maybe<V> value) {
-                return value;
-            }
-
-            @NonNls
-            @NonNull
-            @Override
-            public final String toSQL(@NonNull final String column) {
-                return mSQL;
-            }
-        }
 
         class Unique<V> implements Constraint<V> {
 

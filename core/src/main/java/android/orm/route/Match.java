@@ -24,7 +24,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.orm.Route;
-import android.orm.sql.Column;
+import android.orm.sql.PrimaryKey;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.statement.Select;
@@ -38,7 +38,6 @@ import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Readables.combine;
 import static android.orm.sql.Readables.readable;
 import static android.orm.sql.Table.ROW_ID;
-import static android.orm.sql.Types.Integer;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
 import static android.orm.sql.statement.Select.where;
@@ -59,23 +58,21 @@ public class Match {
     @NonNull
     private final String mContentType;
     @NonNull
-    private final Table mTable;
-    @NonNls
-    @NonNull
-    private final String mTableName;
-    @NonNull
     private final ContentValues mOnInsert;
     @NonNull
     private final Select.Where mWhere;
     @Nullable
     private final String mOrder;
     @NonNull
-    private final Column<?> mPrimaryKey;
-    private final boolean mIsIntegerPrimaryKey;
+    private final Table<?> mTable;
+    @NonNls
+    @NonNull
+    private final String mTableName;
+    @Nullable
+    private final PrimaryKey<?> mPrimaryKey;
 
     public Match(@NonNull final Route.Item itemMapping,
                  @NonNls @NonNull final String contentType,
-                 @NonNull final Table table,
                  @NonNull final ContentValues onInsert,
                  @NonNull final Select.Where where,
                  @Nullable final Select.Order order) {
@@ -83,13 +80,13 @@ public class Match {
 
         mItemMapping = itemMapping;
         mContentType = contentType;
-        mTable = table;
-        mTableName = escape(mTable.getName());
         mWhere = where;
         mOnInsert = onInsert;
         mOrder = (order == null) ? null : order.toSQL();
-        mPrimaryKey = table.getPrimaryKey();
-        mIsIntegerPrimaryKey = Integer.equals(mPrimaryKey.getType());
+
+        mTable = itemMapping.getTable();
+        mTableName = escape(mTable.getName());
+        mPrimaryKey = mTable.getPrimaryKey();
     }
 
     @NonNull
@@ -98,7 +95,7 @@ public class Match {
     }
 
     @NonNull
-    public final Table getTable() {
+    public final Table<?> getTable() {
         return mTable;
     }
 
@@ -126,7 +123,7 @@ public class Match {
             final long id = database.insertOrThrow(mTableName, null, newValues);
 
             if (id > 0L) {
-                if (mIsIntegerPrimaryKey) {
+                if ((mPrimaryKey != null) && mPrimaryKey.isAliasForRowId()) {
                     ((Value.Write<Long>) mPrimaryKey).write(Insert, something(id), writable(newValues));
                 }
 

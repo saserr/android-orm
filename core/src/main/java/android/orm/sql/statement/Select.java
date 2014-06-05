@@ -24,12 +24,10 @@ import android.orm.util.Function;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.StringDef;
 
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashMap;
@@ -65,12 +63,11 @@ public final class Select {
     }
 
     @NonNull
-    public static <V> Order order(@NonNull final Column<V> column,
-                                  @Order.Type @NonNls @NonNull final String type) {
-        return new Order(escape(column.getName()) + ' ' + type);
+    public static <V> Order order(@NonNull final Column<V> column, @NonNull final Order.Type type) {
+        return new Order(escape(column.getName()) + ' ' + type.toSQL());
     }
 
-    public interface Projection {
+    public interface Projection extends Fragment {
 
         boolean isEmpty();
 
@@ -132,6 +129,13 @@ public final class Select {
             public boolean any(@NonNull final Collection<String> columns) {
                 return true;
             }
+
+            @NonNls
+            @Nullable
+            @Override
+            public String toSQL() {
+                return null;
+            }
         };
 
         Projection Nothing = new Projection() {
@@ -174,6 +178,13 @@ public final class Select {
             @Override
             public boolean any(@NonNull final Collection<String> columns) {
                 return false;
+            }
+
+            @NonNls
+            @NotNull
+            @Override
+            public String toSQL() {
+                return "";
             }
         };
 
@@ -269,6 +280,7 @@ public final class Select {
 
                             private final Set<String> mNames = projection.keySet();
                             private final Lazy<String[]> mArray = projectionAsArray(projection);
+                            private final Lazy<String> mSQL = projectionAsSQL(projection);
 
                             @Override
                             public boolean isEmpty() {
@@ -293,6 +305,13 @@ public final class Select {
                                 difference.retainAll(columns);
                                 return !difference.isEmpty();
                             }
+
+                            @NonNls
+                            @NonNull
+                            @Override
+                            public String toSQL() {
+                                return mSQL.get();
+                            }
                         };
             }
 
@@ -313,6 +332,25 @@ public final class Select {
                         }
 
                         return result;
+                    }
+                };
+            }
+
+            @NonNull
+            private static Lazy<String> projectionAsSQL(@NonNull final Map<String, String> projection) {
+                return new Lazy.Volatile<String>() {
+                    @NonNull
+                    @Override
+                    protected String produce() {
+                        final StringBuilder result = new StringBuilder();
+
+                        for (final Map.Entry<String, String> entry : projection.entrySet()) {
+                            result.append(escape(entry.getKey())).append(", ");
+                        }
+                        final int length = result.length();
+                        result.delete(length - 2, length);
+
+                        return result.toString();
                     }
                 };
             }
@@ -632,13 +670,30 @@ public final class Select {
             return new Order(toSQL() + ", " + other.toSQL());
         }
 
-        @Retention(RetentionPolicy.CLASS)
-        @StringDef({Type.Ascending, Type.Descending})
-        public @interface Type {
+        public interface Type extends Fragment {
+
             @NonNls
-            String Ascending = "asc";
-            @NonNls
-            String Descending = "desc";
+            @NonNull
+            @Override
+            String toSQL();
+
+            Type Ascending = new Type() {
+                @NonNls
+                @NonNull
+                @Override
+                public String toSQL() {
+                    return "asc";
+                }
+            };
+
+            Type Descending = new Type() {
+                @NonNls
+                @NonNull
+                @Override
+                public String toSQL() {
+                    return "desc";
+                }
+            };
         }
     }
 

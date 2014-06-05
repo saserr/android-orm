@@ -104,7 +104,7 @@ public class Watch<V> {
         private final Result.Callback<V> mCallback;
 
         @NonNull
-        private final Table mTable;
+        private final Table<?> mTable;
         @NonNull
         private final AtomicReference<Plan.Read<T>> mPlan;
         @NonNull

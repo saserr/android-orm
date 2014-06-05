@@ -53,7 +53,7 @@ public abstract class Route {
     @NonNull
     private final Manager mManager;
     @NonNull
-    private final Table mTable;
+    private final Table<?> mTable;
     @NonNull
     private final Select.Where mWhere;
     @Nullable
@@ -69,12 +69,12 @@ public abstract class Route {
     @NonNull
     private final Select.Projection mProjection;
 
-    protected Route(@NonNull final Manager manager,
-                    @Type @NonNls @NonNull final String type,
-                    @NonNull final Table table,
-                    @NonNull final Select.Where where,
-                    @Nullable final Select.Order order,
-                    @NonNull final Path path) {
+    private Route(@NonNull final Manager manager,
+                  @Type @NonNls @NonNull final String type,
+                  @NonNull final Table<?> table,
+                  @NonNull final Select.Where where,
+                  @Nullable final Select.Order order,
+                  @NonNull final Path path) {
         super();
 
         mManager = manager;
@@ -93,6 +93,11 @@ public abstract class Route {
     @NonNull
     public final Manager getManager() {
         return mManager;
+    }
+
+    @NonNull
+    public final Table<?> getTable() {
+        return mTable;
     }
 
     @NonNls
@@ -119,16 +124,16 @@ public abstract class Route {
     @NonNull
     public final Match createMatch(@NonNull final Uri uri) {
         final Select.Where where = mPath.getWhere(uri);
-        return new Match(getItemRoute(), mContentType, mTable, parse(uri), mWhere.and(where), mOrder);
+        return new Match(getItemRoute(), mContentType, parse(uri), mWhere.and(where), mOrder);
     }
 
     public final ContentValues parse(@NonNull final Uri uri) {
         return mPath.parseValues(uri);
     }
 
-    private static String getContentType(@Type @NonNls @NonNull final String type,
-                                         @NonNull final String prefix,
-                                         @NonNull final Table table) {
+    private static <K> String getContentType(@Type @NonNls @NonNull final String type,
+                                             @NonNull final String prefix,
+                                             @NonNull final Table<K> table) {
         return CONTENT_TYPE_FORMAT.format(new String[]{type, prefix, table.getName()});
     }
 
@@ -139,11 +144,10 @@ public abstract class Route {
 
         public Dir(@NonNull final Manager manager,
                    @NonNull final Item itemRoute,
-                   @NonNull final Table table,
                    @NonNull final Select.Order order,
                    @NonNull final Select.Where where,
                    @NonNull final Path path) {
-            super(manager, Type.Dir, table, where, order, path);
+            super(manager, Type.Dir, itemRoute.getTable(), where, order, path);
 
             mItemRoute = itemRoute;
         }
@@ -159,10 +163,10 @@ public abstract class Route {
         @NonNull
         private final Item mItemRoute;
 
-        public Item(@NonNull final Manager manager,
-                    @NonNull final Table table,
-                    @NonNull final Select.Where where,
-                    @NonNull final Path path) {
+        public <K> Item(@NonNull final Manager manager,
+                        @NonNull final Table<K> table,
+                        @NonNull final Select.Where where,
+                        @NonNull final Path path) {
             super(manager, Type.Item, table, where, null, path);
 
             mItemRoute = this;
@@ -170,10 +174,9 @@ public abstract class Route {
 
         public Item(@NonNull final Manager manager,
                     @NonNull final Item itemRoute,
-                    @NonNull final Table table,
                     @NonNull final Select.Where where,
                     @NonNull final Path path) {
-            super(manager, Type.Item, table, where, null, path);
+            super(manager, Type.Item, itemRoute.getTable(), where, null, path);
 
             mItemRoute = itemRoute;
         }
@@ -219,83 +222,105 @@ public abstract class Route {
         }
 
         @NonNull
-        public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Table table) {
-            return dir(itemRoute, table, path(table.getName()));
+        public final Dir dir(@NonNull final Item itemRoute) {
+            return dir(itemRoute, path(itemRoute.getTable().getName()));
         }
 
         @NonNull
         public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Column.Reference reference,
-                             @NonNull final Table table) {
+                             @NonNull final Column.Reference reference) {
             final Path path = path(reference.getTable().getName())
                     .slash(reference)
-                    .slash(table.getName());
-            return dir(itemRoute, table, path);
+                    .slash(itemRoute.getTable().getName());
+            return dir(itemRoute, path);
         }
 
         @NonNull
         public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Table table,
                              @NonNull final Path path) {
-            return dir(itemRoute, table, Select.Where.None, path);
+            return dir(itemRoute, Select.Where.None, path);
         }
 
         @NonNull
         public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Table table,
                              @NonNull final Select.Where where,
                              @NonNull final Path path) {
-            return dir(itemRoute, table, where, table.getOrder(), path);
+            return dir(itemRoute, where, itemRoute.getTable().getOrder(), path);
         }
 
         @NonNull
         public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Table table,
                              @NonNull final Select.Order order,
                              @NonNull final Path path) {
-            return dir(itemRoute, table, Select.Where.None, order, path);
+            return dir(itemRoute, Select.Where.None, order, path);
         }
 
         @NonNull
         public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Table table,
                              @NonNull final Select.Where where,
                              @NonNull final Select.Order order,
                              @NonNull final Path path) {
-            final Dir route = new Dir(this, itemRoute, table, order, where, path);
+            final Dir route = new Dir(this, itemRoute, order, where, path);
             with(route);
             return route;
         }
 
         @NonNull
-        public final Item item(@NonNull final Table table) {
-            return item(table, path(table.getName()).slash(table.getPrimaryKey()));
-        }
-
-        @NonNull
-        public final Item item(@NonNull final Column.Reference reference,
-                               @NonNull final Table table) {
-            Path path = path(reference.getTable().getName())
-                    .slash(reference)
-                    .slash(table.getName());
-
+        public final <K> Item item(@NonNull final Column.Reference reference,
+                                   @NonNull final Table<K> table) {
             if (!reference.isUnique()) {
-                path = path.slash(table.getPrimaryKey());
+                throw new IllegalArgumentException("Reference must be unique");
             }
 
+            final Path path = path(reference.getTable().getName())
+                    .slash(reference)
+                    .slash(table.getName());
             return item(table, path);
         }
 
         @NonNull
-        public final Item item(@NonNull final Table table, @NonNull final Path path) {
+        public final <K, V> Item item(@NonNull final Column.Reference reference,
+                                      @NonNull final Table<K> table,
+                                      @NonNull final Column<V> column) {
+            final Item route;
+
+            if (reference.isUnique()) {
+                route = item(reference, table);
+            } else {
+                if (!column.isUnique()) {
+                    throw new IllegalArgumentException("Column must be unique");
+                }
+
+                final Path path = path(reference.getTable().getName())
+                        .slash(reference)
+                        .slash(table.getName())
+                        .slash(column);
+
+                route = item(table, path);
+            }
+
+            return route;
+        }
+
+        @NonNull
+        public final <K, V> Item item(@NonNull final Table<K> table,
+                                      @NonNull final Column<V> column) {
+            if (!column.isUnique()) {
+                throw new IllegalArgumentException("Column must be unique");
+            }
+
+            return item(table, path(table.getName()).slash(column.getName()).slash(column));
+        }
+
+        @NonNull
+        public final <K> Item item(@NonNull final Table<K> table, @NonNull final Path path) {
             return item(table, Select.Where.None, path);
         }
 
         @NonNull
-        public final Item item(@NonNull final Table table,
-                               @NonNull final Select.Where where,
-                               @NonNull final Path path) {
+        public final <K> Item item(@NonNull final Table<K> table,
+                                   @NonNull final Select.Where where,
+                                   @NonNull final Path path) {
             final Item route = new Item(this, table, where, path);
             with(route);
             return route;
@@ -303,29 +328,26 @@ public abstract class Route {
 
         @NonNull
         public final <V> Item item(@NonNull final Item itemRoute,
-                                   @NonNull final Table table,
                                    @NonNull final Column<V> column) {
             if (!column.isUnique()) {
                 throw new IllegalArgumentException("Column must be unique");
             }
 
-            final Path path = path(table.getName()).slash(column.getName()).slash(column);
-            return item(itemRoute, table, path);
+            final Path path = path(itemRoute.getTable().getName()).slash(column.getName()).slash(column);
+            return item(itemRoute, path);
         }
 
         @NonNull
         public final Item item(@NonNull final Item itemRoute,
-                               @NonNull final Table table,
                                @NonNull final Path path) {
-            return item(itemRoute, table, Select.Where.None, path);
+            return item(itemRoute, Select.Where.None, path);
         }
 
         @NonNull
         public final Item item(@NonNull final Item itemRoute,
-                               @NonNull final Table table,
                                @NonNull final Select.Where where,
                                @NonNull final Path path) {
-            final Item route = new Item(this, itemRoute, table, where, path);
+            final Item route = new Item(this, itemRoute, where, path);
             with(route);
             return route;
         }
@@ -367,7 +389,7 @@ public abstract class Route {
 
     @Retention(RetentionPolicy.CLASS)
     @StringDef({Type.Dir, Type.Item})
-    public @interface Type {
+    private @interface Type {
         @NonNls
         String Dir = "dir";
         @NonNls

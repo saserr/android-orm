@@ -35,7 +35,7 @@ public class Task extends Model {
 
     public static final long NO_ID = -1L;
 
-    public static final Column<Long> Id = Columns.PrimaryKey;
+    public static final Column<Long> Id = Columns.Id;
     public static final Column<String> Title = text("title").asNotNull();
     public static final Column<Boolean> Finished = bool("finished").asNotNull().withDefault(false);
 

@@ -24,6 +24,7 @@ import android.orm.sql.Table;
 import android.orm.tasks.BuildConfig;
 import android.orm.tasks.model.Task;
 
+import static android.orm.sql.PrimaryKey.primaryKey;
 import static android.orm.sql.Table.table;
 import static android.orm.sql.statement.Select.Order.Type.Ascending;
 import static android.orm.sql.statement.Select.order;
@@ -36,16 +37,17 @@ public class Provider extends BaseContentProvider {
             .migrate(Tables.Tasks);
 
     public interface Tables {
-        Table Tasks = table("tasks", 1)
+        Table<Long> Tasks = table("tasks", 1)
                 .with(Task.Id)
                 .with(Task.Title)
                 .with(2, Task.Finished)
+                .with(primaryKey(Task.Id))
                 .with(order(Task.Id, Ascending));
     }
 
     public interface Routes {
-        Route.Item TaskById = ROUTES.item(Tables.Tasks);
-        Route.Dir Tasks = ROUTES.dir(TaskById, Tables.Tasks);
+        Route.Item TaskById = ROUTES.item(Tables.Tasks, Task.Id);
+        Route.Dir Tasks = ROUTES.dir(TaskById);
     }
 
     public Provider() {

@@ -104,7 +104,7 @@ public class Database {
     }
 
     @NonNull
-    public final Database migrate(@NonNull final Table table) {
+    public final <K> Database migrate(@NonNull final Table<K> table) {
         return migrate(Migrations.migrate(table));
     }
 

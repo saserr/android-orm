@@ -39,7 +39,6 @@ import java.util.Set;
 
 import static android.orm.sql.Statements.addColumn;
 import static android.orm.sql.Statements.alterColumns;
-import static android.orm.sql.Statements.createIndex;
 import static android.orm.sql.Statements.createTable;
 import static android.orm.sql.Statements.dropTable;
 import static android.util.Log.INFO;
@@ -56,14 +55,14 @@ public final class Migrations {
     }
 
     @NonNull
-    public static Migration migrate(@NonNull final Table table) {
-        return new TableMigration(table);
+    public static <K> Migration migrate(@NonNull final Table<K> table) {
+        return new TableMigration<>(table);
     }
 
     @NonNull
-    public static Migration renameTable(final int version,
-                                        @NonNls @NonNull final String oldName,
-                                        @NonNull final Table table) {
+    public static <K> Migration renameTable(final int version,
+                                            @NonNls @NonNull final String oldName,
+                                            @NonNull final Table<K> table) {
         final String newName = table.getName();
         return atVersion(
                 version,
@@ -73,14 +72,13 @@ public final class Migrations {
     }
 
     @NonNull
-    public static <V> Migration renameColumn(final int version,
-                                             @NonNull final Table table,
-                                             @NonNls @NonNull final String oldName,
-                                             @NonNull final Column<V> column) {
-        final String tableName = table.getName();
+    public static <K, V> Migration renameColumn(final int version,
+                                                @NonNull final Table<K> table,
+                                                @NonNls @NonNull final String oldName,
+                                                @NonNull final Column<V> column) {
         return atVersion(
                 version,
-                Statements.renameColumn(tableName, oldName, column),
+                Statements.renameColumn(table, oldName, column),
                 Statements.NOTHING
         );
     }
@@ -185,12 +183,12 @@ public final class Migrations {
         }
     }
 
-    private static class TableMigration implements Migration {
+    private static class TableMigration<K> implements Migration {
 
         @NonNull
-        private final Table mTable;
+        private final Table<K> mTable;
 
-        private TableMigration(@NonNull final Table table) {
+        private TableMigration(@NonNull final Table<K> table) {
             super();
 
             mTable = table;
@@ -217,14 +215,7 @@ public final class Migrations {
                     );
                 }
 
-                createTable(name, columns).execute(database);
-
-                // create indices for all unique columns
-                for (final Column<?> column : columns) {
-                    if (column.isUnique() && !column.isPrimaryKey()) {
-                        createIndex(name, column).execute(database);
-                    }
-                }
+                createTable(name, columns, mTable.getPrimaryKey()).execute(database);
             }
         }
 
@@ -253,13 +244,6 @@ public final class Migrations {
                         // table is created
                         for (final Column<?> column : columns) {
                             addColumn(name, column).execute(database);
-                        }
-
-                        // create indices for all unique columns
-                        for (final Column<?> column : columns) {
-                            if (column.isUnique() && !column.isPrimaryKey()) {
-                                createIndex(name, column).execute(database);
-                            }
                         }
                     }
                 }
@@ -304,14 +288,7 @@ public final class Migrations {
                         for (final Column<?> column : remaining) {
                             pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
                         }
-                        alterColumns(name, pairs).execute(database);
-
-                        // recreate indices for all unique columns
-                        for (final Column<?> column : remaining) {
-                            if (column.isUnique() && !column.isPrimaryKey()) {
-                                createIndex(name, column).execute(database);
-                            }
-                        }
+                        alterColumns(mTable, pairs).execute(database);
                     }
                 }
             }

@@ -44,8 +44,8 @@ import static android.orm.sql.Types.Uri;
 
 public final class Columns {
 
-    public static final Column<Long> PrimaryKey = column(BaseColumns._ID, Integer)
-            .asPrimaryKey()
+    public static final Column<Long> Id = column(BaseColumns._ID, Integer)
+            .asUnique()
             .asNotNull();
 
     @NonNull

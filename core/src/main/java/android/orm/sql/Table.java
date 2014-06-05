@@ -41,7 +41,7 @@ import static android.orm.util.Maybes.something;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 
-public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
+public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
     public static final Column<Long> ROW_ID = number("_ROWID_").asNotNull();
 
@@ -65,11 +65,10 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
     private final Select.Projection mProjection;
     @NonNull
     private final Select.Order mOrder;
-    @NonNull
-    private final Column<?> mPrimaryKey;
+    @Nullable
+    private final PrimaryKey<K> mPrimaryKey;
 
-    private Table(@NonNls @NonNull final String name,
-                  final int version) {
+    private Table(@NonNls @NonNull final String name, final int version) {
         this(name, version, NO_COLUMNS_BY_VERSION, null, null, null);
     }
 
@@ -78,7 +77,7 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
                   @Nullable final Select.Projection projection,
                   @Nullable final Select.Order order,
-                  @Nullable final Column<?> primaryKey) {
+                  @Nullable final PrimaryKey<K> primaryKey) {
         this(name, version, columnsByVersion, columns(columnsByVersion), columnsAtVersion(columnsByVersion), projection, order, primaryKey);
     }
 
@@ -89,7 +88,7 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
                   @Nullable final Select.Projection projection,
                   @Nullable final Select.Order order,
-                  @Nullable final Column<?> primaryKey) {
+                  @Nullable final PrimaryKey<K> primaryKey) {
         super();
 
         mName = name;
@@ -99,7 +98,7 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
         mColumnsAtVersion = columnsAtVersion;
         mProjection = projection;
         mOrder = (order == null) ? DEFAULT_ORDER : order;
-        mPrimaryKey = (primaryKey == null) ? ROW_ID : primaryKey;
+        mPrimaryKey = primaryKey;
     }
 
     @NonNls
@@ -143,8 +142,8 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
         return mOrder;
     }
 
-    @NonNull
-    public final Column<?> getPrimaryKey() {
+    @Nullable
+    public final PrimaryKey<K> getPrimaryKey() {
         return mPrimaryKey;
     }
 
@@ -191,13 +190,12 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
     }
 
     @NonNull
-    public final <V> Table with(@NonNull final Column<V> column) {
+    public final <V> Table<K> with(@NonNull final Column<V> column) {
         return with(mVersion, column);
     }
 
     @NonNull
-    @SuppressWarnings("unchecked")
-    public final <V> Table with(final int version, @NonNull final Column<V> column) {
+    public final <V> Table<K> with(final int version, @NonNull final Column<V> column) {
         if (version < mVersion) {
             throw new IllegalArgumentException("Version is less than table version " + mVersion);
         }
@@ -205,7 +203,6 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
         final Select.Projection projection = (mProjection == null) ?
                 column.getProjection() :
                 mProjection.and(column.getProjection());
-        final Column<?> primaryKey = column.isPrimaryKey() ? column : mPrimaryKey;
         final SparseArray<Set<Column<?>>> columnsByVersion = Legacy.clone(mColumnsByVersion);
         Set<Column<?>> atVersion = columnsByVersion.get(version);
         if (atVersion == null) {
@@ -214,16 +211,16 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
         }
         atVersion.add(column);
 
-        return new Table(mName,
+        return new Table<>(mName,
                 mVersion,
                 columnsByVersion,
                 projection,
                 mOrder,
-                primaryKey);
+                mPrimaryKey);
     }
 
-    public final Table with(@NonNull final Select.Order order) {
-        return new Table(mName,
+    public final Table<K> with(@NonNull final Select.Order order) {
+        return new Table<>(mName,
                 mVersion,
                 mColumnsByVersion,
                 mColumns,
@@ -233,12 +230,24 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
                 mPrimaryKey);
     }
 
+    @NonNull
+    public final <V> Table<V> with(@NonNull final PrimaryKey<V> primaryKey) {
+        return new Table<>(mName,
+                mVersion,
+                mColumnsByVersion,
+                mColumns,
+                mColumnsAtVersion,
+                mProjection,
+                mOrder,
+                primaryKey);
+    }
+
     @Override
     public final boolean equals(@Nullable final Object object) {
         boolean result = this == object;
 
         if (!result && (object != null) && (getClass() == object.getClass())) {
-            final Table other = (Table) object;
+            final Table<?> other = (Table<?>) object;
             result = mName.equals(other.mName) && mColumns.get().equals(other.mColumns.get());
         }
 
@@ -251,9 +260,9 @@ public class Table extends Value.ReadWrite.Base<Map<String, Object>> {
     }
 
     @NonNull
-    public static Table table(@NonNls @NonNull final String name,
-                              final int version) {
-        return new Table(name, version);
+    public static Table<Long> table(@NonNls @NonNull final String name,
+                                    final int version) {
+        return new Table<>(name, version);
     }
 
     @NonNull

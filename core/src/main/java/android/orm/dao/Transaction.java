@@ -85,8 +85,7 @@ public abstract class Transaction {
         @NonNull
         private final Uri mUri;
 
-        private WriteAccess(@NonNull final Route route,
-                            @NonNull final Object... arguments) {
+        private WriteAccess(@NonNull final Route route, @NonNull final Object... arguments) {
             super();
 
             mUri = route.createUri(arguments);
