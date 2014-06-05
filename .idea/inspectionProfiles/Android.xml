@@ -559,7 +559,6 @@
       <option name="ignoreInstanceofOnLibraryClasses" value="false" />
     </inspection_tool>
     <inspection_tool class="InstanceofIncompatibleInterface" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="InstanceofInterfaces" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="InstanceofThis" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="InstantiationOfUtilityClass" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="IntLiteralMayBeLongLiteral" enabled="true" level="WARNING" enabled_by_default="true" />
@@ -1180,6 +1179,12 @@
     <inspection_tool class="UnusedCatchParameter" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_ignoreCatchBlocksWithComments" value="false" />
       <option name="m_ignoreTestCases" value="false" />
+    </inspection_tool>
+    <inspection_tool class="UnusedDeclaration" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="ADD_MAINS_TO_ENTRIES" value="true" />
+      <option name="ADD_APPLET_TO_ENTRIES" value="true" />
+      <option name="ADD_SERVLET_TO_ENTRIES" value="true" />
+      <option name="ADD_NONJAVA_TO_ENTRIES" value="true" />
     </inspection_tool>
     <inspection_tool class="UnusedDefine" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="UnusedImport" enabled="true" level="WARNING" enabled_by_default="true" />

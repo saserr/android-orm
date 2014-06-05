@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Column;
+import android.orm.sql.ForeignKey;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
 import android.orm.sql.Table;
@@ -78,7 +79,23 @@ public final class Migrations {
                                                 @NonNull final Column<V> column) {
         return atVersion(
                 version,
-                Statements.renameColumn(table, oldName, column),
+                Statements.renameColumn(table, oldName, column, table.getForeignKeys(version)),
+                Statements.NOTHING
+        );
+    }
+
+    @NonNull
+    public static <K> Migration recreateAt(final int version, @NonNull final Table<K> table) {
+        final Set<Column<?>> columns = table.getColumns(version);
+        final List<Pair<String, Column<?>>> pairs = new ArrayList<>(columns.size());
+
+        for (final Column<?> column : table.getColumns(version)) {
+            pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
+        }
+
+        return atVersion(
+                version,
+                alterColumns(table, pairs, table.getForeignKeys(version)),
                 Statements.NOTHING
         );
     }
@@ -215,7 +232,7 @@ public final class Migrations {
                     );
                 }
 
-                createTable(name, columns, mTable.getPrimaryKey()).execute(database);
+                createTable(name, columns, mTable.getPrimaryKey(), mTable.getForeignKeys(version)).execute(database);
             }
         }
 
@@ -268,27 +285,34 @@ public final class Migrations {
                     // table must be dropped
                     dropTable(name).execute(database);
                 } else {
-                    // find all columns that were added to table between old version (exclusive) and new version (inclusive)
-                    final Set<Column<?>> remaining = mTable.getColumns(newVersion);
-                    final Collection<Column<?>> columns = new HashSet<>(remaining);
-                    columns.removeAll(mTable.getColumns(oldVersion));
+                    final Set<Column<?>> columns = mTable.getColumns(newVersion);
+                    final List<ForeignKey<?>> foreignKeys = mTable.getForeignKeys(newVersion);
 
-                    if (!columns.isEmpty()) {
+                    // find all columns and foreign keys that were added to table between old version (inclusive) and new version (exclusive)
+                    final Set<Column<?>> oldColumns = mTable.getColumns(oldVersion);
+                    final List<ForeignKey<?>> oldForeignKeys = mTable.getForeignKeys(oldVersion);
+                    final Collection<Object> difference = new ArrayList<>(oldColumns.size() + oldForeignKeys.size());
+                    difference.addAll(oldColumns);
+                    difference.removeAll(columns);
+                    difference.addAll(oldForeignKeys);
+                    difference.removeAll(foreignKeys);
+
+                    if (!difference.isEmpty()) {
                         if (Log.isLoggable(TAG, INFO)) {
                             Log.i(TAG, "Downgrading table " + name); //NON-NLS
                         }
 
-                        if (remaining.isEmpty()) {
+                        if (columns.isEmpty()) {
                             throw new SQLException(
                                     name + " table cannot be downgraded because it has no columns at version " + newVersion
                             );
                         }
 
                         final List<Pair<String, Column<?>>> pairs = new ArrayList<>(columns.size());
-                        for (final Column<?> column : remaining) {
+                        for (final Column<?> column : columns) {
                             pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
                         }
-                        alterColumns(mTable, pairs).execute(database);
+                        alterColumns(mTable, pairs, foreignKeys).execute(database);
                     }
                 }
             }

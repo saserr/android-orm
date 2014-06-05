@@ -209,17 +209,21 @@ public class Database {
         public final void onUpgrade(@NonNull final SQLiteDatabase database,
                                     final int oldVersion,
                                     final int newVersion) {
-            if (Log.isLoggable(TAG, INFO)) {
-                Log.i(TAG, "Upgrading database " + mName + " from version " + oldVersion + " to version " + newVersion); //NON-NLS
-            }
+            if (oldVersion > newVersion) {
+                onDowngrade(database, oldVersion, newVersion);
+            } else if (oldVersion < newVersion) {
+                if (Log.isLoggable(TAG, INFO)) {
+                    Log.i(TAG, "Upgrading database " + mName + " from version " + oldVersion + " to version " + newVersion); //NON-NLS
+                }
 
-            try {
-                mMigration.upgrade(mContext, database, oldVersion, newVersion);
-            } catch (final SQLException cause) {
-                @NonNls final String message = "There was a problem updating database " + mName +
-                        " from version " + oldVersion + " to version " + newVersion;
-                Log.e(TAG, message, cause);
-                throw Legacy.wrap(message, cause);
+                try {
+                    mMigration.upgrade(mContext, database, oldVersion, newVersion);
+                } catch (final SQLException cause) {
+                    @NonNls final String message = "There was a problem updating database " + mName +
+                            " from version " + oldVersion + " to version " + newVersion;
+                    Log.e(TAG, message, cause);
+                    throw Legacy.wrap(message, cause);
+                }
             }
         }
 
@@ -227,17 +231,21 @@ public class Database {
         public final void onDowngrade(@NonNull final SQLiteDatabase database,
                                       final int oldVersion,
                                       final int newVersion) {
-            if (Log.isLoggable(TAG, INFO)) {
-                Log.i(TAG, "Downgrading database " + mName + " from version " + oldVersion + " to version " + newVersion); //NON-NLS
-            }
+            if (oldVersion < newVersion) {
+                onUpgrade(database, oldVersion, newVersion);
+            } else if (oldVersion > newVersion) {
+                if (Log.isLoggable(TAG, INFO)) {
+                    Log.i(TAG, "Downgrading database " + mName + " from version " + oldVersion + " to version " + newVersion); //NON-NLS
+                }
 
-            try {
-                mMigration.downgrade(mContext, database, oldVersion, newVersion);
-            } catch (final SQLException cause) {
-                @NonNls final String message = "There was a problem downgrading database " + mName +
-                        " from version " + oldVersion + " to version " + newVersion;
-                Log.e(TAG, message, cause);
-                throw Legacy.wrap(message, cause);
+                try {
+                    mMigration.downgrade(mContext, database, oldVersion, newVersion);
+                } catch (final SQLException cause) {
+                    @NonNls final String message = "There was a problem downgrading database " + mName +
+                            " from version " + oldVersion + " to version " + newVersion;
+                    Log.e(TAG, message, cause);
+                    throw Legacy.wrap(message, cause);
+                }
             }
         }
     }

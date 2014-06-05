@@ -19,34 +19,35 @@ package android.orm.sql;
 import android.orm.sql.statement.Select;
 import android.orm.util.Lazy;
 import android.orm.util.Legacy;
-import android.orm.util.Maybe;
-import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Pair;
 import android.util.SparseArray;
 
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import static android.orm.sql.Columns.number;
 import static android.orm.sql.statement.Select.Order.Type.Ascending;
 import static android.orm.sql.statement.Select.order;
-import static android.orm.util.Maybes.nothing;
-import static android.orm.util.Maybes.something;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 
-public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
+public class Table<K> {
 
     public static final Column<Long> ROW_ID = number("_ROWID_").asNotNull();
 
     private static final Set<Column<?>> NO_COLUMNS = emptySet();
     private static final SparseArray<Set<Column<?>>> NO_COLUMNS_BY_VERSION = new SparseArray<>();
+    private static final List<ForeignKey<?>> NO_FOREIGN_KEYS = emptyList();
+    private static final SparseArray<List<ForeignKey<?>>> NO_FOREIGN_KEYS_BY_VERSION = new SparseArray<>();
     private static final Select.Order DEFAULT_ORDER = order(ROW_ID, Ascending);
 
     // TODO logging
@@ -58,35 +59,46 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
     @NonNull
     private final SparseArray<Set<Column<?>>> mColumnsByVersion;
     @NonNull
-    private final Lazy<Set<Column<?>>> mColumns;
-    @NonNull
     private final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> mColumnsAtVersion;
-    @Nullable
-    private final Select.Projection mProjection;
+    @NotNull
+    private final SparseArray<List<ForeignKey<?>>> mForeignKeysByVersion;
+    @NonNull
+    private final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> mForeignKeysAtVersion;
     @NonNull
     private final Select.Order mOrder;
     @Nullable
     private final PrimaryKey<K> mPrimaryKey;
 
     private Table(@NonNls @NonNull final String name, final int version) {
-        this(name, version, NO_COLUMNS_BY_VERSION, null, null, null);
+        this(name, version, NO_COLUMNS_BY_VERSION, new ColumnsAtVersion(NO_COLUMNS_BY_VERSION), NO_FOREIGN_KEYS_BY_VERSION, new ForeignKeysAtVersion(NO_FOREIGN_KEYS_BY_VERSION), null, null);
     }
 
     private Table(@NonNls @NonNull final String name,
                   final int version,
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
-                  @Nullable final Select.Projection projection,
+                  @NotNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
+                  @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> foreignKeysAtVersion,
                   @Nullable final Select.Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
-        this(name, version, columnsByVersion, columns(columnsByVersion), columnsAtVersion(columnsByVersion), projection, order, primaryKey);
+        this(name, version, columnsByVersion, new ColumnsAtVersion(columnsByVersion), foreignKeysByVersion, foreignKeysAtVersion, order, primaryKey);
     }
 
     private Table(@NonNls @NonNull final String name,
                   final int version,
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
-                  @NonNull final Lazy<Set<Column<?>>> columns,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
-                  @Nullable final Select.Projection projection,
+                  @NotNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
+                  @Nullable final Select.Order order,
+                  @Nullable final PrimaryKey<K> primaryKey) {
+        this(name, version, columnsByVersion, columnsAtVersion, foreignKeysByVersion, new ForeignKeysAtVersion(foreignKeysByVersion), order, primaryKey);
+    }
+
+    private Table(@NonNls @NonNull final String name,
+                  final int version,
+                  @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
+                  @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
+                  @NotNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
+                  @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> foreignKeysAtVersion,
                   @Nullable final Select.Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
         super();
@@ -94,16 +106,15 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         mName = name;
         mVersion = version;
         mColumnsByVersion = columnsByVersion;
-        mColumns = columns;
         mColumnsAtVersion = columnsAtVersion;
-        mProjection = projection;
+        mForeignKeysByVersion = foreignKeysByVersion;
+        mForeignKeysAtVersion = foreignKeysAtVersion;
         mOrder = (order == null) ? DEFAULT_ORDER : order;
         mPrimaryKey = primaryKey;
     }
 
     @NonNls
     @NonNull
-    @Override
     public final String getName() {
         return mName;
     }
@@ -131,10 +142,23 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         return result;
     }
 
-    @NonNull
-    @Override
-    public final Select.Projection getProjection() {
-        return (mProjection == null) ? Select.Projection.All : mProjection;
+    @NotNull
+    public final List<ForeignKey<?>> getForeignKeys(final int version) {
+        final Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>> data = mForeignKeysAtVersion.get();
+        final int min = data.first.first;
+        final int max = data.first.second;
+        final SparseArray<List<ForeignKey<?>>> foreignKeys = data.second;
+        final List<ForeignKey<?>> result;
+
+        if (version < min) {
+            result = NO_FOREIGN_KEYS;
+        } else {
+            result = (version > max) ?
+                    unmodifiableList(foreignKeys.get(max, NO_FOREIGN_KEYS)) :
+                    unmodifiableList(foreignKeys.get(version, NO_FOREIGN_KEYS));
+        }
+
+        return result;
     }
 
     @NonNull
@@ -148,48 +172,6 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
     }
 
     @NonNull
-    @Override
-    public final Maybe<Map<String, Object>> read(@NonNull final Readable input) {
-        final Set<Column<?>> columns = mColumns.get();
-        final Map<String, Object> map = new HashMap<>(columns.size());
-
-        for (final Column<?> column : columns) {
-            final Maybe<?> value = column.read(input);
-            if (value.isSomething()) {
-                map.put(column.getName(), value.get());
-            }
-        }
-
-        return (map.isEmpty()) ?
-                Maybes.<Map<String, Object>>nothing() :
-                something(map);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public final void write(@Value.Write.Operation final int operation,
-                            @NonNull final Maybe<Map<String, Object>> values,
-                            @NonNull final Writable output) {
-        final Set<Column<?>> columns = mColumns.get();
-        if (values.isSomething()) {
-            final Map<String, Object> map = values.get();
-            for (final Column<?> column : columns) {
-                final String name = column.getName();
-                final Maybe<Object> value = something(
-                        ((map != null) && map.containsKey(name)) ?
-                                map.get(name) :
-                                null
-                );
-                ((Value.Write<Object>) column).write(operation, value, output);
-            }
-        } else {
-            for (final Column<?> column : columns) {
-                ((Value.Write<Object>) column).write(operation, nothing(), output);
-            }
-        }
-    }
-
-    @NonNull
     public final <V> Table<K> with(@NonNull final Column<V> column) {
         return with(mVersion, column);
     }
@@ -200,21 +182,19 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
             throw new IllegalArgumentException("Version is less than table version " + mVersion);
         }
 
-        final Select.Projection projection = (mProjection == null) ?
-                column.getProjection() :
-                mProjection.and(column.getProjection());
-        final SparseArray<Set<Column<?>>> columnsByVersion = Legacy.clone(mColumnsByVersion);
-        Set<Column<?>> atVersion = columnsByVersion.get(version);
+        final SparseArray<Set<Column<?>>> columns = Legacy.clone(mColumnsByVersion);
+        Set<Column<?>> atVersion = columns.get(version);
         if (atVersion == null) {
             atVersion = new HashSet<>();
-            columnsByVersion.put(version, atVersion);
+            columns.put(version, atVersion);
         }
         atVersion.add(column);
 
         return new Table<>(mName,
                 mVersion,
-                columnsByVersion,
-                projection,
+                columns,
+                mForeignKeysByVersion,
+                mForeignKeysAtVersion,
                 mOrder,
                 mPrimaryKey);
     }
@@ -223,23 +203,53 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         return new Table<>(mName,
                 mVersion,
                 mColumnsByVersion,
-                mColumns,
                 mColumnsAtVersion,
-                mProjection,
+                mForeignKeysByVersion,
+                mForeignKeysAtVersion,
                 order,
                 mPrimaryKey);
     }
+
 
     @NonNull
     public final <V> Table<V> with(@NonNull final PrimaryKey<V> primaryKey) {
         return new Table<>(mName,
                 mVersion,
                 mColumnsByVersion,
-                mColumns,
                 mColumnsAtVersion,
-                mProjection,
+                mForeignKeysByVersion,
+                mForeignKeysAtVersion,
                 mOrder,
                 primaryKey);
+    }
+
+    @NonNull
+    public final <V> Table<K> with(@NonNull final ForeignKey<V> foreignKey) {
+        return with(mVersion, foreignKey);
+    }
+
+    @NonNull
+    public final <V> Table<K> with(final int version, @NonNull final ForeignKey<V> foreignKey) {
+        if (version < mVersion) {
+            throw new IllegalArgumentException("Version is less than table version " + mVersion);
+        }
+
+        final SparseArray<List<ForeignKey<?>>> foreignKeys = Legacy.clone(mForeignKeysByVersion);
+        List<ForeignKey<?>> atVersion = foreignKeys.get(version);
+        if (atVersion == null) {
+            atVersion = new ArrayList<>();
+            foreignKeys.put(version, atVersion);
+        }
+        atVersion.add(foreignKey);
+
+        return new Table<>(mName,
+                mVersion,
+                mColumnsByVersion,
+                mColumnsAtVersion,
+                foreignKeys,
+                mOrder,
+                mPrimaryKey);
+
     }
 
     @Override
@@ -248,7 +258,7 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
         if (!result && (object != null) && (getClass() == object.getClass())) {
             final Table<?> other = (Table<?>) object;
-            result = mName.equals(other.mName) && mColumns.get().equals(other.mColumns.get());
+            result = mName.equals(other.mName);
         }
 
         return result;
@@ -265,61 +275,97 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         return new Table<>(name, version);
     }
 
-    @NonNull
-    private static Lazy<Set<Column<?>>> columns(@NonNull final SparseArray<Set<Column<?>>> columnsByVersion) {
-        return new Lazy.Volatile<Set<Column<?>>>() {
-            @NonNull
-            @Override
-            protected Set<Column<?>> produce() {
-                final Set<Column<?>> result = new HashSet<>();
+    private static class ColumnsAtVersion extends Lazy.Volatile<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> {
 
-                final int size = columnsByVersion.size();
-                for (int i = 0; i < size; i++) {
-                    result.addAll(columnsByVersion.valueAt(i));
+        @NonNull
+        private final SparseArray<Set<Column<?>>> mColumnsByVersion;
+
+        private ColumnsAtVersion(@NonNull final SparseArray<Set<Column<?>>> columnsByVersion) {
+            super();
+
+            mColumnsByVersion = columnsByVersion;
+        }
+
+        @NonNull
+        @Override
+        protected final Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>> produce() {
+            final int size = mColumnsByVersion.size();
+            final SparseArray<Set<Column<?>>> result = new SparseArray<>(size);
+            int min = Integer.MAX_VALUE;
+            int max = Integer.MIN_VALUE;
+
+            for (int i = 0; i < size; i++) {
+                final int version = mColumnsByVersion.keyAt(i);
+                if (version < min) {
+                    min = version;
                 }
-
-                return result;
+                if (max < version) {
+                    max = version;
+                }
             }
-        };
+
+            for (int i = min; i <= max; i++) {
+                final Set<Column<?>> columns = mColumnsByVersion.get(i);
+                if (columns != null) {
+                    for (int version = i; version <= max; version++) {
+                        Set<Column<?>> atVersion = result.get(version);
+                        if (atVersion == null) {
+                            atVersion = new HashSet<>(columns.size());
+                            result.put(version, atVersion);
+                        }
+                        atVersion.addAll(columns);
+                    }
+                }
+            }
+
+            return Pair.create(Pair.create(min, max), result);
+        }
     }
 
-    @NonNull
-    private static Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion(@NonNull final SparseArray<Set<Column<?>>> columnsByVersion) {
-        return new Lazy.Volatile<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>>() {
-            @NonNull
-            @Override
-            protected Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>> produce() {
-                final int size = columnsByVersion.size();
-                final SparseArray<Set<Column<?>>> result = new SparseArray<>(size);
-                int min = Integer.MAX_VALUE;
-                int max = Integer.MIN_VALUE;
+    private static class ForeignKeysAtVersion extends Lazy.Volatile<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> {
 
-                for (int i = 0; i < size; i++) {
-                    final int version = columnsByVersion.keyAt(i);
-                    if (version < min) {
-                        min = version;
-                    }
-                    if (max < version) {
-                        max = version;
-                    }
+        @NonNull
+        private final SparseArray<List<ForeignKey<?>>> mForeignKeysByVersion;
+
+        private ForeignKeysAtVersion(@NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion) {
+            super();
+
+            mForeignKeysByVersion = foreignKeysByVersion;
+        }
+
+        @NonNull
+        @Override
+        protected final Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>> produce() {
+            final int size = mForeignKeysByVersion.size();
+            final SparseArray<List<ForeignKey<?>>> result = new SparseArray<>(size);
+            int min = Integer.MAX_VALUE;
+            int max = Integer.MIN_VALUE;
+
+            for (int i = 0; i < size; i++) {
+                final int version = mForeignKeysByVersion.keyAt(i);
+                if (version < min) {
+                    min = version;
                 }
-
-                for (int i = min; i <= max; i++) {
-                    final Set<Column<?>> columns = columnsByVersion.get(i);
-                    if (columns != null) {
-                        for (int version = i; version <= max; version++) {
-                            Set<Column<?>> atVersion = result.get(version);
-                            if (atVersion == null) {
-                                atVersion = new HashSet<>(columns.size());
-                                result.put(version, atVersion);
-                            }
-                            atVersion.addAll(columns);
-                        }
-                    }
+                if (max < version) {
+                    max = version;
                 }
-
-                return Pair.create(Pair.create(min, max), result);
             }
-        };
+
+            for (int i = min; i <= max; i++) {
+                final List<ForeignKey<?>> foreignKeys = mForeignKeysByVersion.get(i);
+                if (foreignKeys != null) {
+                    for (int version = i; version <= max; version++) {
+                        List<ForeignKey<?>> atVersion = result.get(version);
+                        if (atVersion == null) {
+                            atVersion = new ArrayList<>(foreignKeys.size());
+                            result.put(version, atVersion);
+                        }
+                        atVersion.addAll(foreignKeys);
+                    }
+                }
+            }
+
+            return Pair.create(Pair.create(min, max), result);
+        }
     }
 }

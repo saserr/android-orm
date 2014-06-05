@@ -22,8 +22,10 @@ import android.net.Uri;
 import android.orm.route.Match;
 import android.orm.route.Path;
 import android.orm.sql.Column;
+import android.orm.sql.ForeignKey;
 import android.orm.sql.Readable;
 import android.orm.sql.Table;
+import android.orm.sql.Value;
 import android.orm.sql.statement.Select;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -227,9 +229,15 @@ public abstract class Route {
         }
 
         @NonNull
-        public final Dir dir(@NonNull final Item itemRoute,
-                             @NonNull final Column.Reference reference) {
-            final Path path = path(reference.getTable().getName())
+        public final <R> Dir dir(@NonNull final Item itemRoute,
+                                 @NonNull final ForeignKey<R> foreignKey) {
+            final Value.Read<R> child = foreignKey.getChildKey();
+            if (!(child instanceof Column)) {
+                throw new IllegalArgumentException("Reference must be a single column");
+            }
+            final Column<R> reference = (Column<R>) child;
+
+            final Path path = path(foreignKey.getParentTable().getName())
                     .slash(reference)
                     .slash(itemRoute.getTable().getName());
             return dir(itemRoute, path);
@@ -266,32 +274,43 @@ public abstract class Route {
         }
 
         @NonNull
-        public final <K> Item item(@NonNull final Column.Reference reference,
-                                   @NonNull final Table<K> table) {
+        public final <R, K> Item item(@NonNull final ForeignKey<R> foreignKey,
+                                      @NonNull final Table<K> table) {
+            final Value.Read<R> child = foreignKey.getChildKey();
+            if (!(child instanceof Column)) {
+                throw new IllegalArgumentException("Foreign key must be a single column");
+            }
+            final Column<R> reference = (Column<R>) child;
             if (!reference.isUnique()) {
-                throw new IllegalArgumentException("Reference must be unique");
+                throw new IllegalArgumentException("Foreign key must be unique");
             }
 
-            final Path path = path(reference.getTable().getName())
+            final Path path = path(foreignKey.getParentTable().getName())
                     .slash(reference)
                     .slash(table.getName());
             return item(table, path);
         }
 
         @NonNull
-        public final <K, V> Item item(@NonNull final Column.Reference reference,
-                                      @NonNull final Table<K> table,
-                                      @NonNull final Column<V> column) {
+        public final <R, K, V> Item item(@NonNull final ForeignKey<R> foreignKey,
+                                         @NonNull final Table<K> table,
+                                         @NonNull final Column<V> column) {
+            final Value.Read<R> child = foreignKey.getChildKey();
+            if (!(child instanceof Column)) {
+                throw new IllegalArgumentException("Foreign key must be a single column");
+            }
+            final Column<R> reference = (Column<R>) child;
+
             final Item route;
 
             if (reference.isUnique()) {
-                route = item(reference, table);
+                route = item(foreignKey, table);
             } else {
                 if (!column.isUnique()) {
                     throw new IllegalArgumentException("Column must be unique");
                 }
 
-                final Path path = path(reference.getTable().getName())
+                final Path path = path(foreignKey.getParentTable().getName())
                         .slash(reference)
                         .slash(table.getName())
                         .slash(column);

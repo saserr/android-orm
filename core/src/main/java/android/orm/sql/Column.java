@@ -27,14 +27,11 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static android.orm.sql.Types.Integer;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.util.Maybes.something;
 
@@ -122,7 +119,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @Override
-    public final void write(@Operation final int operation,
+    public final void write(@Value.Write.Operation final int operation,
                             @NonNull final Maybe<V> value,
                             @NonNull final Writable output) {
         final Maybe<V> processed = process(operation, value);
@@ -142,37 +139,37 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @NonNull
-    public Column<V> asUnique() {
+    public final Column<V> asUnique() {
         return with(new Constraint.Unique<V>());
     }
 
     @NonNull
-    public Column<V> asUnique(@NonNull final ConflictResolution onConflict) {
+    public final Column<V> asUnique(@NonNull final ConflictResolution onConflict) {
         return with(new Constraint.Unique<V>(onConflict));
     }
 
     @NonNull
-    public Column<V> asNotNull() {
+    public final Column<V> asNotNull() {
         return with(new Constraint.NotNull<V>());
     }
 
     @NonNull
-    public Column<V> asNotNull(@NonNull final ConflictResolution onConflict) {
+    public final Column<V> asNotNull(@NonNull final ConflictResolution onConflict) {
         return with(new Constraint.NotNull<V>(onConflict));
     }
 
     @NonNull
-    public Column<V> withDefault(@Nullable final V value) {
+    public final Column<V> withDefault(@Nullable final V value) {
         return with(new Constraint.Default<>(mType, value));
     }
 
     @NonNull
-    public Column<V> withDefault(@Nullable final Producer<V> producer) {
+    public final Column<V> withDefault(@Nullable final Producer<V> producer) {
         return with(new Constraint.Default<>(producer));
     }
 
     @NonNull
-    public Column<V> with(@NonNull final Constraint<V> constraint) {
+    public final Column<V> with(@NonNull final Constraint<V> constraint) {
         final List<Constraint<V>> constraints = new ArrayList<>(mConstraints);
         constraints.add(constraint);
         return new Column<>(mName, mType, constraints);
@@ -234,7 +231,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @NonNull
-    private Maybe<V> process(@Operation final int operation,
+    private Maybe<V> process(@Value.Write.Operation final int operation,
                              @NonNull final Maybe<V> result) {
         Maybe<V> processed = result;
 
@@ -251,210 +248,10 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         return new Column<>(name, type);
     }
 
-    @NonNull
-    public static <K> Reference references(@NonNull final Table<K> table, @NonNull final String name) {
-        return new Reference(table, name);
-    }
-
-    public static class Reference extends Column<Long> {
-
-        public static final Type<Long> TYPE = Integer;
-
-        @NonNull
-        private final Table<?> mTable;
-        @NonNull
-        private final String mName;
-        @Nullable
-        private final Action mOnDelete;
-        @Nullable
-        private final Action mOnUpdate;
-        @NonNull
-        private final List<Constraint<Long>> mConstraints;
-
-        private <K> Reference(@NonNull final Table<K> table, @NonNull final String name) {
-            this(table, name, null, null, Collections.<Constraint<Long>>emptyList());
-        }
-
-        private <K> Reference(@NonNull final Table<K> table,
-                              @NonNls @NonNull final String name,
-                              @Nullable final Action onUpdate,
-                              @Nullable final Action onDelete,
-                              @NonNull final List<Constraint<Long>> constraints) {
-            super(name, TYPE, append(constraints, new References(table, onDelete, onUpdate)));
-
-            mTable = table;
-            mName = name;
-            mOnDelete = onDelete;
-            mOnUpdate = onUpdate;
-            mConstraints = constraints;
-        }
-
-        @NonNull
-        public final Table<?> getTable() {
-            return mTable;
-        }
-
-        @NonNull
-        public final Reference onDelete(@NonNull final Action action) {
-            return new Reference(mTable, mName, action, mOnUpdate, mConstraints);
-        }
-
-        @NonNull
-        public final Reference onUpdate(@NonNull final Action action) {
-            return new Reference(mTable, mName, mOnDelete, action, mConstraints);
-        }
-
-        @NonNull
-        @Override
-        public final Reference asUnique() {
-            return with(new Constraint.Unique<Long>());
-        }
-
-        @NonNull
-        @Override
-        public final Reference asUnique(@NonNull final ConflictResolution onConflict) {
-            return with(new Constraint.Unique<Long>(onConflict));
-        }
-
-        @NonNull
-        @Override
-        public final Reference asNotNull() {
-            return with(new Constraint.NotNull<Long>());
-        }
-
-        @NonNull
-        @Override
-        public final Reference asNotNull(@NonNull final ConflictResolution onConflict) {
-            return with(new Constraint.NotNull<Long>(onConflict));
-        }
-
-        @NonNull
-        @Override
-        public final Reference withDefault(@Nullable final Long value) {
-            return with(new Constraint.Default<>(TYPE, value));
-        }
-
-        @NonNull
-        @Override
-        public final Reference withDefault(@Nullable final Producer<Long> producer) {
-            return with(new Constraint.Default<>(producer));
-        }
-
-        @NonNull
-        @Override
-        public final Reference with(@NonNull final Constraint<Long> constraint) {
-            final List<Constraint<Long>> constraints = new ArrayList<>(mConstraints);
-            constraints.add(constraint);
-            return new Reference(mTable, mName, mOnDelete, mOnUpdate, constraints);
-        }
-
-        public interface Action extends Fragment {
-
-            @NonNls
-            @NonNull
-            @Override
-            String toSQL();
-
-            Action SetNull = new Action() {
-                @NonNls
-                @NotNull
-                @Override
-                public String toSQL() {
-                    return "set null";
-                }
-            };
-
-            Action SetDefault = new Action() {
-                @NonNls
-                @NonNull
-                @Override
-                public String toSQL() {
-                    return "set default";
-                }
-            };
-
-            Action Cascade = new Action() {
-                @NonNls
-                @NonNull
-                @Override
-                public String toSQL() {
-                    return "cascade";
-                }
-            };
-
-            Action Restrict = new Action() {
-                @NonNls
-                @NonNull
-                @Override
-                public String toSQL() {
-                    return "restrict";
-                }
-            };
-
-            Action NoAction = new Action() {
-                @NonNls
-                @NonNull
-                @Override
-                public String toSQL() {
-                    return "no action";
-                }
-            };
-        }
-
-        @NonNull
-        private static <V> List<Constraint<V>> append(@NonNull final Collection<Constraint<V>> constraints,
-                                                      @NonNull final Constraint<V> constraint) {
-            final List<Constraint<V>> result = new ArrayList<>(constraints.size() + 1);
-            result.addAll(constraints);
-            result.add(constraint);
-            return result;
-        }
-
-        private static class References implements Constraint<Long> {
-
-            @NonNls
-            @NonNull
-            private final String mSQL;
-
-            private <K> References(@NonNull final Table<K> table,
-                                   @Nullable final Action onDelete,
-                                   @Nullable final Action onUpdate) {
-                super();
-
-                @NonNls
-                final StringBuilder result = new StringBuilder();
-                result.append("references ").append(Helper.escape(table.getName()));
-
-                if (onDelete != null) {
-                    result.append(" on delete ").append(onDelete.toSQL());
-                }
-                if (onUpdate != null) {
-                    result.append(" on update ").append(onUpdate.toSQL());
-                }
-
-                mSQL = result.toString();
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<Long> beforeWrite(@Operation final int operation,
-                                                 @NonNull final Maybe<Long> value) {
-                return value;
-            }
-
-            @NonNls
-            @NonNull
-            @Override
-            public final String toSQL(@NonNull final String column) {
-                return mSQL;
-            }
-        }
-    }
-
     public interface Constraint<V> {
 
         @NonNull
-        Maybe<V> beforeWrite(@Operation final int operation,
+        Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
                              @NonNull final Maybe<V> value);
 
         @NonNls
@@ -481,7 +278,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
             @NonNull
             @Override
-            public final Maybe<V> beforeWrite(@Operation final int operation,
+            public final Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
                                               @NonNull final Maybe<V> value) {
                 return value;
             }
@@ -514,8 +311,8 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
             @NonNull
             @Override
-            public Maybe<V> beforeWrite(@Operation final int operation,
-                                        @NonNull final Maybe<V> value) {
+            public final Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
+                                              @NonNull final Maybe<V> value) {
                 if (value.isSomething() && (value.get() == null)) {
                     // TODO name
                     throw new SQLException("Value to be written cannot be null");
@@ -562,7 +359,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
             @NonNull
             @Override
-            public final Maybe<V> beforeWrite(@Operation final int operation,
+            public final Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
                                               @NonNull final Maybe<V> value) {
                 return ((operation == Insert) && value.isNothing()) ?
                         something((mProducer == null) ? null : mProducer.produce()) :

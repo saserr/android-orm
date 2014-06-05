@@ -25,6 +25,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +50,8 @@ public final class Statements {
     @NonNull
     public static <K> Statement createTable(@NonNls @NonNull final String name,
                                             @NonNull final Collection<Column<?>> columns,
-                                            @Nullable final PrimaryKey<K> primaryKey) {
+                                            @Nullable final PrimaryKey<K> primaryKey,
+                                            @NonNull final Collection<ForeignKey<?>> foreignKeys) {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException(NO_COLUMNS);
         }
@@ -63,6 +65,10 @@ public final class Statements {
 
         if (primaryKey != null) {
             result.append(primaryKey.toSQL()).append(",\n");
+        }
+
+        for (final ForeignKey<?> foreignKey : foreignKeys) {
+            result.append(foreignKey.toSQL()).append(",\n");
         }
 
         final int length = result.length();
@@ -138,13 +144,15 @@ public final class Statements {
     @NonNull
     public static <K, V> Statement renameColumn(@NonNull final Table<K> table,
                                                 @NonNls @NonNull final String oldName,
-                                                @NonNull final Column<V> column) {
-        return new RenameColumn<>(table, oldName, column);
+                                                @NonNull final Column<V> column,
+                                                @NonNull final Collection<ForeignKey<?>> foreignKeys) {
+        return new RenameColumn<>(table, oldName, column, foreignKeys);
     }
 
     @NonNull
     public static <K> Statement alterColumns(@NonNull final Table<K> table,
-                                             @NonNull final Collection<Pair<String, Column<?>>> columns) {
+                                             @NonNull final Collection<Pair<String, Column<?>>> columns,
+                                             @NonNull final Collection<ForeignKey<?>> foreignKeys) {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException(NO_COLUMNS);
         }
@@ -167,13 +175,13 @@ public final class Statements {
                 // defer foreign keys integrity check until end of the transaction
                 statement("pragma defer_foreign_keys=on;"),
                 // create a temporary table
-                createTable(temporary, remaining, primaryKey),
+                createTable(temporary, remaining, primaryKey, foreignKeys),
                 // copy data to temporary table
                 copyData(original, temporary, toTemporary),
                 // drop the original table
                 dropTable(original),
                 // recreate the original table with remaining columns
-                createTable(original, remaining, primaryKey),
+                createTable(original, remaining, primaryKey, foreignKeys),
                 // copy data from temporary table
                 copyData(temporary, original, fromTemporary),
                 // drop the temporary table
@@ -279,14 +287,15 @@ public final class Statements {
 
         private RenameColumn(@NonNls @NonNull final Table<K> table,
                              @NonNls @NonNull final String oldName,
-                             @NonNull final Column<V> column) {
+                             @NonNull final Column<V> column,
+                             @NotNull final Collection<ForeignKey<?>> foreignKeys) {
             super();
 
             mTable = table;
             mOldName = oldName;
             mColumn = column;
 
-            mStatement = alterColumns(mTable, singleton(Pair.<String, Column<?>>create(mOldName, mColumn)));
+            mStatement = alterColumns(mTable, singleton(Pair.<String, Column<?>>create(mOldName, mColumn)), foreignKeys);
         }
 
         @Override
