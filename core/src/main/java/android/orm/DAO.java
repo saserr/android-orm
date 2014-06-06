@@ -56,6 +56,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -63,6 +64,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static android.orm.model.Observer.afterRead;
 import static android.orm.model.Observer.beforeRead;
+import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 
 public class DAO {
@@ -337,84 +339,70 @@ public class DAO {
         public interface Write extends Insert, Update, Delete, android.orm.Access.Write<Result<Readable>, Result<Integer>, Result<Integer>> {
         }
 
-        public interface Single extends android.orm.Access.Read.Single, Write {
+        public interface Exists extends android.orm.Access.Exists<Result<Boolean>> {
         }
 
-        public interface Many extends android.orm.Access.Read.Many, Write {
+        public interface Query<V> extends android.orm.Access.Query.Builder<V, Result<V>>, android.orm.Access.Watchable<V> {
+
+            @NonNull
+            @Override
+            Query<V> where(@Nullable final Select.Where where);
+
+            @NonNull
+            @Override
+            Query<V> order(@Nullable final Select.Order order);
+
+            @NonNull
+            @Override
+            Result<V> execute();
+
+            interface Refreshable<V> extends Query<V> {
+
+                @NonNull
+                @Override
+                Refreshable<V> where(@Nullable final Select.Where where);
+
+                @NonNull
+                @Override
+                Refreshable<V> order(@Nullable final Select.Order order);
+
+                @NonNull
+                Refreshable<V> using(@Nullable final V v);
+            }
         }
 
-        private static final class Read {
-            private static class Builder<V> implements android.orm.Access.Read.Builder.Refreshable<V> {
+        public interface Single extends Exists, android.orm.Access.Read.Single<Result<Boolean>>, Write {
 
-                @NonNull
-                private final ReadAccess mAccess;
-                @NonNull
-                private final Reading<V> mReading;
+            @NonNull
+            @Override
+            <M> Query<M> query(@NonNull final Value.Read<M> value);
 
-                @Nullable
-                private V mValue;
-                @NonNull
-                private Select.Where mWhere = Select.Where.None;
-                @Nullable
-                private Select.Order mOrder;
+            @NonNull
+            @Override
+            <M> Query.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
 
-                private Builder(@NonNull final ReadAccess access,
-                                @NonNull final Reading<V> reading) {
-                    super();
+            @NonNull
+            @Override
+            <M> Query.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+        }
 
-                    mAccess = access;
-                    mReading = reading;
-                }
+        public interface Many extends Exists, android.orm.Access.Read.Many<Result<Boolean>>, Write {
 
-                @NonNull
-                @Override
-                public final Builder<V> where(@Nullable final Select.Where where) {
-                    mWhere = (where == null) ? Select.Where.None : where;
-                    return this;
-                }
+            @NonNull
+            @Override
+            <M> Query<M> query(@NonNull final AggregateFunction<M> function);
 
-                @NonNull
-                @Override
-                public final Builder<V> order(@Nullable final Select.Order order) {
-                    mOrder = order;
-                    return this;
-                }
+            @NonNull
+            @Override
+            <M> Query.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
 
-                @NonNull
-                @Override
-                public final Builder<V> using(@Nullable final V value) {
-                    mValue = value;
-                    return this;
-                }
+            @NonNull
+            @Override
+            <M> Query.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
 
-                @NonNull
-                @Override
-                public final Result<V> execute() {
-                    beforeRead(mValue);
-                    final Plan.Read<V> plan = (mValue == null) ?
-                            mReading.preparePlan() :
-                            mReading.preparePlan(mValue);
-                    final Result<V> result;
-
-                    if (plan.isEmpty()) {
-                        result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
-                    } else {
-                        result = mAccess.query(plan, mWhere, mOrder);
-                    }
-
-                    return result;
-                }
-
-                @NonNull
-                @Override
-                public final Cancelable watch(@NonNull final Result.Callback<? super V> callback) {
-                    return mAccess.watch(mReading, mWhere, mOrder, callback);
-                }
-            }
-
-            private Read() {
-                super();
-            }
+            @NonNull
+            @Override
+            <M> Query.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
         }
 
         private Access() {
@@ -422,7 +410,7 @@ public class DAO {
         }
     }
 
-    private class SingleAccess extends android.orm.Access.Read.Single.Base implements Access.Single {
+    private class SingleAccess implements Access.Single {
 
         @NonNull
         private final ReadAccess mReadAccess;
@@ -438,14 +426,32 @@ public class DAO {
 
         @NonNull
         @Override
+        public final Result<Boolean> exists() {
+            return exists(Select.Where.None);
+        }
+
+        @NonNull
+        @Override
         public final Result<Boolean> exists(@NonNull final Select.Where where) {
             return mReadAccess.exists(where);
         }
 
         @NonNull
         @Override
-        public final <M> android.orm.Access.Read.Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading) {
-            return new Access.Read.Builder<>(mReadAccess, reading);
+        public final <M> Access.Query<M> query(@NonNull final Value.Read<M> value) {
+            return query(single(value));
+        }
+
+        @NonNull
+        @Override
+        public final <M> Access.Query.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper) {
+            return query(single(mapper));
+        }
+
+        @NonNull
+        @Override
+        public final <M> Access.Query.Refreshable<M> query(@NonNull final Reading.Single<M> reading) {
+            return new QueryBuilder<>(mReadAccess, reading);
         }
 
         @NonNull
@@ -524,7 +530,7 @@ public class DAO {
         }
     }
 
-    private class ManyAccess extends android.orm.Access.Read.Many.Base implements Access.Many {
+    private class ManyAccess implements Access.Many {
 
         @NonNull
         private final ReadAccess mReadAccess;
@@ -540,20 +546,38 @@ public class DAO {
 
         @NonNull
         @Override
+        public final Result<Boolean> exists() {
+            return exists(Select.Where.None);
+        }
+
+        @NonNull
+        @Override
         public final Result<Boolean> exists(@NonNull final Select.Where where) {
             return mReadAccess.exists(where);
         }
 
         @NonNull
         @Override
-        public final <M> android.orm.Access.Read.Builder<M> query(@NonNull final AggregateFunction<M> function) {
-            return new Access.Read.Builder<>(mReadAccess, single(function));
+        public final <M> Access.Query.Refreshable<List<M>> query(@NonNull final Value.Read<M> value) {
+            return query(list(value));
         }
 
         @NonNull
         @Override
-        public final <M> android.orm.Access.Read.Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading) {
-            return new Access.Read.Builder<>(mReadAccess, reading);
+        public final <M> Access.Query.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
+            return query(list(mapper));
+        }
+
+        @NonNull
+        @Override
+        public final <M> Access.Query<M> query(@NonNull final AggregateFunction<M> function) {
+            return new QueryBuilder<>(mReadAccess, single(function));
+        }
+
+        @NonNull
+        @Override
+        public final <M> Access.Query.Refreshable<M> query(@NonNull final Reading.Many<M> reading) {
+            return new QueryBuilder<>(mReadAccess, reading);
         }
 
         @NonNull
@@ -786,5 +810,72 @@ public class DAO {
         int STARTED = 1;
         int PAUSED = 2;
         int STOPPED = 3;
+    }
+
+    private static class QueryBuilder<V> implements Access.Query.Refreshable<V> {
+
+        @NonNull
+        private final ReadAccess mAccess;
+        @NonNull
+        private final Reading<V> mReading;
+
+        @NonNull
+        private Select.Where mWhere = Select.Where.None;
+        @Nullable
+        private Select.Order mOrder;
+        @Nullable
+        private V mValue;
+
+        private QueryBuilder(@NonNull final ReadAccess access, @NonNull final Reading<V> reading) {
+            super();
+
+            mAccess = access;
+            mReading = reading;
+        }
+
+        @NonNull
+        @Override
+        public final QueryBuilder<V> where(@Nullable final Select.Where where) {
+            mWhere = (where == null) ? Select.Where.None : where;
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public final QueryBuilder<V> order(@Nullable final Select.Order order) {
+            mOrder = order;
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public final QueryBuilder<V> using(@Nullable final V value) {
+            mValue = value;
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public final Result<V> execute() {
+            beforeRead(mValue);
+            final Plan.Read<V> plan = (mValue == null) ?
+                    mReading.preparePlan() :
+                    mReading.preparePlan(mValue);
+            final Result<V> result;
+
+            if (plan.isEmpty()) {
+                result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
+            } else {
+                result = mAccess.query(plan, mWhere, mOrder);
+            }
+
+            return result;
+        }
+
+        @NonNull
+        @Override
+        public final Cancelable watch(@NonNull final Result.Callback<? super V> callback) {
+            return mAccess.watch(mReading, mWhere, mOrder, callback);
+        }
     }
 }

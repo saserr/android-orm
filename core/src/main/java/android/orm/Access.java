@@ -21,7 +21,6 @@ import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
-import android.orm.model.Readings;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Value;
 import android.orm.sql.statement.Select;
@@ -43,13 +42,13 @@ public final class Access {
         Cancelable watch(@NonNull final Result.Callback<? super V> callback);
     }
 
-    public interface Exists {
+    public interface Exists<R> {
 
         @NonNull
-        Result<Boolean> exists();
+        R exists();
 
         @NonNull
-        Result<Boolean> exists(@NonNull final Select.Where where);
+        R exists(@NonNull final Select.Where where);
     }
 
     public static final class Query {
@@ -57,45 +56,40 @@ public final class Access {
         public interface Single {
 
             @NonNull
-            <M> Builder<M> query(@NonNull final Value.Read<M> value);
+            <M> Builder<M, ?> query(@NonNull final Value.Read<M> value);
 
             @NonNull
-            <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
+            <M> Builder<M, ?> query(@NonNull final Mapper.Read<M> mapper);
 
             @NonNull
-            <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+            <M> Builder<M, ?> query(@NonNull final Reading.Single<M> reading);
         }
 
         public interface Many {
 
             @NonNull
-            <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+            <M> Builder<M, ?> query(@NonNull final AggregateFunction<M> function);
 
             @NonNull
-            <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+            <M> Builder<List<M>, ?> query(@NonNull final Value.Read<M> value);
 
             @NonNull
-            <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+            <M> Builder<List<M>, ?> query(@NonNull final Mapper.Read<M> mapper);
 
             @NonNull
-            <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+            <M> Builder<M, ?> query(@NonNull final Reading.Many<M> reading);
         }
 
-        public interface Builder<V> {
+        public interface Builder<V, R> {
 
             @NonNull
-            Builder<V> where(@Nullable final Select.Where where);
+            Builder<V, R> where(@Nullable final Select.Where where);
 
             @NonNull
-            Builder<V> order(@Nullable final Select.Order order);
+            Builder<V, R> order(@Nullable final Select.Order order);
 
             @NonNull
-            Result<V> execute();
-
-            interface Refreshable<V> extends Builder<V> {
-                @NonNull
-                Refreshable<V> using(@Nullable final V v);
-            }
+            R execute();
         }
 
         private Query() {
@@ -105,106 +99,10 @@ public final class Access {
 
     public static final class Read {
 
-        public interface Builder<V> extends Watchable<V>, Query.Builder<V> {
-
-            @NonNull
-            @Override
-            Builder<V> where(@Nullable final Select.Where where);
-
-            @NonNull
-            @Override
-            Builder<V> order(@Nullable final Select.Order order);
-
-            interface Refreshable<V> extends Builder<V>, Query.Builder.Refreshable<V> {
-
-                @NonNull
-                @Override
-                Read.Builder.Refreshable<V> where(@Nullable final Select.Where where);
-
-                @NonNull
-                @Override
-                Read.Builder.Refreshable<V> order(@Nullable final Select.Order order);
-
-                @NonNull
-                @Override
-                Read.Builder.Refreshable<V> using(@Nullable final V v);
-            }
+        public interface Single<E> extends Exists<E>, Query.Single {
         }
 
-        public interface Single extends Exists, Query.Single {
-
-            @NonNull
-            @Override
-            <M> Builder<M> query(@NonNull final Value.Read<M> value);
-
-            @NonNull
-            @Override
-            <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
-
-            @NonNull
-            @Override
-            <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
-
-            abstract class Base implements Single {
-
-                @NonNull
-                @Override
-                public final Result<Boolean> exists() {
-                    return exists(Select.Where.None);
-                }
-
-                @NonNull
-                @Override
-                public final <M> Builder<M> query(@NonNull final Value.Read<M> value) {
-                    return query(Readings.single(value));
-                }
-
-                @NonNull
-                @Override
-                public final <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper) {
-                    return query(Readings.single(mapper));
-                }
-            }
-        }
-
-        public interface Many extends Exists, Query.Many {
-
-            @NonNull
-            @Override
-            <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
-
-            @NonNull
-            @Override
-            <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
-
-            @NonNull
-            @Override
-            <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
-
-            @NonNull
-            @Override
-            <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
-
-            abstract class Base implements Many {
-
-                @NonNull
-                @Override
-                public final Result<Boolean> exists() {
-                    return exists(Select.Where.None);
-                }
-
-                @NonNull
-                @Override
-                public final <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value) {
-                    return query(Readings.list(value));
-                }
-
-                @NonNull
-                @Override
-                public final <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
-                    return query(Readings.list(mapper));
-                }
-            }
+        public interface Many<E> extends Exists<E>, Query.Many {
         }
 
         private Read() {
@@ -296,13 +194,6 @@ public final class Access {
             }
 
             @NonNull
-            protected final <M> U update(@NonNull final M model,
-                                         @NonNull final Plan.Write plan) {
-                beforeUpdate(model);
-                return update(model, Select.Where.None, plan);
-            }
-
-            @NonNull
             @Override
             public final <M extends Instance.Writable> U update(@NonNull final M model) {
                 beforeUpdate(model);
@@ -355,6 +246,11 @@ public final class Access {
             @Override
             public final D delete() {
                 return delete(Select.Where.None);
+            }
+
+            @NonNull
+            private <M> U update(@NonNull final M model, @NonNull final Plan.Write plan) {
+                return update(model, Select.Where.None, plan);
             }
         }
     }

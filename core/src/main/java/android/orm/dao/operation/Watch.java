@@ -168,7 +168,7 @@ public class Watch<V> {
         }
 
         @Override
-        public void onResult(@NonNull final Maybe<Producer<Maybe<T>>> value) {
+        public final void onResult(@NonNull final Maybe<Producer<Maybe<T>>> value) {
             final Maybe<T> current = value.flatMap(mProduce);
 
             if (current.isSomething()) {
@@ -187,7 +187,7 @@ public class Watch<V> {
         }
 
         @Override
-        public void onError(@NonNull final Throwable error) {
+        public final void onError(@NonNull final Throwable error) {
             Log.w(TAG, "Error while querying for watcher", error); //NON-NLS
         }
 
