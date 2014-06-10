@@ -32,7 +32,7 @@ android {
         versionName project.versionName
         minSdkVersion project.minSdkVersion
         targetSdkVersion project.targetSdkVersion
-        packageName project.rootPackage + ".gson"
+        applicationId project.rootPackage + ".gson"
     }
 
     compileOptions {

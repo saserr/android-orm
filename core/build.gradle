@@ -32,7 +32,7 @@ android {
         versionName project.versionName
         minSdkVersion project.minSdkVersion
         targetSdkVersion project.targetSdkVersion
-        packageName project.rootPackage + ".core"
+        applicationId project.rootPackage + ".core"
     }
 
     compileOptions {

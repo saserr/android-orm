@@ -32,7 +32,7 @@ android {
         versionName project.versionName
         minSdkVersion project.minSdkVersion
         targetSdkVersion project.targetSdkVersion
-        packageName project.rootPackage + ".joda"
+        applicationId project.rootPackage + ".joda"
     }
 
     compileOptions {

@@ -31,7 +31,7 @@ android {
         versionName project.versionName
         minSdkVersion 11
         targetSdkVersion project.targetSdkVersion
-        packageName project.rootPackage + ".playground"
+        applicationId project.rootPackage + ".playground"
     }
 
     compileOptions {

@@ -32,7 +32,7 @@ android {
         versionName "1.0"
         minSdkVersion 7
         targetSdkVersion project.targetSdkVersion
-        packageName project.rootPackage + ".tasks"
+        applicationId project.rootPackage + ".tasks"
     }
 
     compileOptions {
