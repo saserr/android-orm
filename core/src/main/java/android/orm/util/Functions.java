@@ -17,8 +17,20 @@
 package android.orm.util;
 
 import android.support.annotation.NonNull;
+import android.util.Pair;
 
 public final class Functions {
+
+    @NonNull
+    public static <V, T> Function<V, T> singleton(@NonNull final T value) {
+        return new Singleton<>(value);
+    }
+
+    @NonNull
+    public static <V, T, U> Function<V, Pair<T, U>> combine(@NonNull final Function<V, T> first,
+                                                            @NonNull final Function<? super V, ? extends U> second) {
+        return new Combination<>(first, second);
+    }
 
     @NonNull
     public static <V, T, U> Function<V, U> compose(@NonNull final Function<V, T> first,
@@ -30,6 +42,46 @@ public final class Functions {
     @SuppressWarnings("unchecked")
     public static <V, T> Function<V, T> safeCast(@NonNull final Function<? super V, ? extends T> function) {
         return (Function<V, T>) function;
+    }
+
+    private static class Singleton<V, T> extends Function.Base<V, T> {
+
+        @NonNull
+        private final T mValue;
+
+        private Singleton(@NonNull final T value) {
+            super();
+
+            mValue = value;
+        }
+
+        @NonNull
+        @Override
+        public final T invoke(@NonNull final V ignored) {
+            return mValue;
+        }
+    }
+
+    private static class Combination<V, T, U> extends Function.Base<V, Pair<T, U>> {
+
+        @NonNull
+        private final Function<V, T> mFirst;
+        @NonNull
+        private final Function<? super V, ? extends U> mSecond;
+
+        private Combination(@NonNull final Function<V, T> first,
+                            @NonNull final Function<? super V, ? extends U> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @NonNull
+        @Override
+        public final Pair<T, U> invoke(@NonNull final V value) {
+            return Pair.create(mFirst.invoke(value), mSecond.invoke(value));
+        }
     }
 
     private static class Composition<V, T, U> extends Function.Base<V, U> {
