@@ -37,27 +37,7 @@ public final class Maybes {
         @NonNull
         @Override
         public Maybe<Pair<Object, Object>> invoke(@NonNull final Pair<Maybe<Object>, Maybe<Object>> pair) {
-            final Maybe<Pair<Object, Object>> result;
-
-            if (pair.first == null) {
-                if (pair.second == null) {
-                    result = something(null);
-                } else {
-                    result = pair.second.isSomething() ?
-                            something(Pair.create(null, pair.second.get())) :
-                            Maybes.<Pair<Object, Object>>nothing();
-                }
-            } else {
-                if (pair.second == null) {
-                    result = pair.first.isSomething() ?
-                            something(Pair.create(pair.first.get(), null)) :
-                            Maybes.<Pair<Object, Object>>nothing();
-                } else {
-                    result = pair.first.and(pair.second);
-                }
-            }
-
-            return result;
+            return pair.first.and(pair.second);
         }
     };
 
@@ -150,6 +130,18 @@ public final class Maybes {
 
         @NonNull
         @Override
+        public final <T> Maybe<T> map(@NonNull final Function<? super V, ? extends T> function) {
+            return something((mValue == null) ? null : function.invoke(mValue));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Maybe<T> flatMap(@NonNull final Function<? super V, Maybe<T>> function) {
+            return (mValue == null) ? Maybes.<T>something(null) : function.invoke(mValue);
+        }
+
+        @NonNull
+        @Override
         public final <T> Maybe<Pair<V, T>> and(@NonNull final Maybe<? extends T> other) {
             final Maybe<Pair<V, T>> result;
 
@@ -165,28 +157,16 @@ public final class Maybes {
             return result;
         }
 
+        @NonNull
+        @Override
+        public final <T extends V> Maybe<V> or(@NonNull final Maybe<T> other) {
+            return this;
+        }
+
         @Nullable
         @Override
         public final <T extends V> V getOrElse(@Nullable final T other) {
             return mValue;
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Maybe<V> orElse(@NonNull final Maybe<T> other) {
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public final <T> Maybe<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return something((mValue == null) ? null : function.invoke(mValue));
-        }
-
-        @NonNull
-        @Override
-        public final <T> Maybe<T> flatMap(@NonNull final Function<? super V, Maybe<T>> function) {
-            return (mValue == null) ? Maybes.<T>something(null) : function.invoke(mValue);
         }
 
         @Override
@@ -232,24 +212,6 @@ public final class Maybes {
 
         @NonNull
         @Override
-        public final <T> Maybe<Pair<V, T>> and(@NonNull final Maybe<? extends T> other) {
-            return nothing();
-        }
-
-        @Nullable
-        @Override
-        public final <T extends V> V getOrElse(@Nullable final T other) {
-            return other;
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Maybe<V> orElse(@NonNull final Maybe<T> other) {
-            return Maybes.<V>safeCast(other);
-        }
-
-        @NonNull
-        @Override
         public final <T> Maybe<T> map(@NonNull final Function<? super V, ? extends T> function) {
             return nothing();
         }
@@ -258,6 +220,24 @@ public final class Maybes {
         @Override
         public final <T> Maybe<T> flatMap(@NonNull final Function<? super V, Maybe<T>> function) {
             return nothing();
+        }
+
+        @NonNull
+        @Override
+        public final <T> Maybe<Pair<V, T>> and(@NonNull final Maybe<? extends T> other) {
+            return nothing();
+        }
+
+        @NonNull
+        @Override
+        public final <T extends V> Maybe<V> or(@NonNull final Maybe<T> other) {
+            return Maybes.<V>safeCast(other);
+        }
+
+        @Nullable
+        @Override
+        public final <T extends V> V getOrElse(@Nullable final T other) {
+            return other;
         }
 
         @Override

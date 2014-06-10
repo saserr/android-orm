@@ -90,7 +90,8 @@ public abstract class Route {
         mProjection = path.getProjection();
     }
 
-    protected abstract Item getItemRoute();
+    @NonNull
+    public abstract Item getItemRoute();
 
     @NonNull
     public final Manager getManager() {
@@ -100,6 +101,16 @@ public abstract class Route {
     @NonNull
     public final Table<?> getTable() {
         return mTable;
+    }
+
+    @NonNull
+    public final Select.Where getWhere(@NonNull final Object... arguments) {
+        return mWhere.and(mPath.getWhere(arguments));
+    }
+
+    @NonNull
+    public final ContentValues createValues(@NonNull final Object... arguments) {
+        return mPath.createValues(arguments);
     }
 
     @NonNls
@@ -154,8 +165,9 @@ public abstract class Route {
             mItemRoute = itemRoute;
         }
 
+        @NonNull
         @Override
-        protected final Item getItemRoute() {
+        public final Item getItemRoute() {
             return mItemRoute;
         }
     }
@@ -183,8 +195,9 @@ public abstract class Route {
             mItemRoute = itemRoute;
         }
 
+        @NonNull
         @Override
-        protected final Item getItemRoute() {
+        public final Item getItemRoute() {
             return mItemRoute;
         }
     }

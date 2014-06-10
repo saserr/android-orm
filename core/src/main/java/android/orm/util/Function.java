@@ -25,23 +25,23 @@ public interface Function<V, R> {
     R invoke(@NonNull final V v);
 
     @NonNull
-    <T> Function<V, Pair<R, T>> and(@NonNull final Function<? super V, ? extends T> other);
+    <T> Function<V, T> compose(@NonNull final Function<? super R, ? extends T> other);
 
     @NonNull
-    <T> Function<V, T> compose(@NonNull final Function<? super R, ? extends T> other);
+    <T> Function<V, Pair<R, T>> and(@NonNull final Function<? super V, ? extends T> other);
 
     abstract class Base<V, R> implements Function<V, R> {
 
         @NonNull
         @Override
-        public final <T> Function<V, Pair<R, T>> and(@NonNull final Function<? super V, ? extends T> other) {
-            return Functions.combine(this, other);
+        public final <T> Function<V, T> compose(@NonNull final Function<? super R, ? extends T> other) {
+            return Functions.compose(this, other);
         }
 
         @NonNull
         @Override
-        public final <T> Function<V, T> compose(@NonNull final Function<? super R, ? extends T> other) {
-            return Functions.compose(this, other);
+        public final <T> Function<V, Pair<R, T>> and(@NonNull final Function<? super V, ? extends T> other) {
+            return Functions.combine(this, other);
         }
     }
 }

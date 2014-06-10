@@ -14,33 +14,35 @@
  * limitations under the License.
  */
 
-package android.orm.dao.operation;
+package android.orm.dao.remote;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.orm.sql.Writer;
+import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.util.Pair;
 
-import static android.orm.sql.Value.Write.Operation.Insert;
+import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Insert extends Function.Base<Writer, Maybe<Uri>> {
+public class Update extends Function.Base<Pair<Writer, Select.Where>, Maybe<Integer>> {
 
-    private static final String TAG = Insert.class.getSimpleName();
+    private static final String TAG = Update.class.getSimpleName();
 
     @NonNull
     private final ContentResolver mResolver;
     @NonNull
     private final Uri mUri;
 
-    public Insert(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
+    public Update(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
         super();
 
         mResolver = resolver;
@@ -49,14 +51,21 @@ public class Insert extends Function.Base<Writer, Maybe<Uri>> {
 
     @NonNull
     @Override
-    public final Maybe<Uri> invoke(@NonNull final Writer writer) {
+    public final Maybe<Integer> invoke(@NonNull final Pair<Writer, Select.Where> pair) {
         final ContentValues values = new ContentValues();
-        writer.write(Insert, writable(values));
-        if ((values.size() <= 0) && Log.isLoggable(TAG, INFO)) {
-            Log.i(TAG, "An empty row will be written"); //NON-NLS
+        pair.first.write(Update, writable(values));
+
+        final int updated;
+
+        if (values.size() > 0) {
+            updated = mResolver.update(mUri, values, pair.second.toSQL(), null);
+        } else {
+            updated = 0;
+            if (Log.isLoggable(TAG, INFO)) {
+                Log.i(TAG, "Nothing was updated"); //NON-NLS
+            }
         }
 
-        final Uri uri = mResolver.insert(mUri, values);
-        return (uri == null) ? Maybes.<Uri>nothing() : something(uri);
+        return (updated > 0) ? something(updated) : Maybes.<Integer>nothing();
     }
 }

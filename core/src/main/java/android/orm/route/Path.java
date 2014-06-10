@@ -48,7 +48,10 @@ public class Path {
     );
 
     @NonNls
+    private static final MessageFormat WRONG_ARGUMENTS_ERROR = new MessageFormat("Wrong number of arguments (expected {0}, given {1})");
+    @NonNls
     private static final String WRONG_PATH_ERROR = "Given uri path has wrong number of segments";
+    private static final Object[] NO_ARGUMENTS = new Object[0];
 
     @NonNull
     private final List<Segment> mSegments;
@@ -77,15 +80,21 @@ public class Path {
     }
 
     @NonNull
-    @SuppressWarnings("unchecked")
     public final Select.Where getWhere(@NonNull final Uri uri) {
-        Select.Where where = Select.Where.None;
-        final Object[] arguments = parseArguments(uri);
+        return getWhere(parseArguments(uri));
+    }
 
-        if (arguments != null) {
-            for (int i = 0; i < mWhere.length; i++) {
-                where = where.and(((Select.Where.Builder<Object>) mWhere[i]).build(arguments[i]));
-            }
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public final Select.Where getWhere(@NonNull final Object... arguments) {
+        if (mWhere.length != arguments.length) {
+            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mWhere.length, arguments.length}));
+        }
+
+        Select.Where where = Select.Where.None;
+
+        for (int i = 0; i < mWhere.length; i++) {
+            where = where.and(((Select.Where.Builder<Object>) mWhere[i]).build(arguments[i]));
         }
 
         return where;
@@ -155,7 +164,7 @@ public class Path {
     @NonNull
     public final String createConcretePath(@NonNull final Object... arguments) {
         if (mArguments.size() != arguments.length) {
-            throw new IllegalArgumentException(MessageFormat.format("Wrong number of arguments (expected {0})", mArguments.size())); //NON-NLS
+            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mArguments.size(), arguments.length}));
         }
 
         final StringBuilder result = new StringBuilder();
@@ -171,23 +180,28 @@ public class Path {
     }
 
     @NonNull
-    public final ContentValues parseValues(@NonNull final Uri uri) {
-        final List<String> segments = uri.getPathSegments();
-        if ((segments == null) || (mSegments.size() != segments.size())) {
-            throw new IllegalArgumentException(WRONG_PATH_ERROR);
+    @SuppressWarnings("unchecked")
+    public final ContentValues createValues(@NonNull final Object... arguments) {
+        if (mArguments.size() != arguments.length) {
+            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mArguments.size(), arguments.length}));
         }
 
         final ContentValues result = new ContentValues();
-        final Writable output = writable(result);
 
-        final int count = mArguments.size();
-        if (count > 0) {
-            for (int i = 0; i < count; i++) {
-                mArguments.valueAt(i).write(Insert, segments.get(mArguments.keyAt(i)), output);
+        final int length = arguments.length;
+        if (length > 0) {
+            final Writable output = writable(result);
+            for (int i = 0; i < length; i++) {
+                ((Segment.Argument<Object>) mArguments.valueAt(i)).write(Insert, arguments[i], output);
             }
         }
 
         return result;
+    }
+
+    @NonNull
+    public final ContentValues parseValues(@NonNull final Uri uri) {
+        return createValues(parseArguments(uri));
     }
 
     @Override
@@ -214,14 +228,14 @@ public class Path {
         return mPath;
     }
 
-    @Nullable
+    @NonNull
     private Object[] parseArguments(@NonNull final Uri uri) {
         final List<String> segments = uri.getPathSegments();
         if ((segments == null) || (mSegments.size() != segments.size())) {
             throw new IllegalArgumentException(WRONG_PATH_ERROR);
         }
 
-        @org.jetbrains.annotations.Nullable final Object[] arguments;
+        final Object[] arguments;
 
         final int count = mArguments.size();
         if (count > 0) {
@@ -230,7 +244,7 @@ public class Path {
                 arguments[i] = mArguments.valueAt(i).fromString(segments.get(mArguments.keyAt(i)));
             }
         } else {
-            arguments = null;
+            arguments = NO_ARGUMENTS;
         }
 
         return arguments;

@@ -14,38 +14,35 @@
  * limitations under the License.
  */
 
-package android.orm.dao;
+package android.orm.dao.remote;
 
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.orm.Route;
-import android.orm.dao.operation.Apply;
 import android.orm.model.Plan;
 import android.orm.sql.Writer;
 import android.orm.sql.statement.Select;
-import android.orm.util.Function;
-import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.sql.Writables.writable;
 import static java.lang.System.arraycopy;
 
-public abstract class Transaction {
+public class Transaction {
 
     @NonNull
-    private final Apply mApply;
+    private final Executor mExecutor;
 
     @NonNls
     @Nullable
@@ -53,15 +50,11 @@ public abstract class Transaction {
     @NonNull
     private Collection<Producer<ContentProviderOperation>> mBatch = new ArrayList<>();
 
-    protected Transaction(@NonNull final Apply apply) {
+    public Transaction(@NonNull final Executor executor) {
         super();
 
-        mApply = apply;
+        mExecutor = executor;
     }
-
-    @NonNull
-    protected abstract <V, T> android.orm.access.Result<T> execute(@NonNull final V value,
-                                                                   @NonNull final Function<V, Maybe<T>> function);
 
     @NonNull
     public final Access at(@NonNull final Route route, @NonNull final Object... arguments) {
@@ -71,13 +64,19 @@ public abstract class Transaction {
     public final android.orm.access.Result<Result> commit() {
         final android.orm.access.Result<Result> result = ((mAuthority == null) || mBatch.isEmpty()) ?
                 android.orm.access.Result.<Result>nothing() :
-                execute(Pair.create(mAuthority, mBatch), mApply);
+                mExecutor.execute(mAuthority, Collections.unmodifiableCollection(mBatch));
         mAuthority = null;
         mBatch = new ArrayList<>();
         return result;
     }
 
     public interface Access extends android.orm.Access.Write<Access, Access, Access> {
+    }
+
+    public interface Executor {
+        @NonNull
+        android.orm.access.Result<Result> execute(@NonNull final String authority,
+                                                  @NonNull final Collection<Producer<ContentProviderOperation>> batch);
     }
 
     private class WriteAccess extends android.orm.Access.Write.Base<Access, Access, Access> implements Access {

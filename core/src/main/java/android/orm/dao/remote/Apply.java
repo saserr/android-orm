@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package android.orm.dao.operation;
+package android.orm.dao.remote;
 
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.OperationApplicationException;
-import android.orm.dao.Transaction;
 import android.orm.util.Function;
 import android.orm.util.Legacy;
 import android.orm.util.Maybe;

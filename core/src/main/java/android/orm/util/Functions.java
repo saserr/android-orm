@@ -27,15 +27,15 @@ public final class Functions {
     }
 
     @NonNull
-    public static <V, T, U> Function<V, Pair<T, U>> combine(@NonNull final Function<V, T> first,
-                                                            @NonNull final Function<? super V, ? extends U> second) {
-        return new Combination<>(first, second);
-    }
-
-    @NonNull
     public static <V, T, U> Function<V, U> compose(@NonNull final Function<V, T> first,
                                                    @NonNull final Function<? super T, ? extends U> second) {
         return new Composition<>(first, second);
+    }
+
+    @NonNull
+    public static <V, T, U> Function<V, Pair<T, U>> combine(@NonNull final Function<V, T> first,
+                                                            @NonNull final Function<? super V, ? extends U> second) {
+        return new Combination<>(first, second);
     }
 
     @NonNull
@@ -62,28 +62,6 @@ public final class Functions {
         }
     }
 
-    private static class Combination<V, T, U> extends Function.Base<V, Pair<T, U>> {
-
-        @NonNull
-        private final Function<V, T> mFirst;
-        @NonNull
-        private final Function<? super V, ? extends U> mSecond;
-
-        private Combination(@NonNull final Function<V, T> first,
-                            @NonNull final Function<? super V, ? extends U> second) {
-            super();
-
-            mFirst = first;
-            mSecond = second;
-        }
-
-        @NonNull
-        @Override
-        public final Pair<T, U> invoke(@NonNull final V value) {
-            return Pair.create(mFirst.invoke(value), mSecond.invoke(value));
-        }
-    }
-
     private static class Composition<V, T, U> extends Function.Base<V, U> {
 
         @NonNull
@@ -103,6 +81,28 @@ public final class Functions {
         @Override
         public final U invoke(@NonNull final V value) {
             return mSecond.invoke(mFirst.invoke(value));
+        }
+    }
+
+    private static class Combination<V, T, U> extends Function.Base<V, Pair<T, U>> {
+
+        @NonNull
+        private final Function<V, T> mFirst;
+        @NonNull
+        private final Function<? super V, ? extends U> mSecond;
+
+        private Combination(@NonNull final Function<V, T> first,
+                            @NonNull final Function<? super V, ? extends U> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @NonNull
+        @Override
+        public final Pair<T, U> invoke(@NonNull final V value) {
+            return Pair.create(mFirst.invoke(value), mSecond.invoke(value));
         }
     }
 

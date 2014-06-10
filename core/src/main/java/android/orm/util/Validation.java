@@ -95,12 +95,6 @@ public interface Validation<V> {
         V get();
 
         @NonNull
-        V orElse(@NonNull final V other);
-
-        @NonNull
-        <T extends V> Result<V> orElse(@NonNull final Result<T> other);
-
-        @NonNull
         <T> Result<T> map(@NonNull final Function<? super V, ? extends T> function);
 
         @NonNull
@@ -108,6 +102,12 @@ public interface Validation<V> {
 
         @NonNull
         <T extends V> Result<T> and(@NonNull final Result<T> second);
+
+        @NonNull
+        V or(@NonNull final V other);
+
+        @NonNull
+        <T extends V> Result<V> or(@NonNull final Result<T> other);
 
         abstract class Valid<V> implements Result<V> {
 

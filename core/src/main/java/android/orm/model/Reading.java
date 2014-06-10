@@ -314,8 +314,7 @@ public interface Reading<M> {
                 public final Producer<Maybe<Pair<M, N>>> read(@NonNull final Readable input) {
                     final Producer<Maybe<M>> result1 = mFirst.read(input);
                     final Producer<Maybe<N>> result2 = mSecond.read(input);
-                    final Producer<Pair<Maybe<M>, Maybe<N>>> result = result1.and(result2);
-                    return result.map(Maybes.<M, N>liftPair());
+                    return result1.and(result2).map(Maybes.<M, N>liftPair());
                 }
             }
 

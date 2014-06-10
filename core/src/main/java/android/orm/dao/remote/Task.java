@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.dao;
+package android.orm.dao.remote;
 
 import android.orm.util.Function;
 import android.orm.util.Future;

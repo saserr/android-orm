@@ -30,17 +30,17 @@ public interface Maybe<V> {
     V get();
 
     @NonNull
-    <T> Maybe<Pair<V, T>> and(@NonNull final Maybe<? extends T> other);
-
-    @Nullable
-    <T extends V> V getOrElse(@Nullable final T other);
-
-    @NonNull
-    <T extends V> Maybe<V> orElse(@NonNull final Maybe<T> other);
-
-    @NonNull
     <T> Maybe<T> map(@NonNull final Function<? super V, ? extends T> function);
 
     @NonNull
     <T> Maybe<T> flatMap(@NonNull final Function<? super V, Maybe<T>> function);
+
+    @NonNull
+    <T> Maybe<Pair<V, T>> and(@NonNull final Maybe<? extends T> other);
+
+    @NonNull
+    <T extends V> Maybe<V> or(@NonNull final Maybe<T> other);
+
+    @Nullable
+    <T extends V> V getOrElse(@Nullable final T other);
 }

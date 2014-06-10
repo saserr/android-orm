@@ -14,26 +14,28 @@
  * limitations under the License.
  */
 
-package android.orm.dao.operation;
+package android.orm.dao.remote;
 
 import android.content.ContentResolver;
+import android.database.Cursor;
 import android.net.Uri;
 import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
-import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Delete extends Function.Base<Select.Where, Maybe<Integer>> {
+public class Exists extends Function.Base<Select.Where, Maybe<Boolean>> {
+
+    private static final String[] PROJECTION = {"1"};
 
     @NonNull
     private final ContentResolver mResolver;
     @NonNull
     private final Uri mUri;
 
-    public Delete(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
+    public Exists(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
         super();
 
         mResolver = resolver;
@@ -42,8 +44,19 @@ public class Delete extends Function.Base<Select.Where, Maybe<Integer>> {
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final Select.Where where) {
-        final int deleted = mResolver.delete(mUri, where.toSQL(), null);
-        return (deleted > 0) ? something(deleted) : Maybes.<Integer>nothing();
+    public final Maybe<Boolean> invoke(@NonNull final Select.Where where) {
+        final Maybe<Boolean> result;
+
+        Cursor cursor = null;
+        try {
+            cursor = mResolver.query(mUri, PROJECTION, where.toSQL(), null, null);
+            result = something((cursor != null) && (cursor.getCount() > 0));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return result;
     }
 }

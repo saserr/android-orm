@@ -19,6 +19,7 @@ package android.orm.tasks;
 import android.content.res.Resources;
 import android.orm.DAO;
 import android.orm.access.Result;
+import android.orm.tasks.data.Provider;
 import android.orm.tasks.model.Task;
 import android.orm.tasks.view.Form;
 import android.orm.tasks.view.List;
@@ -105,7 +106,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     protected final void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mDAO = new DAO(this);
+        mDAO = DAO.local(this, Provider.DATABASE);
         mTasks = mDAO.at(Tasks);
 
         setContentView(R.layout.activity);

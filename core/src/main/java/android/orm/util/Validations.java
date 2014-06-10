@@ -364,18 +364,6 @@ public final class Validations {
 
         @NonNull
         @Override
-        public final V orElse(@NonNull final V other) {
-            return get();
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Valid<V> orElse(@NonNull final Validation.Result<T> other) {
-            return this;
-        }
-
-        @NonNull
-        @Override
         public final <T> Valid<T> map(@NonNull final Function<? super V, ? extends T> function) {
             return valid(function.invoke(mValue));
         }
@@ -390,6 +378,18 @@ public final class Validations {
         @Override
         public final <T extends V> Validation.Result<T> and(@NonNull final Validation.Result<T> second) {
             return second;
+        }
+
+        @NonNull
+        @Override
+        public final V or(@NonNull final V other) {
+            return get();
+        }
+
+        @NonNull
+        @Override
+        public final <T extends V> Valid<V> or(@NonNull final Validation.Result<T> other) {
+            return this;
         }
     }
 
@@ -420,18 +420,6 @@ public final class Validations {
 
         @NonNull
         @Override
-        public final V orElse(@NonNull final V other) {
-            return other;
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Validation.Result<V> orElse(@NonNull final Validation.Result<T> other) {
-            return Validations.<V>safeCast(other);
-        }
-
-        @NonNull
-        @Override
         public final <T> Invalid<T> map(@NonNull final Function<? super V, ? extends T> function) {
             return safeCast(this);
         }
@@ -448,6 +436,18 @@ public final class Validations {
             return second.isValid() ?
                     Validations.<T>safeCast(this) :
                     combine(this, (Invalid<T>) second);
+        }
+
+        @NonNull
+        @Override
+        public final V or(@NonNull final V other) {
+            return other;
+        }
+
+        @NonNull
+        @Override
+        public final <T extends V> Validation.Result<V> or(@NonNull final Validation.Result<T> other) {
+            return Validations.<V>safeCast(other);
         }
 
         private static <V, T extends V> Invalid<T> combine(@NonNull final Invalid<V> first,

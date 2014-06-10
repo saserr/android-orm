@@ -18,6 +18,7 @@ package android.orm.playground;
 
 import android.app.Activity;
 import android.app.DialogFragment;
+import android.content.Context;
 import android.orm.DAO;
 import android.orm.access.ErrorHandler;
 import android.support.annotation.NonNull;
@@ -42,11 +43,14 @@ public abstract class Fragment extends DialogFragment {
         mFactory = factory;
     }
 
+    @NonNull
+    protected abstract DAO create(@NonNull final Context context);
+
     @Override
     public final void onAttach(@NonNull final Activity activity) {
         super.onAttach(activity);
 
-        mDAO = new DAO(activity.getBaseContext());
+        mDAO = create(activity.getBaseContext());
         if (mFactory != null) {
             mDAO.setErrorHandler(mFactory.create(activity));
         }

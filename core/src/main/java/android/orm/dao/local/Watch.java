@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 the original author or authors
+ * Copyright 2014 the original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,58 +14,59 @@
  * limitations under the License.
  */
 
-package android.orm.dao.operation;
+package android.orm.dao.local;
 
 import android.content.ContentResolver;
 import android.database.ContentObserver;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.Route;
 import android.orm.access.Result;
-import android.orm.dao.Task;
+import android.orm.dao.Watcher;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.route.Match;
 import android.orm.sql.Table;
-import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Future;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
+import android.orm.util.Promise;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static android.orm.model.Observer.afterRead;
 import static android.orm.model.Observer.beforeRead;
 
-public class Watch<V> {
+public class Watch<V> implements Watcher {
 
     private final Watching<? super V, V> mWatching;
 
-    public Watch(@NonNull final Route.Manager manager,
+    public Watch(@NonNull final SQLiteOpenHelper helper,
+                 @NonNull final Route.Manager manager,
                  @NonNull final Handler handler,
                  @NonNull final ContentResolver resolver,
                  @NonNls @NonNull final Uri uri,
                  @NonNull final Reading<V> reading,
-                 @NonNull final Select.Where where,
-                 @Nullable final Select.Order order,
+                 @NonNull final Read.Arguments<V> arguments,
                  @NonNull final Result.Callback<? super V> callback) {
         super();
 
-        mWatching = new Watching<>(manager, handler, resolver, uri, reading, where, order, callback);
+        mWatching = new Watching<>(helper, manager, handler, resolver, uri, reading, arguments, callback);
     }
 
+    @Override
     public final void start() {
         new Thread(mWatching).start();
     }
 
+    @Override
     public final void stop() {
         mWatching.stop();
     }
@@ -73,18 +74,9 @@ public class Watch<V> {
     private static class Watching<V, T extends V> implements Future.Callback<Maybe<Producer<Maybe<T>>>>, Runnable {
 
         private static final String TAG = Watching.class.getSimpleName();
-        private static final Object PRODUCE = new Function.Base<Producer<Maybe<Object>>, Maybe<Object>>() {
-            @NonNull
-            @Override
-            public Maybe<Object> invoke(@NonNull final Producer<Maybe<Object>> producer) {
-                final Maybe<Object> result = producer.produce();
-                if (result.isSomething()) {
-                    afterRead(result.get());
-                }
-                return result;
-            }
-        };
 
+        @NonNull
+        private final SQLiteOpenHelper mHelper;
         @NonNull
         private final Route.Manager mRouteManager;
         @NonNull
@@ -97,21 +89,16 @@ public class Watch<V> {
         @NonNull
         private final Reading<T> mReading;
         @NonNull
-        private final Select.Where mWhere;
-        @Nullable
-        private final Select.Order mOrder;
+        private final Read.Arguments<T> mDefault;
         @NonNull
         private final Result.Callback<V> mCallback;
 
         @NonNull
         private final Table<?> mTable;
         @NonNull
-        private final AtomicReference<Plan.Read<T>> mPlan;
-        @NonNull
-        private final Function<Query.Arguments<T>, Maybe<Producer<Maybe<T>>>> mQuery;
-        @NonNull
-        private final Function<Producer<Maybe<T>>, Maybe<T>> mProduce;
+        private final AtomicReference<Read.Arguments<T>> mArguments;
 
+        private final Function<Producer<Maybe<T>>, Maybe<T>> mAfterRead = Read.afterRead();
         private final AtomicReference<Looper> mLooper = new AtomicReference<>();
 
         private final ContentObserver mObserver = new ContentObserver(new Handler()) {
@@ -136,23 +123,23 @@ public class Watch<V> {
         };
 
         @SuppressWarnings("unchecked")
-        private Watching(@NonNull final Route.Manager manager,
+        private Watching(@NonNull final SQLiteOpenHelper helper,
+                         @NonNull final Route.Manager manager,
                          @NonNull final Handler handler,
                          @NonNull final ContentResolver resolver,
                          @NonNls @NonNull final Uri uri,
                          @NonNull final Reading<T> reading,
-                         @NonNull final Select.Where where,
-                         @Nullable final Select.Order order,
+                         @NonNull final Read.Arguments<T> arguments,
                          @NonNull final Result.Callback<V> callback) {
             super();
 
+            mHelper = helper;
             mRouteManager = manager;
             mHandler = handler;
             mResolver = resolver;
             mUri = uri;
             mReading = reading;
-            mWhere = where;
-            mOrder = order;
+            mDefault = arguments;
             mCallback = callback;
 
             final Match match = manager.match(uri);
@@ -161,28 +148,27 @@ public class Watch<V> {
             }
             mTable = match.getTable();
 
-            mPlan = new AtomicReference<>(reading.preparePlan());
-            mQuery = new Query<T>(resolver, uri).compose(new Read<T>());
-
-            mProduce = (Function<Producer<Maybe<T>>, Maybe<T>>) PRODUCE;
+            mArguments = new AtomicReference<>(arguments);
         }
 
         @Override
         public final void onResult(@NonNull final Maybe<Producer<Maybe<T>>> value) {
-            final Maybe<T> current = value.flatMap(mProduce);
+            final Maybe<T> current = value.flatMap(mAfterRead);
+            final Plan.Read<T> plan;
 
             if (current.isSomething()) {
                 final T t = current.get();
                 if (t == null) {
-                    mPlan.set(mReading.preparePlan());
+                    plan = mReading.preparePlan();
                 } else {
                     beforeRead(t);
-                    mPlan.set(mReading.preparePlan(t));
+                    plan = mReading.preparePlan(t);
                 }
             } else {
-                mPlan.set(mReading.preparePlan());
+                plan = mReading.preparePlan();
             }
 
+            mArguments.set(mDefault.copy(plan));
             mCallback.onResult(Maybes.<V>safeCast(current));
         }
 
@@ -218,10 +204,9 @@ public class Watch<V> {
         }
 
         private void query() {
-            final Query.Arguments<T> arguments = new Query.Arguments<>(mPlan.get(), mWhere, mOrder);
-            final Task<Query.Arguments<T>, Maybe<Producer<Maybe<T>>>> task = new Task<>(arguments, mQuery);
-            task.getFuture().onComplete(mHandler, this);
-            task.run();
+            final Promise<Maybe<Producer<Maybe<T>>>> promise = new Promise<>();
+            promise.getFuture().onComplete(mHandler, this);
+            promise.success(new Read<>(mTable, mArguments.get()).invoke(mHelper.getReadableDatabase()));
         }
     }
 }

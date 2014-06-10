@@ -63,6 +63,11 @@ public final class Writables {
         public final void put(@NonNull final String key, @NonNull final Double value) {
             mValues.put(escape(key), value);
         }
+
+        @Override
+        public final void putAll(@NonNull final ContentValues values) {
+            mValues.putAll(values);
+        }
     }
 
     private Writables() {

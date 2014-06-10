@@ -27,15 +27,15 @@ public final class Producers {
     }
 
     @NonNull
-    public static <V, T> Producer<Pair<V, T>> compose(@NonNull final Producer<? extends V> first,
-                                                      @NonNull final Producer<? extends T> second) {
-        return new Composition<>(first, second);
-    }
-
-    @NonNull
     public static <V, T> Producer<T> convert(@NonNull final Producer<V> producer,
                                              @NonNull final Function<? super V, ? extends T> converter) {
         return new Conversion<>(producer, converter);
+    }
+
+    @NonNull
+    public static <V, T> Producer<Pair<V, T>> compose(@NonNull final Producer<? extends V> first,
+                                                      @NonNull final Producer<? extends T> second) {
+        return new Composition<>(first, second);
     }
 
     @NonNull
@@ -62,28 +62,6 @@ public final class Producers {
         }
     }
 
-    private static class Composition<V, T> extends Producer.Base<Pair<V, T>> {
-
-        @NonNull
-        private final Producer<? extends V> mFirst;
-        @NonNull
-        private final Producer<? extends T> mSecond;
-
-        private Composition(@NonNull final Producer<? extends V> first,
-                            @NonNull final Producer<? extends T> second) {
-            super();
-
-            mFirst = first;
-            mSecond = second;
-        }
-
-        @NonNull
-        @Override
-        public final Pair<V, T> produce() {
-            return Pair.create(mFirst.produce(), mSecond.produce());
-        }
-    }
-
     private static class Conversion<V, T> extends Producer.Base<T> {
 
         @NonNull
@@ -103,6 +81,28 @@ public final class Producers {
         @Override
         public final T produce() {
             return mFunction.invoke(mProducer.produce());
+        }
+    }
+
+    private static class Composition<V, T> extends Producer.Base<Pair<V, T>> {
+
+        @NonNull
+        private final Producer<? extends V> mFirst;
+        @NonNull
+        private final Producer<? extends T> mSecond;
+
+        private Composition(@NonNull final Producer<? extends V> first,
+                            @NonNull final Producer<? extends T> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @NonNull
+        @Override
+        public final Pair<V, T> produce() {
+            return Pair.create(mFirst.produce(), mSecond.produce());
         }
     }
 

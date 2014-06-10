@@ -17,6 +17,7 @@
 package android.orm.playground;
 
 import android.app.Activity;
+import android.content.Context;
 import android.orm.DAO;
 import android.orm.access.ErrorHandler;
 import android.os.Bundle;
@@ -48,11 +49,14 @@ public abstract class ListFragment<M> extends android.app.ListFragment {
         mAdapterFactory = adapterFactory;
     }
 
+    @NonNull
+    protected abstract DAO create(@NonNull final Context context);
+
     @Override
     public final void onAttach(@NonNull final Activity activity) {
         super.onAttach(activity);
 
-        mDAO = new DAO(activity.getBaseContext());
+        mDAO = create(activity.getBaseContext());
         if (mErrorHandlerFactory != null) {
             mDAO.setErrorHandler(mErrorHandlerFactory.create(activity));
         }

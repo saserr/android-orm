@@ -33,7 +33,8 @@ public class Provider extends BaseContentProvider {
 
     private static final int VERSION = 2;
     private static final Route.Manager ROUTES = new Route.Manager(BuildConfig.PACKAGE_NAME, "vnd.orm");
-    private static final Database DATABASE = new Database("tasks.db", VERSION, IntegrityChecks.Full)
+
+    public static final Database DATABASE = new Database("tasks.db", VERSION, IntegrityChecks.Full)
             .migrate(Tables.Tasks);
 
     public interface Tables {

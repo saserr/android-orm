@@ -16,6 +16,7 @@
 
 package android.orm.model;
 
+import android.content.ContentValues;
 import android.orm.sql.Readable;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
@@ -219,6 +220,25 @@ public final class Plans {
             public void write(@Value.Write.Operation final int operation,
                               @NonNull final Writable output) {
                 value.write(operation, model, output);
+            }
+        };
+    }
+
+    @NonNull
+    public static Plan.Write write(@NonNull final ContentValues values) {
+        return new Plan.Write() {
+
+            private final boolean mIsEmpty = values.size() > 0;
+
+            @Override
+            public boolean isEmpty() {
+                return mIsEmpty;
+            }
+
+            @Override
+            public void write(@Value.Write.Operation final int operation,
+                              @NonNull final Writable output) {
+                output.putAll(values);
             }
         };
     }

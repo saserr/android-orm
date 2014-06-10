@@ -117,9 +117,9 @@ public interface Segment {
         }
 
         public final void write(@Value.Write.Operation final int operation,
-                                @NonNull final String value,
+                                @NonNull final V value,
                                 @NonNull final Writable output) {
-            mColumn.write(operation, something(mColumn.fromString(value)), output);
+            mColumn.write(operation, something(value), output);
         }
 
         @NonNull

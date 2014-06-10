@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 the original author or authors
+ * Copyright 2014 the original author or authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,11 @@
  * limitations under the License.
  */
 
-package android.orm.sql;
+package android.orm.dao;
 
-import android.content.ContentValues;
-import android.support.annotation.NonNull;
+public interface Watcher {
 
-public interface Writable {
+    void start();
 
-    boolean contains(@NonNull final String key);
-
-    void putNull(@NonNull final String key);
-
-    void put(@NonNull final String key, @NonNull final String value);
-
-    void put(@NonNull final String key, @NonNull final Long value);
-
-    void put(@NonNull final String key, @NonNull final Double value);
-
-    void putAll(@NonNull final ContentValues values);
+    void stop();
 }
