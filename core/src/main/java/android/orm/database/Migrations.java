@@ -16,9 +16,7 @@
 
 package android.orm.database;
 
-import android.content.Context;
 import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Column;
 import android.orm.sql.ForeignKey;
 import android.orm.sql.Statement;
@@ -124,22 +122,20 @@ public final class Migrations {
         }
 
         @Override
-        public final void upgrade(@NonNull final Context context,
-                                  @NonNull final SQLiteDatabase database,
+        public final void upgrade(@NonNull final DAO dao,
                                   final int oldVersion,
                                   final int newVersion) {
             if ((oldVersion < mVersion) && (mVersion <= newVersion)) {
-                mUpgrade.execute(database);
+                dao.execute(mUpgrade);
             }
         }
 
         @Override
-        public final void downgrade(@NonNull final Context context,
-                                    @NonNull final SQLiteDatabase database,
+        public final void downgrade(@NonNull final DAO dao,
                                     final int oldVersion,
                                     final int newVersion) {
             if ((newVersion < mVersion) && (mVersion <= oldVersion)) {
-                mDowngrade.execute(database);
+                dao.execute(mDowngrade);
             }
         }
     }
@@ -159,31 +155,27 @@ public final class Migrations {
         }
 
         @Override
-        public final void create(@NonNull final Context context,
-                                 @NonNull final SQLiteDatabase database,
-                                 final int version) {
+        public final void create(@NonNull final DAO dao, final int version) {
             for (final Migration migration : mUp) {
-                migration.create(context, database, version);
+                migration.create(dao, version);
             }
         }
 
         @Override
-        public final void upgrade(@NonNull final Context context,
-                                  @NonNull final SQLiteDatabase database,
+        public final void upgrade(@NonNull final DAO dao,
                                   final int oldVersion,
                                   final int newVersion) {
             for (final Migration migration : mUp) {
-                migration.upgrade(context, database, oldVersion, newVersion);
+                migration.upgrade(dao, oldVersion, newVersion);
             }
         }
 
         @Override
-        public final void downgrade(@NonNull final Context context,
-                                    @NonNull final SQLiteDatabase database,
+        public final void downgrade(@NonNull final DAO dao,
                                     final int oldVersion,
                                     final int newVersion) {
             for (final Migration migration : mDown.get()) {
-                migration.downgrade(context, database, oldVersion, newVersion);
+                migration.downgrade(dao, oldVersion, newVersion);
             }
         }
 
@@ -212,9 +204,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void create(@NonNull final Context context,
-                                 @NonNull final SQLiteDatabase database,
-                                 final int version) {
+        public final void create(@NonNull final DAO dao, final int version) {
             final int createdAt = mTable.getVersion();
 
             if ((createdAt > 0) && (createdAt <= version)) {
@@ -232,20 +222,19 @@ public final class Migrations {
                     );
                 }
 
-                createTable(name, columns, mTable.getPrimaryKey(), mTable.getForeignKeys(version)).execute(database);
+                dao.execute(createTable(name, columns, mTable.getPrimaryKey(), mTable.getForeignKeys(version)));
             }
         }
 
         @Override
-        public final void upgrade(@NonNull final Context context,
-                                  @NonNull final SQLiteDatabase database,
+        public final void upgrade(@NonNull final DAO dao,
                                   final int oldVersion,
                                   final int newVersion) {
             final int createdAt = mTable.getVersion();
 
             if ((createdAt > 0) && (createdAt <= newVersion)) {
                 if (oldVersion < createdAt) {
-                    create(context, database, newVersion);
+                    create(dao, newVersion);
                 } else {
                     @NonNls final String name = mTable.getName();
 
@@ -260,7 +249,7 @@ public final class Migrations {
 
                         // table is created
                         for (final Column<?> column : columns) {
-                            addColumn(name, column).execute(database);
+                            dao.execute(addColumn(name, column));
                         }
                     }
                 }
@@ -268,8 +257,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void downgrade(@NonNull final Context context,
-                                    @NonNull final SQLiteDatabase database,
+        public final void downgrade(@NonNull final DAO dao,
                                     final int oldVersion,
                                     final int newVersion) {
             final int createdAt = mTable.getVersion();
@@ -283,7 +271,7 @@ public final class Migrations {
                     }
 
                     // table must be dropped
-                    dropTable(name).execute(database);
+                    dao.execute(dropTable(name));
                 } else {
                     final Set<Column<?>> columns = mTable.getColumns(newVersion);
                     final List<ForeignKey<?>> foreignKeys = mTable.getForeignKeys(newVersion);
@@ -312,7 +300,7 @@ public final class Migrations {
                         for (final Column<?> column : columns) {
                             pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
                         }
-                        alterColumns(mTable, pairs, foreignKeys).execute(database);
+                        dao.execute(alterColumns(mTable, pairs, foreignKeys));
                     }
                 }
             }

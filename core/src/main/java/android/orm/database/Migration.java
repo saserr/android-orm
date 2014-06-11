@@ -16,79 +16,55 @@
 
 package android.orm.database;
 
-import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
 import android.support.annotation.NonNull;
 
 public interface Migration {
 
-    void create(@NonNull final Context context,
-                @NonNull final SQLiteDatabase database,
-                final int version);
+    void create(@NonNull final DAO dao, final int version);
 
-    void upgrade(@NonNull final Context context,
-                 @NonNull final SQLiteDatabase database,
-                 final int oldVersion,
-                 final int newVersion);
+    void upgrade(@NonNull final DAO dao, final int oldVersion, final int newVersion);
 
-    void downgrade(@NonNull final Context context,
-                   @NonNull final SQLiteDatabase database,
-                   final int oldVersion,
-                   final int newVersion);
+    void downgrade(@NonNull final DAO dao, final int oldVersion, final int newVersion);
 
     abstract class Base implements Migration {
 
         @Override
-        public void create(@NonNull final Context context,
-                           @NonNull final SQLiteDatabase database,
-                           final int version) {
+        public void create(@NonNull final DAO dao, final int version) {
             /* do nothing */
         }
 
         @Override
-        public void upgrade(@NonNull final Context context,
-                            @NonNull final SQLiteDatabase database,
-                            final int oldVersion,
-                            final int newVersion) {
+        public void upgrade(@NonNull final DAO dao, final int oldVersion, final int newVersion) {
             /* do nothing */
         }
 
         @Override
-        public void downgrade(@NonNull final Context context,
-                              @NonNull final SQLiteDatabase database,
-                              final int oldVersion,
-                              final int newVersion) {
+        public void downgrade(@NonNull final DAO dao, final int oldVersion, final int newVersion) {
             /* do nothing */
         }
     }
 
     abstract class StepWise extends Base {
 
-        protected abstract void upgrade(@NonNull final Context context,
-                                        @NonNull final SQLiteDatabase database,
-                                        final int version);
+        protected abstract void upgrade(@NonNull final DAO dao, final int version);
 
-        protected abstract void downgrade(@NonNull final Context context,
-                                          @NonNull final SQLiteDatabase database,
-                                          final int version);
+        protected abstract void downgrade(@NonNull final DAO dao, final int version);
 
         @Override
-        public final void upgrade(@NonNull final Context context,
-                                  @NonNull final SQLiteDatabase database,
+        public final void upgrade(@NonNull final DAO dao,
                                   final int oldVersion,
                                   final int newVersion) {
             for (int version = oldVersion + 1; version <= newVersion; version++) {
-                upgrade(context, database, version);
+                upgrade(dao, version);
             }
         }
 
         @Override
-        public final void downgrade(@NonNull final Context context,
-                                    @NonNull final SQLiteDatabase database,
+        public final void downgrade(@NonNull final DAO dao,
                                     final int oldVersion,
                                     final int newVersion) {
             for (int version = oldVersion; version > newVersion; version--) {
-                downgrade(context, database, version);
+                downgrade(dao, version);
             }
         }
     }
