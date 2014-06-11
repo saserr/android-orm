@@ -21,9 +21,13 @@ import android.orm.util.Converter;
 import android.support.annotation.NonNull;
 
 import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import static android.orm.sql.Types.Integer;
+import static android.orm.sql.Types.Text;
 import static android.orm.sql.Types.map;
 
 public final class Types {
@@ -42,6 +46,26 @@ public final class Types {
                 @Override
                 public LocalTime to(@NonNull final Long value) {
                     return LocalTime.fromMillisOfDay(value.intValue());
+                }
+            }
+    );
+
+    public static final Type<LocalDate> Date = map(
+            Text,
+            new Converter<LocalDate, String>() {
+
+                private final DateTimeFormatter mFormatter = ISODateTimeFormat.date();
+
+                @NonNull
+                @Override
+                public String from(@NonNull final LocalDate date) {
+                    return mFormatter.print(date);
+                }
+
+                @NonNull
+                @Override
+                public LocalDate to(@NonNull final String value) {
+                    return mFormatter.parseLocalDate(value);
                 }
             }
     );

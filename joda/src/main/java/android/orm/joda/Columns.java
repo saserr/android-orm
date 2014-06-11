@@ -21,8 +21,10 @@ import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
 
+import static android.orm.joda.Types.Date;
 import static android.orm.joda.Types.Time;
 import static android.orm.joda.Types.Timestamp;
 import static android.orm.sql.Column.column;
@@ -30,13 +32,18 @@ import static android.orm.sql.Column.column;
 public final class Columns {
 
     @NonNull
-    public static Column<DateTime> timestamp(@NonNls @NonNull final String name) {
-        return column(name, Timestamp);
+    public static Column<LocalTime> time(@NonNls @NonNull final String name) {
+        return column(name, Time);
     }
 
     @NonNull
-    public static Column<LocalTime> time(@NonNls @NonNull final String name) {
-        return column(name, Time);
+    public static Column<LocalDate> date(@NonNls @NonNull final String name) {
+        return column(name, Date);
+    }
+
+    @NonNull
+    public static Column<DateTime> timestamp(@NonNls @NonNull final String name) {
+        return column(name, Timestamp);
     }
 
     private Columns() {
