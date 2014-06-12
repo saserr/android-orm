@@ -16,6 +16,7 @@
 
 package android.orm.playground;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -25,18 +26,32 @@ import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
+import android.orm.util.Validations;
 import android.support.annotation.NonNull;
+import android.support.annotation.StringRes;
 import android.widget.Adapter;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.jetbrains.annotations.NonNls;
+
+import java.util.List;
+
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
+import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
+import static android.orm.util.Validations.safeCast;
+import static android.orm.util.Validations.valid;
+import static android.text.Html.fromHtml;
 import static android.text.TextUtils.isEmpty;
 
 public final class Bindings {
+
+    private static final Object VALID_SOMETHING_NULL = Validations.<Object>valid(something(null));
+    private static final Object VALID_NOTHING = valid(nothing());
 
     @NonNull
     public static <V> Binding.Readable<V> value(@NonNull final Producer<V> producer) {
@@ -118,6 +133,33 @@ public final class Bindings {
     }
 
     @NonNull
+    public static Binding.Validated<String> edit(@StringRes final int id,
+                                                 @NonNull final EditText text) {
+        return new Named<String>(id, text(text)) {
+            @Override
+            public void setErrors(@NonNull final List<String> errors) {
+                if (errors.isEmpty()) {
+                    text.setError(null);
+                } else {
+                    @NonNls final StringBuilder html;
+                    if (errors.size() > 1) {
+                        html = new StringBuilder();
+                        html.append("<ul>");
+                        for (final String error : errors) {
+                            html.append("<li>").append(error).append('.').append("</li>");
+                        }
+                        html.append("</ul>");
+                    } else {
+                        html = new StringBuilder(errors.get(0)).append('.');
+                    }
+                    text.setError(fromHtml(html.toString()));
+                    text.requestFocus();
+                }
+            }
+        };
+    }
+
+    @NonNull
     public static Binding.Writable<Uri> uri(@NonNull final ImageView view) {
         return new Binding.Writable.Base<Uri>() {
             @Override
@@ -172,29 +214,68 @@ public final class Bindings {
     }
 
     @NonNull
-    public static <V, T> Binding.Readable<T> convert(@NonNull final Binding.Readable<V> value,
+    public static <V, T> Binding.Readable<T> convert(@NonNull final Binding.Readable<V> binding,
                                                      @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
-        return new ReadableConversion<>(value, converter);
+        return new ReadableConversion<>(binding, converter);
     }
 
     @NonNull
-    public static <V, T> Binding.Writable<T> convert(@NonNull final Binding.Writable<V> value,
+    public static <V, T> Binding.Writable<T> convert(@NonNull final Binding.Writable<V> binding,
                                                      @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
-        return new WritableConversion<>(value, converter);
+        return new WritableConversion<>(binding, converter);
     }
 
     @NonNull
-    public static <V, T> Binding.ReadWrite<T> convert(@NonNull final Binding.ReadWrite<V> value,
+    public static <V, T> Binding.ReadWrite<T> convert(@NonNull final Binding.ReadWrite<V> binding,
                                                       @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
         return combine(
-                new ReadableConversion<>(value, from(converter)),
-                new WritableConversion<>(value, to(converter))
+                new ReadableConversion<>(binding, from(converter)),
+                new WritableConversion<>(binding, to(converter))
         );
     }
 
+    @NonNull
+    public static <V, T> Binding.Validated<T> convert(@NonNull final Binding.Validated<V> binding,
+                                                      @NonNull final Binding.Validated.Converter<V, T> converter) {
+        return new ValidatedConversion<>(binding, converter);
+    }
+
+    @NonNull
     public static <V> Binding.ReadWrite<V> combine(@NonNull final Binding.Readable<V> read,
                                                    @NonNull final Binding.Writable<V> write) {
         return new Combine<>(read, write);
+    }
+
+    private abstract static class Named<V> extends Binding.Validated.Base<V> {
+
+        @StringRes
+        private final int mId;
+        @NonNull
+        private final Binding.ReadWrite<V> mBinding;
+
+        protected Named(@StringRes final int id, @NonNull final Binding.ReadWrite<V> binding) {
+            super();
+
+            mBinding = binding;
+            mId = id;
+        }
+
+        @NonNull
+        @Override
+        public final Validation.Result<Maybe<V>> get(@NonNull final Context context) {
+            return valid(mBinding.get());
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<V> value) {
+            mBinding.set(value);
+        }
+
+        @NonNull
+        @Override
+        public final String getName(@NonNull final Context context) {
+            return context.getString(mId);
+        }
     }
 
     private static class ReadableConversion<V, T> extends Binding.Readable.Base<T> {
@@ -237,6 +318,115 @@ public final class Bindings {
         @Override
         public final void set(@NonNull final Maybe<T> value) {
             mBinding.set(mConverter.invoke(value));
+        }
+    }
+
+    private static class ValidatedConversion<V, T> extends Binding.Validated.Base<T> {
+
+        @NonNull
+        private final Binding.Validated<V> mBinding;
+        @NonNull
+        private final Binding.Validated.Converter<V, T> mConverter;
+        @NonNull
+        private final Function<Maybe<V>, Validation.Result<Maybe<T>>> mTo;
+        @NonNull
+        private final Function<T, V> mFrom;
+
+        private ValidatedConversion(@NonNull final Binding.Validated<V> binding,
+                                    @NonNull final Binding.Validated.Converter<V, T> converter) {
+            super();
+
+            mBinding = binding;
+            mConverter = converter;
+            mTo = new To<>(converter);
+            mFrom = new From<>(converter);
+        }
+
+        @NonNull
+        @Override
+        public final Validation.Result<Maybe<T>> get(@NonNull final Context context) {
+            final Validation.Result<Maybe<V>> value = mBinding.get(context);
+            final Validation.Result<Maybe<T>> result;
+
+            if (value.isValid()) {
+                result = value.flatMap(mTo);
+                if (result.isInvalid()) {
+                    setErrors(mConverter.getErrorMessages(getName(context), context));
+                }
+            } else {
+                result = safeCast((Validation.Result.Invalid<Maybe<V>>) value);
+            }
+
+            return result;
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<T> value) {
+            mBinding.set(value.map(mFrom));
+        }
+
+        @NonNull
+        @Override
+        public final String getName(@NonNull final Context context) {
+            return mBinding.getName(context);
+        }
+
+        @Override
+        public final void setErrors(@NonNull final List<String> errors) {
+            mBinding.setErrors(errors);
+        }
+
+        private static class To<V, T> extends Function.Base<Maybe<V>, Validation.Result<Maybe<T>>> {
+
+            @NonNull
+            private final Binding.Validated.Converter<V, T> mConverter;
+
+            private To(@NonNull final Binding.Validated.Converter<V, T> converter) {
+                super();
+
+                mConverter = converter;
+            }
+
+            @NonNull
+            @Override
+            @SuppressWarnings("unchecked")
+            public final Validation.Result<Maybe<T>> invoke(@NonNull final Maybe<V> value) {
+                final Validation.Result<Maybe<T>> result;
+
+                if (value.isSomething()) {
+                    final V v = value.get();
+                    if (v == null) {
+                        result = (Validation.Result<Maybe<T>>) VALID_SOMETHING_NULL;
+                    } else {
+                        final Validation.Result<T> mapped = mConverter.to(v);
+                        result = mapped.isValid() ?
+                                valid(something(mapped.get())) :
+                                Validations.<Maybe<T>>safeCast((Validation.Result.Invalid<T>) mapped);
+                    }
+                } else {
+                    result = (Validation.Result<Maybe<T>>) VALID_NOTHING;
+                }
+
+                return result;
+            }
+        }
+
+        private static class From<T, V> extends Function.Base<T, V> {
+
+            @NonNull
+            private final Binding.Validated.Converter<V, T> mConverter;
+
+            private From(@NonNull final Binding.Validated.Converter<V, T> converter) {
+                super();
+
+                mConverter = converter;
+            }
+
+            @NonNull
+            @Override
+            public final V invoke(@NonNull final T value) {
+                return mConverter.from(value);
+            }
         }
     }
 

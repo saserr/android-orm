@@ -16,6 +16,7 @@
 
 package android.orm.playground;
 
+import android.content.Context;
 import android.orm.model.Instance;
 import android.orm.util.Converter;
 import android.orm.util.Function;
@@ -23,6 +24,8 @@ import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
+import java.util.List;
 
 import static android.orm.util.Maybes.something;
 
@@ -202,6 +205,173 @@ public final class Binding {
             @Override
             public final <T> ReadWrite<T> convert(@NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
                 return Bindings.convert(this, converter);
+            }
+        }
+    }
+
+    public interface Validated<V> extends Writable<V> {
+
+        @NonNull
+        Validation.Result<Maybe<V>> get(@NonNull final Context context);
+
+        void set(@Nullable final V v);
+
+        @NonNull
+        String getName(@NonNull final Context context);
+
+        void setErrors(@NonNull final List<String> errors);
+
+        @NonNull
+        <T> Validated<T> map(@NonNull final Converter<V, T> converter);
+
+        @NonNull
+        Validated<V> checkThat(@NonNull final Validation.Localized<? super V> validation);
+
+        @NonNull
+        Validated<V> withDefault(@Nullable final V v);
+
+        interface Converter<V, T> {
+
+            @NonNull
+            Validation.Result<T> to(@NonNull final V v);
+
+            @NonNull
+            V from(@NonNull final T t);
+
+            @NonNull
+            List<String> getErrorMessages(@NonNull final String name,
+                                          @NonNull final Context context);
+        }
+
+        abstract class Base<V> implements Validated<V> {
+
+            @Override
+            public final void set(@Nullable final V value) {
+                set(something(value));
+            }
+
+            @NonNull
+            @Override
+            public final <T> Writable<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter) {
+                return Bindings.convert(this, Maybes.map(converter));
+            }
+
+            @NonNull
+            @Override
+            public final <T> Writable<T> flatMapFrom(@NonNull final Function<? super T, Maybe<V>> converter) {
+                return Bindings.convert(this, Maybes.flatMap(converter));
+            }
+
+            @NonNull
+            @Override
+            public final <T> Writable<T> convertFrom(@NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+                return Bindings.convert(this, converter);
+            }
+
+            @NonNull
+            @Override
+            public final <T> Validated<T> map(@NonNull final Converter<V, T> converter) {
+                return Bindings.convert(this, converter);
+            }
+
+            @NonNull
+            @Override
+            public final Validated<V> checkThat(@NonNull final Validation.Localized<? super V> validation) {
+                return new Checked<>(this, validation);
+            }
+
+            @NonNull
+            @Override
+            public final Validated<V> withDefault(@Nullable final V value) {
+                return new WithDefault<>(this, value);
+            }
+
+            private static class Checked<V, T extends V> extends Validated.Base<T> {
+
+                @NonNull
+                private final Validated<T> mBinding;
+                @NonNull
+                private final Validation.Localized<V> mValidation;
+
+                private Checked(@NonNull final Validated<T> binding,
+                                @NonNull final Validation.Localized<V> validation) {
+                    super();
+
+                    mBinding = binding;
+                    mValidation = validation;
+                }
+
+                @NonNull
+                @Override
+                public final Validation.Result<Maybe<T>> get(@NonNull final Context context) {
+                    final Validation.Result<Maybe<T>> value = mBinding.get(context);
+                    final Validation.Result<Maybe<T>> result;
+
+                    if (value.isValid()) {
+                        result = mValidation.validate(value.get());
+                        if (result.isInvalid()) {
+                            setErrors(mValidation.name(getName(context)).getErrorMessages(context));
+                        }
+                    } else {
+                        result = value;
+                    }
+
+                    return result;
+                }
+
+                @Override
+                public final void set(@NonNull final Maybe<T> value) {
+                    mBinding.set(value);
+                }
+
+                @NonNull
+                @Override
+                public final String getName(@NonNull final Context context) {
+                    return mBinding.getName(context);
+                }
+
+                @Override
+                public final void setErrors(@NonNull final List<String> errors) {
+                    mBinding.setErrors(errors);
+                }
+            }
+
+            private static class WithDefault<V> extends Validated.Base<V> {
+
+                @NonNull
+                private final Validated<V> mBinding;
+                @NonNull
+                private final Maybe<V> mDefault;
+
+                private WithDefault(@NonNull final Validated<V> binding,
+                                    @Nullable final V value) {
+                    super();
+
+                    mBinding = binding;
+                    mDefault = something(value);
+                }
+
+                @NonNull
+                @Override
+                public final Validation.Result<Maybe<V>> get(@NonNull final Context context) {
+                    return mBinding.get(context);
+                }
+
+                @Override
+                public final void set(@NonNull final Maybe<V> value) {
+                    mBinding.set((value.getOrElse(null) == null) ? mDefault : value);
+                }
+
+                @NonNull
+                @Override
+                public final String getName(@NonNull final Context context) {
+                    return mBinding.getName(context);
+                }
+
+                @Override
+                public final void setErrors(@NonNull final List<String> errors) {
+                    mBinding.setErrors(errors);
+                }
             }
         }
     }
