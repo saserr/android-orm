@@ -39,6 +39,7 @@ import static android.orm.model.Observer.afterCreate;
 import static android.orm.model.Observer.afterUpdate;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
+import static android.orm.sql.statement.Select.select;
 
 public class DAO {
 
@@ -94,14 +95,17 @@ public class DAO {
 
             @NonNull
             @Override
-            Query<V> where(@Nullable final Select.Where where);
+            Query<V> with(@Nullable final Select.Where where);
 
             @NonNull
             @Override
-            Query<V> order(@Nullable final Select.Order order);
+            Query<V> with(@Nullable final Select.Order order);
 
             @NonNull
-            Query<V> limit(final int limit);
+            Query<V> with(@Nullable final Select.Limit limit);
+
+            @NonNull
+            Query<V> with(@Nullable final Select.Offset offset);
         }
 
         public interface Some extends Exists, Write {
@@ -292,8 +296,6 @@ public class DAO {
     private static class Query<V> implements Access.Query<V> {
 
         @NonNull
-        private final Table<?> mTable;
-        @NonNull
         private final Select.Where mDefault;
         @NonNull
         private final Plan.Read<V> mPlan;
@@ -301,48 +303,51 @@ public class DAO {
         private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = Read.afterRead();
 
         @NonNull
-        private Select.Where mWhere = Select.Where.None;
-        @Nullable
-        private Select.Order mOrder;
-        @Nullable
-        private Integer mLimit;
+        private Select.Builder mSelect;
 
         private Query(@NonNull final Reading<V> reading,
                       @NonNull final Route route,
                       @NonNull final Object... arguments) {
             super();
 
-            mTable = route.getTable();
             mDefault = route.getWhere(arguments);
             mPlan = reading.preparePlan();
+
+            mSelect = select(route.getTable());
         }
 
         @NonNull
         @Override
-        public final Query<V> where(@Nullable final Select.Where where) {
-            mWhere = (where == null) ? mDefault : mDefault.and(where);
+        public final Query<V> with(@Nullable final Select.Where where) {
+            mSelect = mSelect.with((where == null) ? mDefault : mDefault.and(where));
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> order(@Nullable final Select.Order order) {
-            mOrder = order;
+        public final Query<V> with(@Nullable final Select.Order order) {
+            mSelect = mSelect.with(order);
             return this;
         }
 
         @NonNull
         @Override
-        public final Access.Query<V> limit(final int limit) {
-            mLimit = (limit > 0) ? limit : null;
+        public final Query<V> with(@Nullable final Select.Limit limit) {
+            mSelect = mSelect.with(limit);
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public final Query<V> with(@Nullable final Select.Offset offset) {
+            mSelect = mSelect.with(offset);
             return this;
         }
 
         @NonNull
         @Override
         public final Statement<V> execute() {
-            final Read.Arguments<V> arguments = new Read.Arguments<>(mPlan, mWhere, mOrder, mLimit);
-            return new Statement<>(new Read<>(mTable, arguments)).flatMap(mAfterRead);
+            return new Statement<>(new Read<>(mPlan, mSelect.build())).flatMap(mAfterRead);
         }
     }
 }

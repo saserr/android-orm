@@ -16,17 +16,20 @@
 
 package android.orm.sql.statement;
 
+import android.database.Cursor;
 import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Column;
 import android.orm.sql.Fragment;
 import android.orm.sql.Helper;
+import android.orm.sql.Table;
 import android.orm.util.Function;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
 
 import java.text.MessageFormat;
 import java.util.Collection;
@@ -36,10 +39,61 @@ import java.util.Map;
 import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
+import static android.util.Log.INFO;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 
-public final class Select {
+public class Select {
+
+    private static final String TAG = Select.class.getSimpleName();
+
+    @NonNull
+    private final Table<?> mTable;
+    @NonNull
+    private Where mWhere;
+    @Nullable
+    private Order mOrder;
+    @Nullable
+    private Limit mLimit;
+    @Nullable
+    private Offset mOffset;
+
+    private <K> Select(@NonNull final Table<K> table,
+                       @NonNull final Where where,
+                       @Nullable final Order order,
+                       @Nullable final Limit limit,
+                       @Nullable final Offset offset) {
+        super();
+
+        mTable = table;
+        mWhere = where;
+        mOrder = order;
+        mLimit = limit;
+        mOffset = offset;
+    }
+
+    @Nullable
+    public final Cursor execute(@NonNull final Projection projection,
+                                @NonNull final SQLiteDatabase database) {
+        @org.jetbrains.annotations.Nullable final Cursor cursor;
+
+        if (projection.isEmpty()) {
+            if (Log.isLoggable(TAG, INFO)) {
+                Log.i(TAG, "Nothing was queried"); //NON-NLS
+            }
+            cursor = null;
+        } else {
+            final String sql = toSQL(projection, mTable, mWhere, mOrder, mLimit, mOffset);
+            cursor = database.rawQuery(sql, null);
+        }
+
+        return cursor;
+    }
+
+    @NonNull
+    public static <K> Builder select(@NonNull final Table<K> table) {
+        return new Builder(table);
+    }
 
     @NonNull
     public static <V> Projection projection(@NonNull final Column<V> column) {
@@ -67,7 +121,67 @@ public final class Select {
         return new Order(escape(column.getName()) + ' ' + type.toSQL());
     }
 
-    public interface Projection extends Fragment {
+    @NonNull
+    public static Limit limit(final int amount) {
+        return new Limit(String.valueOf(amount));
+    }
+
+    @NonNull
+    public static Offset offset(final int amount) {
+        return new Offset(String.valueOf(amount));
+    }
+
+    public static class Builder {
+
+        @NonNull
+        private final Table<?> mTable;
+        @NonNull
+        private Where mWhere;
+        @Nullable
+        private Order mOrder;
+        @Nullable
+        private Limit mLimit;
+        @Nullable
+        private Offset mOffset;
+
+        public <K> Builder(@NonNull final Table<K> table) {
+            super();
+
+            mTable = table;
+            mWhere = Where.None;
+        }
+
+        @NonNull
+        public final Builder with(@NonNull final Where where) {
+            mWhere = where;
+            return this;
+        }
+
+        @NonNull
+        public final Builder with(@Nullable final Order order) {
+            mOrder = order;
+            return this;
+        }
+
+        @NonNull
+        public final Builder with(@Nullable final Limit limit) {
+            mLimit = limit;
+            return this;
+        }
+
+        @NonNull
+        public final Builder with(@Nullable final Offset offset) {
+            mOffset = offset;
+            return this;
+        }
+
+        @NonNull
+        public final Select build() {
+            return new Select(mTable, mWhere, mOrder, mLimit, mOffset);
+        }
+    }
+
+    public interface Projection {
 
         boolean isEmpty();
 
@@ -129,13 +243,6 @@ public final class Select {
             public boolean any(@NonNull final Collection<String> columns) {
                 return true;
             }
-
-            @NonNls
-            @Nullable
-            @Override
-            public String toSQL() {
-                return null;
-            }
         };
 
         Projection Nothing = new Projection() {
@@ -178,13 +285,6 @@ public final class Select {
             @Override
             public boolean any(@NonNull final Collection<String> columns) {
                 return false;
-            }
-
-            @NonNls
-            @NotNull
-            @Override
-            public String toSQL() {
-                return "";
             }
         };
 
@@ -280,7 +380,6 @@ public final class Select {
 
                             private final Set<String> mNames = projection.keySet();
                             private final Lazy<String[]> mArray = projectionAsArray(projection);
-                            private final Lazy<String> mSQL = projectionAsSQL(projection);
 
                             @Override
                             public boolean isEmpty() {
@@ -305,13 +404,6 @@ public final class Select {
                                 difference.retainAll(columns);
                                 return !difference.isEmpty();
                             }
-
-                            @NonNls
-                            @NonNull
-                            @Override
-                            public String toSQL() {
-                                return mSQL.get();
-                            }
                         };
             }
 
@@ -332,25 +424,6 @@ public final class Select {
                         }
 
                         return result;
-                    }
-                };
-            }
-
-            @NonNull
-            private static Lazy<String> projectionAsSQL(@NonNull final Map<String, String> projection) {
-                return new Lazy.Volatile<String>() {
-                    @NonNull
-                    @Override
-                    protected String produce() {
-                        final StringBuilder result = new StringBuilder();
-
-                        for (final Map.Entry<String, String> entry : projection.entrySet()) {
-                            result.append(escape(entry.getKey())).append(", ");
-                        }
-                        final int length = result.length();
-                        result.delete(length - 2, length);
-
-                        return result.toString();
                     }
                 };
             }
@@ -376,6 +449,10 @@ public final class Select {
             super();
 
             mSQL = selection;
+        }
+
+        public final boolean isEmpty() {
+            return mSQL == null;
         }
 
         @NonNull
@@ -653,10 +730,10 @@ public final class Select {
         @NonNull
         private final String mSQL;
 
-        private Order(@NonNull final String sql) {
+        private Order(@NonNls @NonNull final String order) {
             super();
 
-            mSQL = sql;
+            mSQL = order;
         }
 
         @NonNls
@@ -697,7 +774,92 @@ public final class Select {
         }
     }
 
-    private Select() {
-        super();
+    public static class Limit implements Fragment {
+
+        public static final Limit Single = new Limit(String.valueOf(1));
+
+        @NonNls
+        @NonNull
+        private final String mSQL;
+
+        private Limit(@NonNls @NonNull final String amount) {
+            super();
+
+            mSQL = amount;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String toSQL() {
+            return mSQL;
+        }
+    }
+
+    public static class Offset implements Fragment {
+
+        @NonNls
+        @NonNull
+        private final String mSQL;
+
+        private Offset(@NonNls @NonNull final String amount) {
+            super();
+
+            mSQL = amount;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String toSQL() {
+            return mSQL;
+        }
+    }
+
+    @NonNls
+    @NonNull
+    private static <K> String toSQL(@NonNull final Projection projection,
+                                    @NonNull final Table<K> from,
+                                    @NonNull final Where where,
+                                    @Nullable final Order order,
+                                    @Nullable final Limit limit,
+                                    @Nullable final Offset offset) {
+        @NonNls final StringBuilder result = new StringBuilder();
+
+        result.append("select ");
+        final Map<String, String> projectionMap = projection.asMap();
+        if (projectionMap == null) {
+            result.append('*');
+        } else {
+            for (final Map.Entry<String, String> entry : projectionMap.entrySet()) {
+                @NonNls final String name = escape(entry.getKey());
+                @NonNls final String value = entry.getValue();
+                if (name.equals(value)) {
+                    result.append(name);
+                } else {
+                    result.append(value).append(" as ").append(name); //NON-NLS
+                }
+                result.append(", ");
+            }
+            final int length = result.length();
+            result.delete(length - 2, length);
+        }
+        result.append('\n');
+
+        result.append("from ").append(escape(from.getName()));
+        if (!where.isEmpty()) {
+            result.append('\n').append("where ").append(where.toSQL());
+        }
+        if (order != null) {
+            result.append('\n').append("order by ").append(order.toSQL());
+        }
+        if (limit != null) {
+            result.append('\n').append("limit ").append(limit.toSQL());
+        }
+        if (offset != null) {
+            result.append('\n').append("offset ").append(offset.toSQL());
+        }
+
+        return result.toString();
     }
 }

@@ -83,10 +83,10 @@ public final class Access {
         public interface Builder<V, R> {
 
             @NonNull
-            Builder<V, R> where(@Nullable final Select.Where where);
+            Builder<V, R> with(@Nullable final Select.Where where);
 
             @NonNull
-            Builder<V, R> order(@Nullable final Select.Order order);
+            Builder<V, R> with(@Nullable final Select.Order order);
 
             @NonNull
             R execute();

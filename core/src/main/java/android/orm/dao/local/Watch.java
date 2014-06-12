@@ -27,6 +27,7 @@ import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.route.Match;
 import android.orm.sql.Table;
+import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Future;
 import android.orm.util.Maybe;
@@ -54,11 +55,12 @@ public class Watch<V> implements Watcher {
                  @NonNull final ContentResolver resolver,
                  @NonNls @NonNull final Uri uri,
                  @NonNull final Reading<V> reading,
-                 @NonNull final Read.Arguments<V> arguments,
+                 @NonNull final Plan.Read<V> plan,
+                 @NonNull final Select select,
                  @NonNull final Result.Callback<? super V> callback) {
         super();
 
-        mWatching = new Watching<>(helper, manager, handler, resolver, uri, reading, arguments, callback);
+        mWatching = new Watching<>(helper, manager, handler, resolver, uri, reading, plan, select, callback);
     }
 
     @Override
@@ -89,14 +91,14 @@ public class Watch<V> implements Watcher {
         @NonNull
         private final Reading<T> mReading;
         @NonNull
-        private final Read.Arguments<T> mDefault;
+        private final Select mSelect;
         @NonNull
         private final Result.Callback<V> mCallback;
 
         @NonNull
         private final Table<?> mTable;
         @NonNull
-        private final AtomicReference<Read.Arguments<T>> mArguments;
+        private final AtomicReference<Plan.Read<T>> mPlan;
 
         private final Function<Producer<Maybe<T>>, Maybe<T>> mAfterRead = Read.afterRead();
         private final AtomicReference<Looper> mLooper = new AtomicReference<>();
@@ -129,7 +131,8 @@ public class Watch<V> implements Watcher {
                          @NonNull final ContentResolver resolver,
                          @NonNls @NonNull final Uri uri,
                          @NonNull final Reading<T> reading,
-                         @NonNull final Read.Arguments<T> arguments,
+                         @NonNull final Plan.Read<T> plan,
+                         @NonNull final Select select,
                          @NonNull final Result.Callback<V> callback) {
             super();
 
@@ -139,7 +142,7 @@ public class Watch<V> implements Watcher {
             mResolver = resolver;
             mUri = uri;
             mReading = reading;
-            mDefault = arguments;
+            mSelect = select;
             mCallback = callback;
 
             final Match match = manager.match(uri);
@@ -148,27 +151,25 @@ public class Watch<V> implements Watcher {
             }
             mTable = match.getTable();
 
-            mArguments = new AtomicReference<>(arguments);
+            mPlan = new AtomicReference<>(plan);
         }
 
         @Override
         public final void onResult(@NonNull final Maybe<Producer<Maybe<T>>> value) {
             final Maybe<T> current = value.flatMap(mAfterRead);
-            final Plan.Read<T> plan;
 
             if (current.isSomething()) {
                 final T t = current.get();
                 if (t == null) {
-                    plan = mReading.preparePlan();
+                    mPlan.set(mReading.preparePlan());
                 } else {
                     beforeRead(t);
-                    plan = mReading.preparePlan(t);
+                    mPlan.set(mReading.preparePlan(t));
                 }
             } else {
-                plan = mReading.preparePlan();
+                mPlan.set(mReading.preparePlan());
             }
 
-            mArguments.set(mDefault.copy(plan));
             mCallback.onResult(Maybes.<V>safeCast(current));
         }
 
@@ -206,7 +207,7 @@ public class Watch<V> implements Watcher {
         private void query() {
             final Promise<Maybe<Producer<Maybe<T>>>> promise = new Promise<>();
             promise.getFuture().onComplete(mHandler, this);
-            promise.success(new Read<>(mTable, mArguments.get()).invoke(mHelper.getReadableDatabase()));
+            promise.success(new Read<>(mPlan.get(), mSelect).invoke(mHelper.getReadableDatabase()));
         }
     }
 }

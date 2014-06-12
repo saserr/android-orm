@@ -25,7 +25,6 @@ import android.util.Log;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -288,7 +287,7 @@ public final class Statements {
         private RenameColumn(@NonNls @NonNull final Table<K> table,
                              @NonNls @NonNull final String oldName,
                              @NonNull final Column<V> column,
-                             @NotNull final Collection<ForeignKey<?>> foreignKeys) {
+                             @NonNull final Collection<ForeignKey<?>> foreignKeys) {
             super();
 
             mTable = table;

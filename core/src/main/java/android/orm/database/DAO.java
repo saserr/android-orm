@@ -47,6 +47,7 @@ import static android.orm.model.Observer.afterUpdate;
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
+import static android.orm.sql.statement.Select.select;
 
 public class DAO {
 
@@ -114,28 +115,35 @@ public class DAO {
 
             @NonNull
             @Override
-            Query<V> where(@Nullable final Select.Where where);
+            Query<V> with(@Nullable final Select.Where where);
 
             @NonNull
             @Override
-            Query<V> order(@Nullable final Select.Order order);
+            Query<V> with(@Nullable final Select.Order order);
 
             @NonNull
-            Query<V> limit(final int limit);
+            Query<V> with(@Nullable final Select.Limit limit);
+
+            @NonNull
+            Query<V> with(@Nullable final Select.Offset offset);
 
             interface Refreshable<V> extends Query<V> {
 
                 @NonNull
                 @Override
-                Refreshable<V> where(@Nullable final Select.Where where);
+                Refreshable<V> with(@Nullable final Select.Where where);
 
                 @NonNull
                 @Override
-                Refreshable<V> order(@Nullable final Select.Order order);
+                Refreshable<V> with(@Nullable final Select.Order order);
 
                 @NonNull
                 @Override
-                Refreshable<V> limit(final int limit);
+                Refreshable<V> with(@Nullable final Select.Limit limit);
+
+                @NonNull
+                @Override
+                Refreshable<V> with(@Nullable final Select.Offset offset);
 
                 @NonNull
                 Refreshable<V> using(@Nullable final V v);
@@ -374,18 +382,12 @@ public class DAO {
         @NonNull
         private final Reading<V> mReading;
         @NonNull
-        private final Table<?> mTable;
-        @NonNull
         private final Select.Where mDefault;
 
         private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = Read.afterRead();
 
         @NonNull
-        private Select.Where mWhere = Select.Where.None;
-        @Nullable
-        private Select.Order mOrder;
-        @Nullable
-        private Integer mLimit;
+        private Select.Builder mSelect;
         @Nullable
         private V mValue;
 
@@ -397,34 +399,42 @@ public class DAO {
 
             mDAO = dao;
             mReading = reading;
-            mTable = route.getTable();
             mDefault = route.getWhere(arguments);
+
+            mSelect = select(route.getTable());
         }
 
         @NonNull
         @Override
-        public final Refreshable<V> where(@Nullable final Select.Where where) {
-            mWhere = (where == null) ? mDefault : mDefault.and(where);
+        public final Query<V> with(@Nullable final Select.Where where) {
+            mSelect = mSelect.with((where == null) ? mDefault : mDefault.and(where));
             return this;
         }
 
         @NonNull
         @Override
-        public final Refreshable<V> order(@Nullable final Select.Order order) {
-            mOrder = order;
+        public final Query<V> with(@Nullable final Select.Order order) {
+            mSelect = mSelect.with(order);
             return this;
         }
 
         @NonNull
         @Override
-        public final Refreshable<V> limit(final int limit) {
-            mLimit = (limit > 0) ? limit : null;
+        public final Query<V> with(@Nullable final Select.Limit limit) {
+            mSelect = mSelect.with(limit);
             return this;
         }
 
         @NonNull
         @Override
-        public final Query.Refreshable<V> using(@Nullable final V value) {
+        public final Query<V> with(@Nullable final Select.Offset offset) {
+            mSelect = mSelect.with(offset);
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public final Query<V> using(@Nullable final V value) {
             mValue = value;
             return this;
         }
@@ -436,13 +446,12 @@ public class DAO {
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
-            final Read.Arguments<V> arguments = new Read.Arguments<>(plan, mWhere, mOrder, mLimit);
             final Maybe<V> result;
 
             if (plan.isEmpty()) {
                 result = (mValue == null) ? Maybes.<V>nothing() : Maybes.something(mValue);
             } else {
-                result = mDAO.execute(new Read<>(mTable, arguments)).flatMap(mAfterRead);
+                result = mDAO.execute(new Read<>(plan, mSelect.build())).flatMap(mAfterRead);
             }
 
             return result;

@@ -36,8 +36,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,14 +72,17 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            Query<V> where(@Nullable final Select.Where where);
+            Query<V> with(@Nullable final Select.Where where);
 
             @NonNull
             @Override
-            Query<V> order(@Nullable final Select.Order order);
+            Query<V> with(@Nullable final Select.Order order);
 
             @NonNull
-            Query<V> limit(final int limit);
+            Query<V> with(@Nullable final Select.Limit limit);
+
+            @NonNull
+            Query<V> with(@Nullable final Select.Offset offset);
 
             @NonNull
             <T> Transaction<T> andThen(@NonNull final Action<? super V, ? extends T> action);
@@ -199,7 +200,7 @@ public interface Transaction<V> {
             }
 
             @Override
-            public final void notifyChange(@NotNull final Uri uri) {
+            public final void notifyChange(@NonNull final Uri uri) {
                 mUris.add(uri);
             }
 
@@ -500,22 +501,29 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final Query<V> where(@Nullable final Select.Where where) {
-                mQuery.where(where);
+            public final Query<V> with(@Nullable final Select.Where where) {
+                mQuery.with(where);
                 return this;
             }
 
             @NonNull
             @Override
-            public final Query<V> order(@Nullable final Select.Order order) {
-                mQuery.order(order);
+            public final Query<V> with(@Nullable final Select.Order order) {
+                mQuery.with(order);
                 return this;
             }
 
             @NonNull
             @Override
-            public final Query<V> limit(final int limit) {
-                mQuery.limit(limit);
+            public final Query<V> with(@Nullable final Select.Limit limit) {
+                mQuery.with(limit);
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final Query<V> with(@Nullable final Select.Offset offset) {
+                mQuery.with(offset);
                 return this;
             }
 

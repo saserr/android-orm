@@ -25,7 +25,6 @@ import android.util.Pair;
 import android.util.SparseArray;
 
 import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -60,7 +59,7 @@ public class Table<K> {
     private final SparseArray<Set<Column<?>>> mColumnsByVersion;
     @NonNull
     private final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> mColumnsAtVersion;
-    @NotNull
+    @NonNull
     private final SparseArray<List<ForeignKey<?>>> mForeignKeysByVersion;
     @NonNull
     private final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> mForeignKeysAtVersion;
@@ -76,7 +75,7 @@ public class Table<K> {
     private Table(@NonNls @NonNull final String name,
                   final int version,
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
-                  @NotNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
+                  @NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> foreignKeysAtVersion,
                   @Nullable final Select.Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
@@ -87,7 +86,7 @@ public class Table<K> {
                   final int version,
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
-                  @NotNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
+                  @NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
                   @Nullable final Select.Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
         this(name, version, columnsByVersion, columnsAtVersion, foreignKeysByVersion, new ForeignKeysAtVersion(foreignKeysByVersion), order, primaryKey);
@@ -97,7 +96,7 @@ public class Table<K> {
                   final int version,
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
-                  @NotNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
+                  @NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> foreignKeysAtVersion,
                   @Nullable final Select.Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
@@ -142,7 +141,7 @@ public class Table<K> {
         return result;
     }
 
-    @NotNull
+    @NonNull
     public final List<ForeignKey<?>> getForeignKeys(final int version) {
         final Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>> data = mForeignKeysAtVersion.get();
         final int min = data.first.first;

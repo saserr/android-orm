@@ -236,41 +236,56 @@ public interface Executable<V> {
         @Nullable
         private Select.Order mOrder;
         @Nullable
-        private Integer mLimit;
+        private Select.Limit mLimit;
+        @Nullable
+        private Select.Offset mOffset;
 
         protected Query() {
             super();
         }
 
         @NonNull
-        protected abstract Executable<V> execute(@NonNull final Select.Where where,
-                                                 @Nullable final Select.Order order,
-                                                 @Nullable final Integer limit);
+        protected abstract DAO.Access.Query<V> query(@NonNull final DAO dao);
 
         @NonNull
         @Override
-        public final Query<V> where(@Nullable final Select.Where where) {
+        public final Query<V> with(@Nullable final Select.Where where) {
             mWhere = (where == null) ? Select.Where.None : where;
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> order(@Nullable final Select.Order order) {
+        public final Query<V> with(@Nullable final Select.Order order) {
             mOrder = order;
             return this;
         }
 
         @NonNull
-        public final Query<V> limit(final int limit) {
-            mLimit = (limit > 0) ? limit : null;
+        public final Query<V> with(@Nullable final Select.Limit limit) {
+            mLimit = limit;
+            return this;
+        }
+
+        @NonNull
+        public final Query<V> with(@Nullable final Select.Offset offset) {
+            mOffset = offset;
             return this;
         }
 
         @NonNull
         @Override
         public final Executable<V> execute() {
-            return execute(mWhere, mOrder, mLimit);
+            return new Executable<V>() {
+                @NonNull
+                @Override
+                public Maybe<V> execute(@NonNull final DAO dao,
+                                        @NonNull final SQLiteDatabase database) {
+                    return query(dao).with(mWhere).with(mOrder).with(mLimit).with(mOffset)
+                            .execute()
+                            .execute(database);
+                }
+            };
         }
 
         public static class Single<V> extends Query<V> {
@@ -295,26 +310,8 @@ public interface Executable<V> {
 
             @NonNull
             @Override
-            protected final Executable<V> execute(@NonNull final Select.Where where,
-                                                  @Nullable final Select.Order order,
-                                                  @Nullable final Integer limit) {
-                return new Executable<V>() {
-                    @NonNull
-                    @Override
-                    public Maybe<V> execute(@NonNull final DAO dao,
-                                            @NonNull final SQLiteDatabase database) {
-                        final DAO.Access.Query<V> query = dao.at(mRoute, mArguments)
-                                .query(mReading)
-                                .where(where)
-                                .order(order);
-
-                        if (limit != null) {
-                            query.limit(limit);
-                        }
-
-                        return query.execute().execute(database);
-                    }
-                };
+            protected final DAO.Access.Query<V> query(@NonNull final DAO dao) {
+                return dao.at(mRoute, mArguments).query(mReading);
             }
         }
 
@@ -340,26 +337,8 @@ public interface Executable<V> {
 
             @NonNull
             @Override
-            protected final Executable<V> execute(@NonNull final Select.Where where,
-                                                  @Nullable final Select.Order order,
-                                                  @Nullable final Integer limit) {
-                return new Executable<V>() {
-                    @NonNull
-                    @Override
-                    public Maybe<V> execute(@NonNull final DAO dao,
-                                            @NonNull final SQLiteDatabase database) {
-                        final DAO.Access.Query<V> query = dao.at(mRoute, mArguments)
-                                .query(mReading)
-                                .where(where)
-                                .order(order);
-
-                        if (limit != null) {
-                            query.limit(limit);
-                        }
-
-                        return query.execute().execute(database);
-                    }
-                };
+            protected final DAO.Access.Query<V> query(@NonNull final DAO dao) {
+                return dao.at(mRoute, mArguments).query(mReading);
             }
         }
 
@@ -385,26 +364,8 @@ public interface Executable<V> {
 
             @NonNull
             @Override
-            protected final Executable<V> execute(@NonNull final Select.Where where,
-                                                  @Nullable final Select.Order order,
-                                                  @Nullable final Integer limit) {
-                return new Executable<V>() {
-                    @NonNull
-                    @Override
-                    public Maybe<V> execute(@NonNull final DAO dao,
-                                            @NonNull final SQLiteDatabase database) {
-                        final DAO.Access.Query<V> query = dao.at(mRoute, mArguments)
-                                .query(mFunction)
-                                .where(where)
-                                .order(order);
-
-                        if (limit != null) {
-                            query.limit(limit);
-                        }
-
-                        return query.execute().execute(database);
-                    }
-                };
+            protected final DAO.Access.Query<V> query(@NonNull final DAO dao) {
+                return dao.at(mRoute, mArguments).query(mFunction);
             }
         }
     }

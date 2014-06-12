@@ -50,14 +50,13 @@ import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
+import static android.orm.sql.statement.Select.select;
 
 public class Local extends DAO.Local {
 
@@ -72,7 +71,7 @@ public class Local extends DAO.Local {
 
     private final Notifier mNotifier = new Notifier() {
         @Override
-        public void notifyChange(@NotNull final Uri uri) {
+        public void notifyChange(@NonNull final Uri uri) {
             mResolver.notifyChange(uri, null);
         }
     };
@@ -123,7 +122,8 @@ public class Local extends DAO.Local {
     private <V> Cancelable watch(@NonNull final Route.Manager manager,
                                  @NonNull final Uri uri,
                                  @NonNull final Reading<V> reading,
-                                 @NonNull final Read.Arguments<V> arguments,
+                                 @NonNull final Plan.Read<V> plan,
+                                 @NonNull final Select select,
                                  @NonNull final Result.Callback<? super V> callback) {
         return watch(new Watch<>(
                 mHelper,
@@ -132,7 +132,8 @@ public class Local extends DAO.Local {
                 mResolver,
                 uri,
                 reading,
-                arguments,
+                plan,
+                select,
                 callback
         ));
     }
@@ -336,8 +337,6 @@ public class Local extends DAO.Local {
         @NonNull
         private final Reading<V> mReading;
         @NonNull
-        private final Table<?> mTable;
-        @NonNull
         private final Select.Where mDefault;
         @NonNull
         private final Route.Manager mRouteManager;
@@ -347,11 +346,7 @@ public class Local extends DAO.Local {
         private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = Read.afterRead();
 
         @NonNull
-        private Select.Where mWhere = Select.Where.None;
-        @Nullable
-        private Select.Order mOrder;
-        @Nullable
-        private Integer mLimit;
+        private Select.Builder mSelect;
         @Nullable
         private V mValue;
 
@@ -363,30 +358,38 @@ public class Local extends DAO.Local {
 
             mDAO = dao;
             mReading = reading;
-            mTable = route.getTable();
             mDefault = route.getWhere(arguments);
             mRouteManager = route.getManager();
             mURI = route.createUri(arguments);
+
+            mSelect = select(route.getTable());
         }
 
         @NonNull
         @Override
-        public final Query<V> where(@Nullable final Select.Where where) {
-            mWhere = (where == null) ? mDefault : mDefault.and(where);
+        public final Query<V> with(@Nullable final Select.Where where) {
+            mSelect = mSelect.with((where == null) ? mDefault : mDefault.and(where));
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> order(@Nullable final Select.Order order) {
-            mOrder = order;
+        public final Query<V> with(@Nullable final Select.Order order) {
+            mSelect = mSelect.with(order);
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> limit(final int limit) {
-            mLimit = (limit > 0) ? limit : null;
+        public final Query<V> with(@Nullable final Select.Limit limit) {
+            mSelect = mSelect.with(limit);
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public final Query<V> with(@Nullable final Select.Offset offset) {
+            mSelect = mSelect.with(offset);
             return this;
         }
 
@@ -404,13 +407,12 @@ public class Local extends DAO.Local {
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
-            final Read.Arguments<V> arguments = new Read.Arguments<>(plan, mWhere, mOrder, mLimit);
             final Result<V> result;
 
             if (plan.isEmpty()) {
                 result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
             } else {
-                result = mDAO.execute(new Read<>(mTable, arguments)).flatMap(mAfterRead);
+                result = mDAO.execute(new Read<>(plan, mSelect.build())).flatMap(mAfterRead);
             }
 
             return result;
@@ -427,8 +429,7 @@ public class Local extends DAO.Local {
                 throw new IllegalArgumentException("Nothing will be watched");
             }
 
-            final Read.Arguments<V> arguments = new Read.Arguments<>(plan, mWhere, mOrder, mLimit);
-            return mDAO.watch(mRouteManager, mURI, mReading, arguments, callback);
+            return mDAO.watch(mRouteManager, mURI, mReading, plan, mSelect.build(), callback);
         }
     }
 

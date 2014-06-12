@@ -293,28 +293,35 @@ public abstract class DAO {
 
                 @NonNull
                 @Override
-                Query<V> where(@Nullable final Select.Where where);
+                Query<V> with(@Nullable final Select.Where where);
 
                 @NonNull
                 @Override
-                Query<V> order(@Nullable final Select.Order order);
+                Query<V> with(@Nullable final Select.Order order);
 
                 @NonNull
-                Query<V> limit(final int limit);
+                Query<V> with(@Nullable final Select.Limit limit);
+
+                @NonNull
+                Query<V> with(@Nullable final Select.Offset offset);
 
                 interface Refreshable<V> extends Query<V>, DAO.Access.Query.Refreshable<V> {
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> where(@Nullable final Select.Where where);
+                    Access.Query.Refreshable<V> with(@Nullable final Select.Where where);
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> order(@Nullable final Select.Order order);
+                    Access.Query.Refreshable<V> with(@Nullable final Select.Order order);
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> limit(final int limit);
+                    Access.Query.Refreshable<V> with(@Nullable final Select.Limit limit);
+
+                    @NonNull
+                    @Override
+                    Access.Query.Refreshable<V> with(@Nullable final Select.Offset offset);
 
                     @NonNull
                     @Override
@@ -398,21 +405,21 @@ public abstract class DAO {
 
             @NonNull
             @Override
-            Query<V> where(@Nullable final Select.Where where);
+            Query<V> with(@Nullable final Select.Where where);
 
             @NonNull
             @Override
-            Query<V> order(@Nullable final Select.Order order);
+            Query<V> with(@Nullable final Select.Order order);
 
             interface Refreshable<V> extends Query<V> {
 
                 @NonNull
                 @Override
-                Refreshable<V> where(@Nullable final Select.Where where);
+                Refreshable<V> with(@Nullable final Select.Where where);
 
                 @NonNull
                 @Override
-                Refreshable<V> order(@Nullable final Select.Order order);
+                Refreshable<V> with(@Nullable final Select.Order order);
 
                 @NonNull
                 Refreshable<V> using(@Nullable final V v);

@@ -21,10 +21,13 @@ import android.orm.sql.statement.Select;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 
 import org.jetbrains.annotations.NonNls;
 
+import java.util.Map;
+import java.util.Set;
+
+import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Types.Integer;
 
 public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
@@ -54,14 +57,14 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
                        @Nullable final ConflictResolution resolution) {
         super();
 
-        final String projection = value.getProjection().toSQL();
-        if (TextUtils.isEmpty(projection)) {
-            throw new IllegalArgumentException("Values must reference something");
+        final Map<String, String> projection = value.getProjection().asMap();
+        if ((projection == null) || projection.isEmpty()) {
+            throw new IllegalArgumentException("Value must reference something");
         }
 
         mIsAlias = isAlias;
         mValue = value;
-        mSQL = "primary key (" + projection +
+        mSQL = "primary key (" + toSQL(projection.keySet()) +
                 ((order == null) ? "" : order) + ')' +
                 ((resolution == null) ? "" : (" on conflict " + resolution.toSQL()));
     }
@@ -162,5 +165,19 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
                 return "desc";
             }
         };
+    }
+
+    @NonNls
+    @NonNull
+    /* package */ static String toSQL(@NonNull final Set<String> projection) {
+        final StringBuilder result = new StringBuilder();
+
+        for (final String column : projection) {
+            result.append(escape(column)).append(", ");
+        }
+        final int length = result.length();
+        result.delete(length - 2, length);
+
+        return result.toString();
     }
 }

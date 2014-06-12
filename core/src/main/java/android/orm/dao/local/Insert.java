@@ -41,6 +41,7 @@ import static android.orm.sql.Readables.readable;
 import static android.orm.sql.Table.ROW_ID;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
+import static android.orm.sql.statement.Select.select;
 import static android.orm.sql.statement.Select.where;
 import static android.orm.util.Legacy.getKeys;
 import static android.orm.util.Maybes.nothing;
@@ -52,10 +53,11 @@ public class Insert extends Function.Base<SQLiteDatabase, Maybe<Uri>> {
 
     private static final String TAG = Insert.class.getSimpleName();
     private static final Select.Where.Part<Long> WHERE_ROW_ID = where(ROW_ID);
-    private static final String SINGLE_VALUE = "1";
 
     @NonNull
     private final Route.Item mItemRoute;
+    @NonNull
+    private final Table<?> mTable;
     @NonNls
     @NonNull
     private final String mTableName;
@@ -72,9 +74,9 @@ public class Insert extends Function.Base<SQLiteDatabase, Maybe<Uri>> {
         super();
 
         mItemRoute = route;
-        final Table<?> table = route.getTable();
-        mTableName = Helper.escape(table.getName());
-        mPrimaryKey = table.getPrimaryKey();
+        mTable = route.getTable();
+        mTableName = Helper.escape(mTable.getName());
+        mPrimaryKey = mTable.getPrimaryKey();
         mPlan = plan;
         mAdditional = additional;
     }
@@ -108,8 +110,12 @@ public class Insert extends Function.Base<SQLiteDatabase, Maybe<Uri>> {
                     }
                 }
 
-                final String where = WHERE_ROW_ID.isEqualTo(id).toSQL();
-                final Cursor cursor = database.query(mTableName, projection.asArray(), where, null, null, null, null, SINGLE_VALUE);
+                final Select.Where where = WHERE_ROW_ID.isEqualTo(id);
+                final Cursor cursor = select(mTable)
+                        .with(where)
+                        .with(Select.Limit.Single)
+                        .build()
+                        .execute(projection, database);
                 if (cursor == null) {
                     Log.e(TAG, "Couldn't create an item uri after insert. Querying table " + mTableName + " failed!"); //NON-NLS
                     result = something(null);
@@ -118,7 +124,7 @@ public class Insert extends Function.Base<SQLiteDatabase, Maybe<Uri>> {
                         if (cursor.moveToFirst()) {
                             result = something(mItemRoute.createUri(combine(readable(cursor), readable(values))));
                         } else {
-                            Log.e(TAG, "Couldn't create an item uri after insert. Querying table " + mTableName + " for " + where + " returned no results!"); //NON-NLS
+                            Log.e(TAG, "Couldn't create an item uri after insert. Querying table " + mTableName + " for " + where.toSQL() + " returned no results!"); //NON-NLS
                             result = something(null);
                         }
                     } finally {

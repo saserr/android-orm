@@ -364,14 +364,14 @@ public class Remote extends DAO.Remote {
 
         @NonNull
         @Override
-        public final Query<V> where(@Nullable final Select.Where where) {
+        public final Query<V> with(@Nullable final Select.Where where) {
             mWhere = (where == null) ? Select.Where.None : where;
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> order(@Nullable final Select.Order order) {
+        public final Query<V> with(@Nullable final Select.Order order) {
             mOrder = order;
             return this;
         }

@@ -17,9 +17,8 @@
 package android.orm.dao.local;
 
 import android.net.Uri;
-
-import org.jetbrains.annotations.NotNull;
+import android.support.annotation.NonNull;
 
 public interface Notifier {
-    void notifyChange(@NotNull final Uri uri);
+    void notifyChange(@NonNull final Uri uri);
 }

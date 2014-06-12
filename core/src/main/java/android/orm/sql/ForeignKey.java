@@ -21,7 +21,11 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
+import java.util.Set;
+
+import static android.orm.sql.Helper.escape;
 
 public class ForeignKey<V> implements Fragment {
 
@@ -59,7 +63,7 @@ public class ForeignKey<V> implements Fragment {
         mOnDelete = onDelete;
         mOnUpdate = onUpdate;
 
-        mSQL = new SQL<>(childKey, parentTable, parentKey, onDelete, onUpdate);
+        mSQL = new SQL(childKey, parentTable, parentKey, onDelete, onUpdate);
     }
 
     @NonNull
@@ -111,7 +115,7 @@ public class ForeignKey<V> implements Fragment {
 
         Action SetNull = new Action() {
             @NonNls
-            @NotNull
+            @NonNull
             @Override
             public String toSQL() {
                 return "set null";
@@ -155,35 +159,50 @@ public class ForeignKey<V> implements Fragment {
         };
     }
 
-    private static class SQL<V, K> extends Lazy.Volatile<String> {
+    private static class SQL extends Lazy.Volatile<String> {
 
-        private final Value.Read<V> mChildKey;
-        private final Table<K> mParentTable;
-        private final Value.Read<V> mParentKey;
+        @NonNull
+        private final Set<String> mChildKey;
+        @NonNull
+        private final Table<?> mParentTable;
+        @Nullable
+        private final Set<String> mParentKey;
+        @Nullable
         private final Action mOnDelete;
+        @Nullable
         private final Action mOnUpdate;
 
-        private SQL(@NonNull final Value.Read<V> childKey,
-                    @NonNull final Table<K> parentTable,
-                    @Nullable final Value.Read<V> parentKey,
-                    @Nullable final Action onDelete,
-                    @Nullable final Action onUpdate) {
+        private <V, K> SQL(@NonNull final Value.Read<V> childKey,
+                           @NonNull final Table<K> parentTable,
+                           @Nullable final Value.Read<V> parentKey,
+                           @Nullable final Action onDelete,
+                           @Nullable final Action onUpdate) {
             super();
 
-            mChildKey = childKey;
             mParentTable = parentTable;
-            mParentKey = parentKey;
             mOnDelete = onDelete;
             mOnUpdate = onUpdate;
+
+            final Map<String, String> childKeyMap = childKey.getProjection().asMap();
+            if ((childKeyMap == null) || childKeyMap.isEmpty()) {
+                throw new IllegalArgumentException("Child key must reference something");
+            }
+            mChildKey = childKeyMap.keySet();
+
+            final Map<String, String> parentKeyMap = (parentKey == null) ? null : parentKey.getProjection().asMap();
+            if ((parentKeyMap != null) && parentKeyMap.isEmpty()) {
+                throw new IllegalArgumentException("Parent cannot reference nothing");
+            }
+            mParentKey = (parentKeyMap == null) ? null : parentKeyMap.keySet();
         }
 
         @NonNls
         @NonNull
         @Override
         protected final String produce() {
-            return "foreign key (" + mChildKey.getProjection().toSQL() +
-                    ") references " + Helper.escape(mParentTable.getName()) +
-                    ((mParentKey == null) ? "" : ('(' + mParentKey.getProjection().toSQL() + ')')) +
+            return "foreign key (" + PrimaryKey.toSQL(mChildKey) +
+                    ") references " + escape(mParentTable.getName()) +
+                    ((mParentKey == null) ? "" : ('(' + PrimaryKey.toSQL(mParentKey) + ')')) +
                     ((mOnDelete == null) ? "" : (" on delete " + mOnDelete.toSQL())) +
                     ((mOnUpdate == null) ? "" : (" on update " + mOnUpdate.toSQL()));
         }
