@@ -65,7 +65,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
         mIsAlias = isAlias;
         mValue = value;
         mSQL = "primary key (" + toSQL(projection.keySet()) +
-                ((order == null) ? "" : order) + ')' +
+                ((order == null) ? "" : order.toSQL()) + ')' +
                 ((resolution == null) ? "" : (" on conflict " + resolution.toSQL()));
     }
 

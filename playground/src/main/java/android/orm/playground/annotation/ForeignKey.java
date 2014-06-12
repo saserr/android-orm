@@ -14,33 +14,28 @@
  * limitations under the License.
  */
 
-package android.orm.sql.fragment;
+package android.orm.playground.annotation;
 
-import android.orm.sql.Fragment;
 import android.support.annotation.NonNull;
 
-import org.jetbrains.annotations.NonNls;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-public enum ConflictResolution implements Fragment {
+import static android.orm.sql.ForeignKey.Action.NoAction;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-    Rollback("rollback"),
-    Abort("abort"),
-    Fail("fail"),
-    Ignore("ignore"),
-    Replace("replace");
+@Retention(RUNTIME)
+@Target(TYPE)
+public @interface ForeignKey {
 
-    @NonNls
-    @NonNull
-    private final String mSQL;
+    @NonNull String[] childKey();
 
-    ConflictResolution(@NonNls @NonNull final String sql) {
-        mSQL = sql;
-    }
+    @NonNull Class<?> parent();
 
-    @NonNls
-    @NonNull
-    @Override
-    public final String toSQL() {
-        return mSQL;
-    }
+    @NonNull String[] parentKey();
+
+    @NonNull android.orm.sql.ForeignKey.Action onDelete() default NoAction;
+
+    @NonNull android.orm.sql.ForeignKey.Action onUpdate() default NoAction;
 }

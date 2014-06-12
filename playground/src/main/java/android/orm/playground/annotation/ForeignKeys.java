@@ -14,33 +14,10 @@
  * limitations under the License.
  */
 
-package android.orm.sql.fragment;
+package android.orm.playground.annotation;
 
-import android.orm.sql.Fragment;
 import android.support.annotation.NonNull;
 
-import org.jetbrains.annotations.NonNls;
-
-public enum ConflictResolution implements Fragment {
-
-    Rollback("rollback"),
-    Abort("abort"),
-    Fail("fail"),
-    Ignore("ignore"),
-    Replace("replace");
-
-    @NonNls
-    @NonNull
-    private final String mSQL;
-
-    ConflictResolution(@NonNls @NonNull final String sql) {
-        mSQL = sql;
-    }
-
-    @NonNls
-    @NonNull
-    @Override
-    public final String toSQL() {
-        return mSQL;
-    }
+public @interface ForeignKeys {
+    @NonNull ForeignKey[] value();
 }

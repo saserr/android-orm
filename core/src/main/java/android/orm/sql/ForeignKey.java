@@ -106,57 +106,28 @@ public class ForeignKey<V> implements Fragment {
         return new ForeignKey<>(child, table, parent, null, null);
     }
 
-    public interface Action extends Fragment {
+    public enum Action implements Fragment {
+
+        SetNull("set null"),
+        SetDefault("set default"),
+        Cascade("cascade"),
+        Restrict("restrict"),
+        NoAction("no action");
+
+        @NonNls
+        @NonNull
+        private final String mSQL;
+
+        Action(@NonNls @NonNull final String sql) {
+            mSQL = sql;
+        }
 
         @NonNls
         @NonNull
         @Override
-        String toSQL();
-
-        Action SetNull = new Action() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "set null";
-            }
-        };
-
-        Action SetDefault = new Action() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "set default";
-            }
-        };
-
-        Action Cascade = new Action() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "cascade";
-            }
-        };
-
-        Action Restrict = new Action() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "restrict";
-            }
-        };
-
-        Action NoAction = new Action() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "no action";
-            }
-        };
+        public final String toSQL() {
+            return mSQL;
+        }
     }
 
     private static class SQL extends Lazy.Volatile<String> {
