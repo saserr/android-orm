@@ -97,7 +97,7 @@ public final class Plan {
             @NonNull
             private static <M, V> Function<Maybe<M>, Write> entry(@NonNull final Mapper.Write<V> mapper,
                                                                   @NonNull final Lens.Read<M, Maybe<V>> lens) {
-                return new Function.Base<Maybe<M>, Write>() {
+                return new Function<Maybe<M>, Write>() {
                     @NonNull
                     @Override
                     public Write invoke(@NonNull final Maybe<M> value) {

@@ -30,7 +30,7 @@ public final class Converters {
         return new To<>(converter);
     }
 
-    private static class From<V, T> extends Function.Base<V, T> {
+    private static class From<V, T> implements Function<V, T> {
 
         @NonNull
         private final Converter<? super V, ? extends T> mConverter;
@@ -48,7 +48,7 @@ public final class Converters {
         }
     }
 
-    private static class To<V, T> extends Function.Base<V, T> {
+    private static class To<V, T> implements Function<V, T> {
 
         @NonNull
         private final Converter<? extends T, ? super V> mConverter;

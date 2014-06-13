@@ -49,7 +49,7 @@ import static android.orm.util.Maybes.something;
 import static android.util.Log.DEBUG;
 import static android.util.Log.INFO;
 
-public class Insert extends Function.Base<SQLiteDatabase, Maybe<Uri>> {
+public class Insert implements Function<SQLiteDatabase, Maybe<Uri>> {
 
     private static final String TAG = Insert.class.getSimpleName();
     private static final Select.Where.Part<Long> WHERE_ROW_ID = where(ROW_ID);
@@ -139,7 +139,7 @@ public class Insert extends Function.Base<SQLiteDatabase, Maybe<Uri>> {
         return result;
     }
 
-    public static class Notify extends Function.Base<Uri, Uri> {
+    public static class Notify implements Function<Uri, Uri> {
 
         @NonNull
         private final Notifier mNotifier;

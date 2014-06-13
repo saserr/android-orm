@@ -21,7 +21,7 @@ import android.support.annotation.Nullable;
 
 public final class Eithers {
 
-    private static final Object LEFT_LIFT = new Function.Base<Object, Either<Object, Object>>() {
+    private static final Object LEFT_LIFT = new Function<Object, Either<Object, Object>>() {
         @NonNull
         @Override
         public Either<Object, Object> invoke(@NonNull final Object value) {
@@ -29,7 +29,7 @@ public final class Eithers {
         }
     };
 
-    private static final Object RIGHT_LIFT = new Function.Base<Object, Either<Object, Object>>() {
+    private static final Object RIGHT_LIFT = new Function<Object, Either<Object, Object>>() {
         @NonNull
         @Override
         public Either<Object, Object> invoke(@NonNull final Object value) {

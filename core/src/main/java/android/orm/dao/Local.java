@@ -302,7 +302,7 @@ public class Local extends DAO.Local {
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
                                                     @NonNull final M model) {
             return (model instanceof Observer.Write) ?
-                    result.map(new Function.Base<V, V>() {
+                    result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
@@ -317,7 +317,7 @@ public class Local extends DAO.Local {
         private static <M, V> Result<V> afterUpdate(@NonNull final Result<V> result,
                                                     @NonNull final M model) {
             return (model instanceof Observer.Write) ?
-                    result.map(new Function.Base<V, V>() {
+                    result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
@@ -433,7 +433,7 @@ public class Local extends DAO.Local {
         }
     }
 
-    private static class Task<V> extends Producer.Base<Maybe<V>> {
+    private static class Task<V> implements Producer<Maybe<V>> {
 
         @NonNull
         private final SQLiteOpenHelper mHelper;

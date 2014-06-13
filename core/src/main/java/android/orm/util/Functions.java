@@ -44,7 +44,7 @@ public final class Functions {
         return (Function<V, T>) function;
     }
 
-    private static class Singleton<V, T> extends Function.Base<V, T> {
+    private static class Singleton<V, T> implements Function<V, T> {
 
         @NonNull
         private final T mValue;
@@ -62,7 +62,7 @@ public final class Functions {
         }
     }
 
-    private static class Composition<V, T, U> extends Function.Base<V, U> {
+    private static class Composition<V, T, U> implements Function<V, U> {
 
         @NonNull
         private final Function<V, T> mFirst;
@@ -84,7 +84,7 @@ public final class Functions {
         }
     }
 
-    private static class Combination<V, T, U> extends Function.Base<V, Pair<T, U>> {
+    private static class Combination<V, T, U> implements Function<V, Pair<T, U>> {
 
         @NonNull
         private final Function<V, T> mFirst;

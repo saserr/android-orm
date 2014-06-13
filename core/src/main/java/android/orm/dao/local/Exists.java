@@ -26,7 +26,7 @@ import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 
-public class Exists extends Function.Base<SQLiteDatabase, Maybe<Boolean>> {
+public class Exists implements Function<SQLiteDatabase, Maybe<Boolean>> {
 
     private static final String[] PROJECTION = {"1"};
     private static final String SINGLE = "1";

@@ -33,7 +33,7 @@ import android.util.Log;
 
 import static android.util.Log.INFO;
 
-public class Update extends Function.Base<SQLiteDatabase, Maybe<Integer>> {
+public class Update implements Function<SQLiteDatabase, Maybe<Integer>> {
 
     private static final String TAG = Update.class.getSimpleName();
 
@@ -73,7 +73,7 @@ public class Update extends Function.Base<SQLiteDatabase, Maybe<Integer>> {
         return (updated > 0) ? Maybes.something(updated) : Maybes.<Integer>nothing();
     }
 
-    public static class Notify extends Function.Base<Integer, Integer> {
+    public static class Notify implements Function<Integer, Integer> {
 
         @NonNull
         private final Notifier mNotifier;

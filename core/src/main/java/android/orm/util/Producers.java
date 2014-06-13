@@ -44,7 +44,7 @@ public final class Producers {
         return (Producer<V>) producer;
     }
 
-    private static class Singleton<V> extends Producer.Base<V> {
+    private static class Singleton<V> implements Producer<V> {
 
         @NonNull
         private final V mValue;
@@ -62,7 +62,7 @@ public final class Producers {
         }
     }
 
-    private static class Conversion<V, T> extends Producer.Base<T> {
+    private static class Conversion<V, T> implements Producer<T> {
 
         @NonNull
         private final Producer<V> mProducer;
@@ -84,7 +84,7 @@ public final class Producers {
         }
     }
 
-    private static class Composition<V, T> extends Producer.Base<Pair<V, T>> {
+    private static class Composition<V, T> implements Producer<Pair<V, T>> {
 
         @NonNull
         private final Producer<? extends V> mFirst;

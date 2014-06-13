@@ -32,7 +32,7 @@ import android.util.Log;
 import static android.orm.sql.Readables.readable;
 import static android.util.Log.INFO;
 
-public class Read<V> extends Function.Base<Read.Arguments<V>, Maybe<Producer<Maybe<V>>>> {
+public class Read<V> implements Function<Read.Arguments<V>, Maybe<Producer<Maybe<V>>>> {
 
     private static final String TAG = Read.class.getSimpleName();
 

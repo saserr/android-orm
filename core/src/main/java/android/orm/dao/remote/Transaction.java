@@ -161,7 +161,7 @@ public class Transaction {
         }
     }
 
-    private static class Insert extends Producer.Base<ContentProviderOperation> {
+    private static class Insert implements Producer<ContentProviderOperation> {
 
         @NonNull
         private final Uri mUri;
@@ -184,7 +184,7 @@ public class Transaction {
         }
     }
 
-    private static class Update extends Producer.Base<ContentProviderOperation> {
+    private static class Update implements Producer<ContentProviderOperation> {
 
         @NonNull
         private final Uri mUri;
@@ -215,7 +215,7 @@ public class Transaction {
         }
     }
 
-    private static class Delete extends Producer.Base<ContentProviderOperation> {
+    private static class Delete implements Producer<ContentProviderOperation> {
 
         @NonNull
         private final Uri mUri;

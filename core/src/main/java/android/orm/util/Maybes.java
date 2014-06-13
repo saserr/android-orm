@@ -25,7 +25,7 @@ public final class Maybes {
     private static final Something<Object> Null = new Something<>(null);
     private static final Nothing<Object> Nothing = new Nothing<>();
 
-    private static final Object LiftValue = new Function.Base<Object, Maybe<Object>>() {
+    private static final Object LiftValue = new Function<Object, Maybe<Object>>() {
         @NonNull
         @Override
         public Maybe<Object> invoke(@NonNull final Object value) {
@@ -33,7 +33,7 @@ public final class Maybes {
         }
     };
 
-    private static final Object LiftPair = new Function.Base<Pair<Maybe<Object>, Maybe<Object>>, Maybe<Pair<Object, Object>>>() {
+    private static final Object LiftPair = new Function<Pair<Maybe<Object>, Maybe<Object>>, Maybe<Pair<Object, Object>>>() {
         @NonNull
         @Override
         public Maybe<Pair<Object, Object>> invoke(@NonNull final Pair<Maybe<Object>, Maybe<Object>> pair) {
@@ -82,7 +82,7 @@ public final class Maybes {
 
     @NonNull
     public static <M, V> Lens.Read<M, Maybe<V>> lift(@NonNull final Lens.Read<M, ? extends V> lens) {
-        return lens.mapTo(Maybes.<V>liftValue());
+        return Lenses.convert(lens, Maybes.<V>liftValue());
     }
 
     @NonNull
@@ -261,7 +261,7 @@ public final class Maybes {
         }
     }
 
-    private static class Map<V, T> extends Function.Base<Maybe<V>, Maybe<T>> {
+    private static class Map<V, T> implements Function<Maybe<V>, Maybe<T>> {
 
         @NonNull
         private final Function<? super V, ? extends T> mFunction;
@@ -279,7 +279,7 @@ public final class Maybes {
         }
     }
 
-    private static class FlatMap<V, T> extends Function.Base<Maybe<V>, Maybe<T>> {
+    private static class FlatMap<V, T> implements Function<Maybe<V>, Maybe<T>> {
 
         @NonNull
         private final Function<? super V, Maybe<T>> mFunction;
@@ -306,7 +306,7 @@ public final class Maybes {
         private LiftedConverter(@NonNull final Converter<V, T> converter) {
             super();
 
-            mFrom = new Function.Base<V, Maybe<T>>() {
+            mFrom = new Function<V, Maybe<T>>() {
                 @NonNull
                 @Override
                 public Maybe<T> invoke(@NonNull final V v) {
@@ -314,7 +314,7 @@ public final class Maybes {
                 }
             };
 
-            mTo = new Function.Base<T, Maybe<V>>() {
+            mTo = new Function<T, Maybe<V>>() {
                 @NonNull
                 @Override
                 public Maybe<V> invoke(@NonNull final T t) {
@@ -336,7 +336,7 @@ public final class Maybes {
         }
     }
 
-    private static class LiftedWriteLens<V, T> extends Lens.Write.Base<V, Maybe<T>> {
+    private static class LiftedWriteLens<V, T> implements Lens.Write<V, Maybe<T>> {
 
         @NonNull
         private final Lens.Write<V, ? super T> mLens;

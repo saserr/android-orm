@@ -26,7 +26,7 @@ import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Delete extends Function.Base<Select.Where, Maybe<Integer>> {
+public class Delete implements Function<Select.Where, Maybe<Integer>> {
 
     @NonNull
     private final ContentResolver mResolver;

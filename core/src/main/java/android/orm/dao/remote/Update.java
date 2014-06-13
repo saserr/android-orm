@@ -33,7 +33,7 @@ import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Update extends Function.Base<Pair<Writer, Select.Where>, Maybe<Integer>> {
+public class Update implements Function<Pair<Writer, Select.Where>, Maybe<Integer>> {
 
     private static final String TAG = Update.class.getSimpleName();
 

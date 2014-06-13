@@ -24,6 +24,7 @@ import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.util.Pair;
 
@@ -268,7 +269,7 @@ public final class Mapper {
                                                    @NonNull final Producer<M> producer) {
                 return new Value.Read.Base<M>() {
 
-                    private final Producer<Maybe<M>> mProducer = producer.map(Maybes.<M>liftValue());
+                    private final Producer<Maybe<M>> mProducer = Producers.convert(producer, Maybes.<M>liftValue());
 
                     @NonNls
                     @NonNull

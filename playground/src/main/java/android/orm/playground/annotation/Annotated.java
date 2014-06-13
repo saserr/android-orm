@@ -141,7 +141,7 @@ public class Annotated {
 
     @Nullable
     private <M, V> Pair<android.orm.playground.annotation.Column, Column<V>> column(@NonNull final Class<M> klass,
-                                                   @NonNull final Field field) {
+                                                                                    @NonNull final Field field) {
         @org.jetbrains.annotations.Nullable final Pair<android.orm.playground.annotation.Column, Column<V>> result;
 
         final android.orm.playground.annotation.Column annotation = field.getAnnotation(android.orm.playground.annotation.Column.class);
@@ -232,7 +232,7 @@ public class Annotated {
         return result;
     }
 
-    private static class ReflectionProducer<M> extends Producer.Base<M> {
+    private static class ReflectionProducer<M> implements Producer<M> {
 
         @NonNls
         @NonNull
@@ -282,7 +282,7 @@ public class Annotated {
         }
     }
 
-    private static class ReflectionLens<M, V> extends Lens.ReadWrite.Base<M, V> {
+    private static class ReflectionLens<M, V> implements Lens.ReadWrite<M, V> {
 
         @NonNull
         private final Field mField;

@@ -26,7 +26,7 @@ import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Exists extends Function.Base<Select.Where, Maybe<Boolean>> {
+public class Exists implements Function<Select.Where, Maybe<Boolean>> {
 
     private static final String[] PROJECTION = {"1"};
 

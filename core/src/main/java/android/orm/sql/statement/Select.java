@@ -642,7 +642,7 @@ public class Select {
             @NonNull
             Where build(@NonNull final V value);
 
-            Builder<Object> None = builder(new Function.Base<Object, Where>() {
+            Builder<Object> None = builder(new Function<Object, Where>() {
                 @NonNull
                 @Override
                 public Where invoke(@NonNull final Object argument) {
@@ -658,7 +658,7 @@ public class Select {
                 @NonNull
                 @Override
                 public Builder<V> not() {
-                    return builder(new Function.Base<V, Where>() {
+                    return builder(new Function<V, Where>() {
                         @NonNull
                         @Override
                         public Where invoke(@NonNull final V value) {
@@ -670,7 +670,7 @@ public class Select {
                 @NonNull
                 @Override
                 public Builder<V> and(@NonNull final Where other) {
-                    return builder(new Function.Base<V, Where>() {
+                    return builder(new Function<V, Where>() {
                         @NonNull
                         @Override
                         public Where invoke(@NonNull final V value) {
@@ -682,7 +682,7 @@ public class Select {
                 @NonNull
                 @Override
                 public Builder<V> and(@NonNull final Builder<? super V> other) {
-                    return builder(new Function.Base<V, Where>() {
+                    return builder(new Function<V, Where>() {
                         @NonNull
                         @Override
                         public Where invoke(@NonNull final V value) {
@@ -694,7 +694,7 @@ public class Select {
                 @NonNull
                 @Override
                 public Builder<V> or(@NonNull final Where other) {
-                    return builder(new Function.Base<V, Where>() {
+                    return builder(new Function<V, Where>() {
                         @NonNull
                         @Override
                         public Where invoke(@NonNull final V value) {
@@ -706,7 +706,7 @@ public class Select {
                 @NonNull
                 @Override
                 public Builder<V> or(@NonNull final Builder<? super V> other) {
-                    return builder(new Function.Base<V, Where>() {
+                    return builder(new Function<V, Where>() {
                         @NonNull
                         @Override
                         public Where invoke(@NonNull final V value) {

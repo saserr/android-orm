@@ -47,11 +47,11 @@ public abstract class Future<V> {
 
     @NonNull
     public final <T> Future<Pair<V, T>> and(@NonNull final Future<? extends T> other) {
-        return flatMap(new Function.Base<V, Future<Pair<V, T>>>() {
+        return flatMap(new Function<V, Future<Pair<V, T>>>() {
             @NonNull
             @Override
             public Future<Pair<V, T>> invoke(@NonNull final V v) {
-                return other.map(new Base<T, Pair<V, T>>() {
+                return other.map(new Function<T, Pair<V, T>>() {
                     @NonNull
                     @Override
                     public Pair<V, T> invoke(@NonNull final T t) {

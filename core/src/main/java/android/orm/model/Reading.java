@@ -24,6 +24,7 @@ import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.util.Pair;
 
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static android.orm.model.Instances.setter;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
+import static android.orm.util.Producers.convert;
 import static android.orm.util.Producers.singleton;
 
 public interface Reading<M> {
@@ -218,8 +220,8 @@ public interface Reading<M> {
                 public final Producer<Maybe<Pair<M, N>>> read(@NonNull final Readable input) {
                     final Producer<Maybe<M>> result1 = mFirst.read(input);
                     final Producer<Maybe<N>> result2 = mSecond.read(input);
-                    final Producer<Pair<Maybe<M>, Maybe<N>>> result = result1.and(result2);
-                    return singleton(result.map(Maybes.<M, N>liftPair()).produce());
+                    final Producer<Pair<Maybe<M>, Maybe<N>>> result = Producers.compose(result1, result2);
+                    return singleton(convert(result, Maybes.<M, N>liftPair()).produce());
                 }
             }
 
@@ -241,7 +243,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public final Producer<Maybe<N>> read(@NonNull final Readable input) {
-                    return singleton(mCreate.read(input).map(mConverter).produce());
+                    return singleton(convert(mCreate.read(input), mConverter).produce());
                 }
             }
         }
@@ -314,7 +316,7 @@ public interface Reading<M> {
                 public final Producer<Maybe<Pair<M, N>>> read(@NonNull final Readable input) {
                     final Producer<Maybe<M>> result1 = mFirst.read(input);
                     final Producer<Maybe<N>> result2 = mSecond.read(input);
-                    return result1.and(result2).map(Maybes.<M, N>liftPair());
+                    return convert(Producers.compose(result1, result2), Maybes.<M, N>liftPair());
                 }
             }
 
@@ -336,7 +338,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public final Producer<Maybe<N>> read(@NonNull final Readable input) {
-                    return mUpdate.read(input).map(mConverter);
+                    return convert(mUpdate.read(input), mConverter);
                 }
             }
         }
@@ -439,7 +441,7 @@ public interface Reading<M> {
             @NonNull
             private static <M, V> Function<M, Action> entry(@NonNull final Value.Read<V> value,
                                                             @NonNull final Lens.Write<M, Maybe<V>> lens) {
-                return new Function.Base<M, Action>() {
+                return new Function<M, Action>() {
                     @NonNull
                     @Override
                     public Action invoke(@NonNull final M model) {
@@ -451,7 +453,7 @@ public interface Reading<M> {
             @NonNull
             private static <M, V> Function<M, Action> entry(@NonNull final Mapper.Read<V> mapper,
                                                             @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
-                return new Function.Base<M, Action>() {
+                return new Function<M, Action>() {
                     @NonNull
                     @Override
                     public Action invoke(@NonNull final M model) {
@@ -542,7 +544,7 @@ public interface Reading<M> {
         @NonNull
         public static <V> Producer<Maybe<V>> lazy(@NonNull final V value,
                                                   @NonNull final Runnable runnable) {
-            return new Producer.Base<Maybe<V>>() {
+            return new Producer<Maybe<V>>() {
 
                 private final Maybe<V> mResult = something(value);
                 private final AtomicBoolean mNeedsExecution = new AtomicBoolean(true);

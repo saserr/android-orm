@@ -43,7 +43,7 @@ import static android.orm.util.Maybes.something;
 public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
 
     public static final Function<List<JsonObject>, JsonArray> TO_ARRAY =
-            new Function.Base<List<JsonObject>, JsonArray>() {
+            new Function<List<JsonObject>, JsonArray>() {
                 @NonNull
                 @Override
                 public JsonArray invoke(@NonNull final List<JsonObject> objects) {
@@ -166,7 +166,7 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
 
     public static <V> Lens.Write<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
                                                             @NonNls @NonNull final String name) {
-        return new Lens.Write.Base<JsonObject, Maybe<V>>() {
+        return new Lens.Write<JsonObject, Maybe<V>>() {
             @Override
             public void set(@NonNull final JsonObject json, @Nullable final Maybe<V> value) {
                 if (value == null) {

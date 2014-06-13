@@ -67,7 +67,7 @@ public final class Argument {
     @NonNull
     private static <V> Segment.Argument<V> segment(@NonNull final Column<V> column,
                                                    @NonNull final String operation) {
-        return new Segment.Argument<>(column, Select.Where.builder(new Function.Base<V, Select.Where>() {
+        return new Segment.Argument<>(column, Select.Where.builder(new Function<V, Select.Where>() {
             @NonNull
             @Override
             public Select.Where invoke(@NonNull final V value) {

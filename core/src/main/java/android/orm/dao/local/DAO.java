@@ -40,6 +40,7 @@ import static android.orm.model.Observer.afterUpdate;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 import static android.orm.sql.statement.Select.select;
+import static android.orm.util.Functions.compose;
 
 public class DAO {
 
@@ -271,7 +272,7 @@ public class DAO {
         @Override
         protected final <M> Statement<Uri> insert(@NonNull final M model,
                                                   @NonNull final Plan.Write plan) {
-            final Statement<Uri> statement = new Statement<>(new Insert(mItemRoute, plan, mOnInsert).compose(mInsertNotify));
+            final Statement<Uri> statement = new Statement<>(compose(new Insert(mItemRoute, plan, mOnInsert), mInsertNotify));
             afterCreate(model);
             return statement;
         }
@@ -281,7 +282,7 @@ public class DAO {
         protected final <M> Statement<Integer> update(@NonNull final M model,
                                                       @NonNull final Select.Where where,
                                                       @NonNull final Plan.Write plan) {
-            final Statement<Integer> statement = new Statement<>(new Update(mTable, mWhere.and(where), plan).compose(mUpdateNotify));
+            final Statement<Integer> statement = new Statement<>(compose(new Update(mTable, mWhere.and(where), plan), mUpdateNotify));
             afterUpdate(model);
             return statement;
         }
@@ -289,7 +290,7 @@ public class DAO {
         @NonNull
         @Override
         public final Statement<Integer> delete(@NonNull final Select.Where where) {
-            return new Statement<>(new Delete(mTable, mWhere.and(where)).compose(mUpdateNotify));
+            return new Statement<>(compose(new Delete(mTable, mWhere.and(where)), mUpdateNotify));
         }
     }
 

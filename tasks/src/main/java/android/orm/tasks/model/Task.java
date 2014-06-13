@@ -39,7 +39,7 @@ public class Task extends Model {
     public static final Column<String> Title = text("title").asNotNull();
     public static final Column<Boolean> Finished = bool("finished").asNotNull().withDefault(false);
 
-    public static final Mapper.ReadWrite<Task> Mapper = Mappers.mapper(new Producer.Base<Task>() {
+    public static final Mapper.ReadWrite<Task> Mapper = Mappers.mapper(new Producer<Task>() {
         @NonNull
         @Override
         public Task produce() {

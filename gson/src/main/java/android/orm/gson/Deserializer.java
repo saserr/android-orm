@@ -36,6 +36,7 @@ import com.google.gson.JsonObject;
 
 import org.jetbrains.annotations.NonNls;
 
+import static android.orm.util.Lenses.convert;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
@@ -145,7 +146,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
         }
 
         private static Lens.Read<JsonObject, Maybe<JsonObject>> lens(@NonNls @NonNull final String name) {
-            return new Lens.Read.Base<JsonObject, Maybe<JsonObject>>() {
+            return new Lens.Read<JsonObject, Maybe<JsonObject>>() {
                 @Nullable
                 @Override
                 public Maybe<JsonObject> get(@NonNull final JsonObject json) {
@@ -170,7 +171,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
     public static <V> Lens.Read<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
                                                            @NonNull final Class<V> klass,
                                                            @NonNls @NonNull final String name) {
-        return new Lens.Read.Base<JsonObject, Maybe<V>>() {
+        return new Lens.Read<JsonObject, Maybe<V>>() {
             @Nullable
             @Override
             public Maybe<V> get(@NonNull final JsonObject json) {
@@ -186,7 +187,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
                                                            @NonNls @NonNull final String qualifiedName,
                                                            @NonNls @NonNull final String elementName,
                                                            @NonNull final Validation<? super V> validation) {
-        return lens(gson, klass, elementName).mapTo(new Function.Base<Maybe<V>, Maybe<V>>() {
+        return convert(lens(gson, klass, elementName), new Function<Maybe<V>, Maybe<V>>() {
 
             private final Validation<? super V> mValidation = validation.name(qualifiedName);
 

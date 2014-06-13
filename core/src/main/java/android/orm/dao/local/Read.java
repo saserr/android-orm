@@ -29,9 +29,9 @@ import android.support.annotation.NonNull;
 
 import static android.orm.sql.Readables.readable;
 
-public class Read<V> extends Function.Base<SQLiteDatabase, Maybe<Producer<Maybe<V>>>> {
+public class Read<V> implements Function<SQLiteDatabase, Maybe<Producer<Maybe<V>>>> {
 
-    private static final Object AfterRead = new Function.Base<Producer<Maybe<Object>>, Maybe<Object>>() {
+    private static final Object AfterRead = new Function<Producer<Maybe<Object>>, Maybe<Object>>() {
         @NonNull
         @Override
         public Maybe<Object> invoke(@NonNull final Producer<Maybe<Object>> producer) {

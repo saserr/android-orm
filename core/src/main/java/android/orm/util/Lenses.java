@@ -63,7 +63,7 @@ public final class Lenses {
         return (Lens.Write<M, V>) lens;
     }
 
-    private static class Check<M, V> extends Lens.Read.Base<M, V> {
+    private static class Check<M, V> implements Lens.Read<M, V> {
 
         @NonNull
         private final Lens.Read<M, V> mLens;
@@ -86,7 +86,7 @@ public final class Lenses {
         }
     }
 
-    private static class ReadConversion<M, V, T> extends Lens.Read.Base<M, T> {
+    private static class ReadConversion<M, V, T> implements Lens.Read<M, T> {
 
         @NonNull
         private final Lens.Read<M, V> mLens;
@@ -109,7 +109,7 @@ public final class Lenses {
         }
     }
 
-    private static class WriteConversion<M, V, T> extends Lens.Write.Base<M, T> {
+    private static class WriteConversion<M, V, T> implements Lens.Write<M, T> {
 
         @NonNull
         private final Lens.Write<M, V> mLens;
@@ -130,7 +130,7 @@ public final class Lenses {
         }
     }
 
-    private static class Combine<M, V> extends Lens.ReadWrite.Base<M, V> {
+    private static class Combine<M, V> implements Lens.ReadWrite<M, V> {
 
         @NonNull
         private final Lens.Read<M, ? extends V> mRead;

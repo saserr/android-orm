@@ -43,7 +43,7 @@ public final class Deserializers {
                                                      @NonNull final Class<M> klass,
                                                      @NonNull final Mapper.Write<M> mapper) {
         return new Deserializer<>(Plan.Write.<JsonElement>builder()
-                .put(mapper, Maybes.lift(new Lens.Read.Base<JsonElement, M>() {
+                .put(mapper, Maybes.lift(new Lens.Read<JsonElement, M>() {
                     @Nullable
                     @Override
                     public M get(@NonNull final JsonElement json) {
@@ -67,7 +67,7 @@ public final class Deserializers {
                                                      @NonNull final Mapper.Write<M> mapper,
                                                      @NonNull final Validation<? super M> validation) {
         return new Deserializer<>(Plan.Write.<JsonElement>builder()
-                .put(mapper, Maybes.lift(new Lens.Read.Base<JsonElement, M>() {
+                .put(mapper, Maybes.lift(new Lens.Read<JsonElement, M>() {
 
                     private final Validation<? super M> mValidation = validation.name(mapper.getName());
 

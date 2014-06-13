@@ -31,7 +31,7 @@ import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Insert extends Function.Base<Writer, Maybe<Uri>> {
+public class Insert implements Function<Writer, Maybe<Uri>> {
 
     private static final String TAG = Insert.class.getSimpleName();
 

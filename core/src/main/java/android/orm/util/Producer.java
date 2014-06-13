@@ -17,31 +17,8 @@
 package android.orm.util;
 
 import android.support.annotation.NonNull;
-import android.util.Pair;
 
 public interface Producer<V> {
-
     @NonNull
     V produce();
-
-    @NonNull
-    <T> Producer<T> map(@NonNull final Function<? super V, ? extends T> function);
-
-    @NonNull
-    <T> Producer<Pair<V, T>> and(@NonNull final Producer<? extends T> other);
-
-    abstract class Base<V> implements Producer<V> {
-
-        @NonNull
-        @Override
-        public final <T> Producer<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return Producers.convert(this, function);
-        }
-
-        @NonNull
-        @Override
-        public final <T> Producer<Pair<V, T>> and(@NonNull final Producer<? extends T> other) {
-            return Producers.compose(this, other);
-        }
-    }
 }

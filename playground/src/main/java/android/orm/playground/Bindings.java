@@ -376,7 +376,7 @@ public final class Bindings {
             mBinding.setErrors(errors);
         }
 
-        private static class To<V, T> extends Function.Base<Maybe<V>, Validation.Result<Maybe<T>>> {
+        private static class To<V, T> implements Function<Maybe<V>, Validation.Result<Maybe<T>>> {
 
             @NonNull
             private final Binding.Validated.Converter<V, T> mConverter;
@@ -411,7 +411,7 @@ public final class Bindings {
             }
         }
 
-        private static class From<T, V> extends Function.Base<T, V> {
+        private static class From<T, V> implements Function<T, V> {
 
             @NonNull
             private final Binding.Validated.Converter<V, T> mConverter;

@@ -147,7 +147,7 @@ public interface Transaction<V> {
                     final Notifier<V> notifier = new Notifier<>(context);
                     final DAO dao = new DAO(notifier);
 
-                    return local.execute(new Function.Base<SQLiteDatabase, Maybe<V>>() {
+                    return local.execute(new Function<SQLiteDatabase, Maybe<V>>() {
                         @NonNull
                         @Override
                         public Maybe<V> invoke(@NonNull final SQLiteDatabase database) {
@@ -186,7 +186,7 @@ public interface Transaction<V> {
             return new SomeAccess(mExecutor, route, arguments);
         }
 
-        private static class Notifier<V> extends Function.Base<Maybe<V>, Maybe<V>> implements android.orm.dao.local.Notifier {
+        private static class Notifier<V> implements Function<Maybe<V>, Maybe<V>>, android.orm.dao.local.Notifier {
 
             @NonNull
             private final ContentResolver mResolver;

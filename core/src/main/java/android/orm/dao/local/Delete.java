@@ -25,7 +25,7 @@ import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 
-public class Delete extends Function.Base<SQLiteDatabase, Maybe<Integer>> {
+public class Delete implements Function<SQLiteDatabase, Maybe<Integer>> {
 
     @NonNull
     private final Table<?> mTable;

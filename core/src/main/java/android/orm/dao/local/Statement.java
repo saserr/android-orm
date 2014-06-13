@@ -24,6 +24,9 @@ import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.util.Pair;
 
+import static android.orm.util.Functions.combine;
+import static android.orm.util.Functions.compose;
+
 public class Statement<V> {
 
     @NonNull
@@ -37,27 +40,27 @@ public class Statement<V> {
 
     @NonNull
     public final <T> Statement<T> map(@NonNull final Function<? super V, ? extends T> converter) {
-        return new Statement<>(mFunction.compose(Maybes.map(converter)));
+        return convert(Maybes.map(converter));
     }
 
     @NonNull
     public final <T> Statement<T> flatMap(@NonNull final Function<? super V, Maybe<T>> converter) {
-        return new Statement<>(mFunction.compose(Maybes.flatMap(converter)));
+        return convert(Maybes.flatMap(converter));
     }
 
     @NonNull
     public final <T> Statement<T> convert(@NonNull final Function<Maybe<V>, Maybe<T>> converter) {
-        return new Statement<>(mFunction.compose(converter));
+        return new Statement<>(compose(mFunction, converter));
     }
 
     @NonNull
     public final <T> Statement<Pair<V, T>> and(@NonNull final Maybe<T> other) {
-        return new Statement<>(mFunction.and(Functions.singleton(other)).compose(Maybes.<V, T>liftPair()));
+        return and(new Statement<>(Functions.<SQLiteDatabase, Maybe<T>>singleton(other)));
     }
 
     @NonNull
     public final <T> Statement<Pair<V, T>> and(@NonNull final Statement<T> other) {
-        return new Statement<>(mFunction.and(other.mFunction).compose(Maybes.<V, T>liftPair()));
+        return new Statement<>(compose(combine(mFunction, other.mFunction), Maybes.<V, T>liftPair()));
     }
 
     @NonNull

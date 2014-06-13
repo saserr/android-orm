@@ -36,7 +36,7 @@ import java.util.Collection;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Apply extends Function.Base<Pair<String, Collection<Producer<ContentProviderOperation>>>, Maybe<Transaction.Result>> {
+public class Apply implements Function<Pair<String, Collection<Producer<ContentProviderOperation>>>, Maybe<Transaction.Result>> {
 
     private static final String TAG = Apply.class.getSimpleName();
 

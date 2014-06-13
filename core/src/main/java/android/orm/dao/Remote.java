@@ -298,7 +298,7 @@ public class Remote extends DAO.Remote {
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
                                                     @NonNull final M model) {
             return (model instanceof Observer.Write) ?
-                    result.map(new Function.Base<V, V>() {
+                    result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
@@ -313,7 +313,7 @@ public class Remote extends DAO.Remote {
         private static <M, V> Result<V> afterUpdate(@NonNull final Result<V> result,
                                                     @NonNull final M model) {
             return (model instanceof Observer.Write) ?
-                    result.map(new Function.Base<V, V>() {
+                    result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
@@ -414,7 +414,7 @@ public class Remote extends DAO.Remote {
         }
     }
 
-    private static class Task<V, T> extends Producer.Base<Maybe<T>> {
+    private static class Task<V, T> implements Producer<Maybe<T>> {
 
         @NonNull
         private final V mValue;

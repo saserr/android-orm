@@ -43,7 +43,7 @@ public final class Serializers {
         return new Serializer<>(mapper.getName(), mapper.prepareRead().map(new ToJson<M>(gson)));
     }
 
-    private static class ToJson<V> extends Function.Base<Maybe<V>, Maybe<JsonElement>> {
+    private static class ToJson<V> implements Function<Maybe<V>, Maybe<JsonElement>> {
 
         @NonNull
         private final Gson mGson;
