@@ -18,6 +18,7 @@ package android.orm.tasks;
 
 import android.content.res.Resources;
 import android.orm.DAO;
+import android.orm.access.ErrorHandler;
 import android.orm.access.Result;
 import android.orm.tasks.data.Provider;
 import android.orm.tasks.model.Task;
@@ -29,6 +30,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -43,6 +45,7 @@ import static java.util.Collections.emptyList;
 
 public class Activity extends ActionBarActivity implements Form.Controller, List.Controller {
 
+    private static final String TAG = Activity.class.getSimpleName();
     private static final Collection<Task> NO_TASKS = emptyList();
     private static final String EDITED_TASK_STATE = "edited_task"; //NON-NLS
 
@@ -107,6 +110,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
         super.onCreate(savedInstanceState);
 
         mDAO = DAO.local(this, Provider.DATABASE);
+        mDAO.setErrorHandler(LogErrors);
         mTasks = mDAO.at(Tasks);
 
         setContentView(R.layout.activity);
@@ -204,4 +208,11 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
             state.putLong(EDITED_TASK_STATE, mEditedTask);
         }
     }
+
+    private static final ErrorHandler LogErrors = new ErrorHandler() {
+        @Override
+        public void onError(@NonNull final Throwable error) {
+            Log.e(TAG, "There was a problem!", error); //NON-NLS
+        }
+    };
 }

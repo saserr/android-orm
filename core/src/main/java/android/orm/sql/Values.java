@@ -34,8 +34,8 @@ import static android.orm.util.Maybes.something;
 public final class Values {
 
     @NonNull
-    public static <V> Value.Read<V> read(@NonNls @NonNull final String name,
-                                         @NonNull final Type<V> type) {
+    public static <V> Value.ReadWrite<V> value(@NonNls @NonNull final String name,
+                                               @NonNull final Type<V> type) {
         return new NamedType<>(name, type);
     }
 
@@ -84,7 +84,7 @@ public final class Values {
         return new Combine<>(read, write);
     }
 
-    private static class NamedType<V> extends Value.Read.Base<V> {
+    private static class NamedType<V> extends Value.ReadWrite.Base<V> {
 
         @NonNls
         @NonNull
@@ -119,6 +119,20 @@ public final class Values {
         @Override
         public final Maybe<V> read(@NonNull final Readable input) {
             return mType.read(input, mName);
+        }
+
+        @Override
+        public final void write(@Operation final int operation,
+                                @NonNull final Maybe<V> value,
+                                @NonNull final Writable output) {
+            if (value.isSomething()) {
+                final V v = value.get();
+                if (v == null) {
+                    output.putNull(mName);
+                } else {
+                    mType.write(output, mName, v);
+                }
+            }
         }
     }
 

@@ -38,7 +38,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
-import static android.orm.sql.Values.combine;
 import static java.lang.reflect.Modifier.isFinal;
 import static java.lang.reflect.Modifier.isStatic;
 
@@ -216,17 +215,13 @@ public class Annotated {
         return result;
     }
 
-    @NonNull
-    private static Value.ReadWrite<?> value(@NonNls @NonNull final String column) {
-        return combine(Values.read(column, null), null);
-    }
-
     @Nullable
     private static Value.ReadWrite<?> value(@NonNull final String... columns) {
         Value.ReadWrite<?> result = null;
 
         for (final String column : columns) {
-            result = (result == null) ? value(column) : result.and(value(column));
+            final Value.ReadWrite<Object> value = Values.value(column, null);
+            result = (result == null) ? value : result.and(value);
         }
 
         return result;

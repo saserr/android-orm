@@ -51,7 +51,7 @@ public interface Type<V> extends Fragment {
                @NonNull final V value);
 
     @NonNull
-    Value.Read<V> as(@NonNls @NonNull final String name);
+    Value.ReadWrite<V> as(@NonNls @NonNull final String name);
 
     @NonNls
     @NonNull
@@ -90,8 +90,8 @@ public interface Type<V> extends Fragment {
 
         @NonNull
         @Override
-        public final Value.Read<V> as(@NonNls @NonNull final String name) {
-            return Values.read(name, this);
+        public final Value.ReadWrite<V> as(@NonNls @NonNull final String name) {
+            return Values.value(name, this);
         }
 
         @NonNls
