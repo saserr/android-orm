@@ -115,14 +115,14 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @NonNull
     @Override
     public final Maybe<V> read(@NonNull final Readable input) {
-        return mType.read(input, mName);
+        return afterRead(mType.read(input, mName));
     }
 
     @Override
     public final void write(@Value.Write.Operation final int operation,
                             @NonNull final Maybe<V> value,
                             @NonNull final Writable output) {
-        final Maybe<V> processed = process(operation, value);
+        final Maybe<V> processed = beforeWrite(operation, value);
 
         if (processed.isSomething()) {
             final V v = processed.get();
@@ -231,15 +231,26 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @NonNull
-    private Maybe<V> process(@Value.Write.Operation final int operation,
-                             @NonNull final Maybe<V> result) {
-        Maybe<V> processed = result;
+    private Maybe<V> afterRead(@NonNull final Maybe<V> value) {
+        Maybe<V> result = value;
 
         for (final Constraint<V> constraint : mConstraints) {
-            processed = constraint.beforeWrite(operation, processed);
+            result = constraint.afterRead(mName, result);
         }
 
-        return processed;
+        return result;
+    }
+
+    @NonNull
+    private Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
+                                 @NonNull final Maybe<V> value) {
+        Maybe<V> result = value;
+
+        for (final Constraint<V> constraint : mConstraints) {
+            result = constraint.beforeWrite(operation, mName, result);
+        }
+
+        return result;
     }
 
     @NonNull
@@ -251,7 +262,11 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     public interface Constraint<V> {
 
         @NonNull
+        Maybe<V> afterRead(@NonNls @NonNull final String name, @NonNull final Maybe<V> value);
+
+        @NonNull
         Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
+                             @NonNls @NonNull final String name,
                              @NonNull final Maybe<V> value);
 
         @NonNls
@@ -278,7 +293,15 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
             @NonNull
             @Override
+            public final Maybe<V> afterRead(@NonNls @NonNull final String name,
+                                            @NonNull final Maybe<V> value) {
+                return value;
+            }
+
+            @NonNull
+            @Override
             public final Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
+                                              @NonNls @NonNull final String name,
                                               @NonNull final Maybe<V> value) {
                 return value;
             }
@@ -311,11 +334,22 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
             @NonNull
             @Override
+            public final Maybe<V> afterRead(@NonNls @NonNull final String name,
+                                            @NonNull final Maybe<V> value) {
+                if (value.isSomething() && (value.get() == null)) {
+                    throw new SQLException("Read value from " + name + " should not be null");
+                }
+
+                return value;
+            }
+
+            @NonNull
+            @Override
             public final Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
+                                              @NonNls @NonNull final String name,
                                               @NonNull final Maybe<V> value) {
                 if (value.isSomething() && (value.get() == null)) {
-                    // TODO name
-                    throw new SQLException("Value to be written cannot be null");
+                    throw new SQLException("Value to be written into " + name + " cannot be null");
                 }
 
                 return value;
@@ -359,7 +393,15 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
             @NonNull
             @Override
+            public final Maybe<V> afterRead(@NonNls @NonNull final String name,
+                                            @NonNull final Maybe<V> value) {
+                return value;
+            }
+
+            @NonNull
+            @Override
             public final Maybe<V> beforeWrite(@Value.Write.Operation final int operation,
+                                              @NonNls @NonNull final String name,
                                               @NonNull final Maybe<V> value) {
                 return ((operation == Insert) && value.isNothing()) ?
                         something((mProducer == null) ? null : mProducer.produce()) :
