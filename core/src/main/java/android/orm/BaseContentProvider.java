@@ -78,18 +78,26 @@ public class BaseContentProvider extends ContentProvider {
     @Override
     public final Cursor query(@NonNls @NonNull final Uri uri,
                               @Nullable final String[] projection,
-                              @Nullable final String where,
-                              @Nullable final String[] whereArguments,
-                              @Nullable final String sortOrder) {
-        final Cursor cursor = match(uri).query(mHelper, projection, where, whereArguments, sortOrder);
+                              @Nullable final String selection,
+                              @Nullable final String[] arguments,
+                              @Nullable final String order) {
+        final Cursor cursor;
 
-        if (cursor == null) {
-            Log.w(TAG, "Query at " + uri + " was unsuccessful."); //NON-NLS\
-        } else {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Query at " + uri + " returned " + cursor.getCount() + " rows."); //NON-NLS
+        final SQLiteDatabase database = getDatabase(mHelper, false);
+        database.beginTransaction();
+        try {
+            cursor = match(uri).query(database, projection, selection, arguments, order);
+            if (cursor == null) {
+                Log.w(TAG, "Query at " + uri + " was unsuccessful."); //NON-NLS\
+            } else {
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Query at " + uri + " returned " + cursor.getCount() + " rows."); //NON-NLS
+                }
+                cursor.setNotificationUri(mContentResolver, uri);
+                database.setTransactionSuccessful();
             }
-            cursor.setNotificationUri(mContentResolver, uri);
+        } finally {
+            database.endTransaction();
         }
 
         return cursor;
@@ -111,15 +119,23 @@ public class BaseContentProvider extends ContentProvider {
     @Nullable
     @Override
     public final Uri insert(@NonNls @NonNull final Uri uri, @NonNull final ContentValues values) {
-        final Uri result = match(uri).insert(mHelper, values);
+        final Uri result;
 
-        if (result == null) {
-            Log.w(TAG, "Insert at " + uri + " was unsuccessful."); //NON-NLS
-        } else {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Insert at " + uri + " was successful."); //NON-NLS
+        final SQLiteDatabase database = getDatabase(mHelper, true);
+        database.beginTransaction();
+        try {
+            result = match(uri).insert(database, values);
+            if (result == null) {
+                Log.w(TAG, "Insert at " + uri + " was unsuccessful."); //NON-NLS
+            } else {
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Insert at " + uri + " was successful."); //NON-NLS
+                }
+                mContentResolver.notifyChange(result, null);
+                database.setTransactionSuccessful();
             }
-            mContentResolver.notifyChange(result, null);
+        } finally {
+            database.endTransaction();
         }
 
         return result;
@@ -128,19 +144,27 @@ public class BaseContentProvider extends ContentProvider {
     @Override
     public final int update(@NonNls @NonNull final Uri uri,
                             @NonNull final ContentValues values,
-                            @Nullable final String where,
-                            @Nullable final String[] whereArguments) {
-        final int updated = match(uri).update(mHelper, values, where, whereArguments);
+                            @Nullable final String selection,
+                            @Nullable final String[] arguments) {
+        final int updated;
 
-        if (updated > 0) {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Update at " + uri + " impacted " + updated + " rows."); //NON-NLS
+        final SQLiteDatabase database = getDatabase(mHelper, true);
+        database.beginTransaction();
+        try {
+            updated = match(uri).update(database, values, selection, arguments);
+            if (updated > 0) {
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Update at " + uri + " impacted " + updated + " rows."); //NON-NLS
+                }
+                mContentResolver.notifyChange(uri, null);
+                database.setTransactionSuccessful();
+            } else {
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Update at " + uri + " impacted no rows."); //NON-NLS
+                }
             }
-            mContentResolver.notifyChange(uri, null);
-        } else {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Update at " + uri + " impacted no rows."); //NON-NLS
-            }
+        } finally {
+            database.endTransaction();
         }
 
         return updated;
@@ -148,19 +172,28 @@ public class BaseContentProvider extends ContentProvider {
 
     @Override
     public final int delete(@NonNls @NonNull final Uri uri,
-                            @Nullable final String where,
-                            @Nullable final String[] whereArguments) {
-        final int deleted = match(uri).delete(mHelper, where, whereArguments);
+                            @Nullable final String selection,
+                            @Nullable final String[] arguments) {
+        final int deleted;
 
-        if (deleted > 0) {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Delete at " + uri + " removed " + deleted + " rows."); //NON-NLS
+        final SQLiteDatabase database = getDatabase(mHelper, true);
+        database.beginTransaction();
+        try {
+            deleted = match(uri).delete(database, selection, arguments);
+
+            if (deleted > 0) {
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Delete at " + uri + " removed " + deleted + " rows."); //NON-NLS
+                }
+                mContentResolver.notifyChange(uri, null);
+                database.setTransactionSuccessful();
+            } else {
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Delete at " + uri + " removed no rows."); //NON-NLS
+                }
             }
-            mContentResolver.notifyChange(uri, null);
-        } else {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Delete at " + uri + " removed no rows."); //NON-NLS
-            }
+        } finally {
+            database.endTransaction();
         }
 
         return deleted;
@@ -171,22 +204,16 @@ public class BaseContentProvider extends ContentProvider {
     @SuppressWarnings("RefusedBequest")
     public final ContentProviderResult[] applyBatch(@NonNull final ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
         final int size = operations.size();
-        boolean readOnly = true;
-        for (int i = 0; (i < size) && readOnly; i++) {
+        boolean writable = false;
+        for (int i = 0; (i < size) && !writable; i++) {
             if (operations.get(i).isWriteOperation()) {
-                readOnly = false;
+                writable = true;
             }
-        }
-
-        final SQLiteDatabase database = readOnly ?
-                mHelper.getReadableDatabase() :
-                mHelper.getWritableDatabase();
-        if (database == null) {
-            throw new SQLException("Couldn't access database");
         }
 
         final ContentProviderResult[] results = new ContentProviderResult[size];
 
+        final SQLiteDatabase database = getDatabase(mHelper, writable);
         database.beginTransaction();
         try {
             for (int i = 0; i < size; i++) {
@@ -207,5 +234,17 @@ public class BaseContentProvider extends ContentProvider {
             throw new SQLException("Unknown URI " + uri);
         }
         return match;
+    }
+
+    @NonNull
+    private static SQLiteDatabase getDatabase(@NonNull final SQLiteOpenHelper helper,
+                                              final boolean writable) {
+        final SQLiteDatabase database = writable ?
+                helper.getWritableDatabase() :
+                helper.getReadableDatabase();
+        if (database == null) {
+            throw new SQLException("Couldn't access database");
+        }
+        return database;
     }
 }

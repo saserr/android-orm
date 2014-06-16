@@ -18,9 +18,7 @@ package android.orm.route;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.orm.Route;
@@ -82,7 +80,7 @@ public class Match {
     }
 
     @Nullable
-    public final Cursor query(@NonNull final SQLiteOpenHelper helper,
+    public final Cursor query(@NonNull final SQLiteDatabase database,
                               @Nullable final String[] projection,
                               @Nullable final String selection,
                               @Nullable final String[] arguments,
@@ -91,41 +89,28 @@ public class Match {
         builder.setTables(mTableName);
         final String where = mWhere.and(new Select.Where(selection)).toSQL();
         final String order = (sortOrder == null) ? mOrder : sortOrder;
-        final SQLiteDatabase database = getDatabase(helper, false);
         return builder.query(database, projection, where, arguments, null, null, order);
     }
 
     @Nullable
-    public final Uri insert(@NonNull final SQLiteOpenHelper helper,
+    public final Uri insert(@NonNull final SQLiteDatabase database,
                             @NonNull final ContentValues values) {
         final Insert insert = new Insert(mItemRoute, Plans.write(values), mOnInsert);
-        return insert.invoke(getDatabase(helper, true)).getOrElse(null);
+        return insert.invoke(database).getOrElse(null);
     }
 
-    public final int update(@NonNull final SQLiteOpenHelper helper,
+    public final int update(@NonNull final SQLiteDatabase database,
                             @NonNull final ContentValues values,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
         final String where = mWhere.and(new Select.Where(selection)).toSQL();
-        return getDatabase(helper, true).update(mTableName, values, where, arguments);
+        return database.update(mTableName, values, where, arguments);
     }
 
-    public final int delete(@NonNull final SQLiteOpenHelper helper,
+    public final int delete(@NonNull final SQLiteDatabase database,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
         final String where = mWhere.and(new Select.Where(selection)).toSQL();
-        return getDatabase(helper, true).delete(mTableName, where, arguments);
-    }
-
-    @NonNull
-    private static SQLiteDatabase getDatabase(@NonNull final SQLiteOpenHelper helper,
-                                              final boolean writable) {
-        final SQLiteDatabase database = writable ?
-                helper.getWritableDatabase() :
-                helper.getReadableDatabase();
-        if (database == null) {
-            throw new SQLException("Couldn't access database");
-        }
-        return database;
+        return database.delete(mTableName, where, arguments);
     }
 }
