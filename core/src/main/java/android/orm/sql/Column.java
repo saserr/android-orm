@@ -379,7 +379,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
                     mProducer = null;
                     mSQL = "default null";
                 } else {
-                    mProducer = Producers.singleton(value);
+                    mProducer = Producers.constant(value);
                     mSQL = "default " + type.escape(value);
                 }
             }

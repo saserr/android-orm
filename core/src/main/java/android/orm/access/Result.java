@@ -35,7 +35,7 @@ import android.util.Pair;
 public class Result<V> {
 
     private static final String TAG = Result.class.getSimpleName();
-    private static final Result<Object> Nothing = singleton(Maybes.nothing());
+    private static final Result<Object> Nothing = constant(Maybes.nothing());
 
     @NonNull
     private final Future<Maybe<V>> mFuture;
@@ -171,7 +171,7 @@ public class Result<V> {
 
     @NonNull
     public static <V> Result<V> something(@Nullable final V value) {
-        return singleton(Maybes.something(value));
+        return constant(Maybes.something(value));
     }
 
     @NonNull
@@ -181,7 +181,7 @@ public class Result<V> {
     }
 
     @NonNull
-    public static <V> Result<V> singleton(@NonNull final Maybe<? extends V> result) {
+    public static <V> Result<V> constant(@NonNull final Maybe<? extends V> result) {
         return new Result<>(Futures.success(Maybes.safeCast(result)), null);
     }
 

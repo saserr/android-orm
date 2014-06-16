@@ -55,7 +55,7 @@ public class Statement<V> {
 
     @NonNull
     public final <T> Statement<Pair<V, T>> and(@NonNull final Maybe<T> other) {
-        return and(new Statement<>(Functions.<SQLiteDatabase, Maybe<T>>singleton(other)));
+        return and(new Statement<>(Functions.<SQLiteDatabase, Maybe<T>>constant(other)));
     }
 
     @NonNull

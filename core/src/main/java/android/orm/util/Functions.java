@@ -22,8 +22,8 @@ import android.util.Pair;
 public final class Functions {
 
     @NonNull
-    public static <V, T> Function<V, T> singleton(@NonNull final T value) {
-        return new Singleton<>(value);
+    public static <V, T> Function<V, T> constant(@NonNull final T value) {
+        return new Constant<>(value);
     }
 
     @NonNull
@@ -44,12 +44,12 @@ public final class Functions {
         return (Function<V, T>) function;
     }
 
-    private static class Singleton<V, T> implements Function<V, T> {
+    private static class Constant<V, T> implements Function<V, T> {
 
         @NonNull
         private final T mValue;
 
-        private Singleton(@NonNull final T value) {
+        private Constant(@NonNull final T value) {
             super();
 
             mValue = value;

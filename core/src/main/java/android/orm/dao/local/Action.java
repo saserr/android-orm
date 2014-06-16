@@ -64,7 +64,7 @@ public abstract class Action<V, T> {
 
     @NonNull
     public static <U> Statement<U> value(@NonNull final Maybe<U> value) {
-        return new Statement<>(Functions.<SQLiteDatabase, Maybe<U>>singleton(value));
+        return new Statement<>(Functions.<SQLiteDatabase, Maybe<U>>constant(value));
     }
 
     public static class Abort extends SQLException {

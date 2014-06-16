@@ -41,7 +41,7 @@ import java.util.Set;
 
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
-import static android.orm.util.Producers.singleton;
+import static android.orm.util.Producers.constant;
 import static android.util.Log.DEBUG;
 
 public final class Plans {
@@ -64,7 +64,7 @@ public final class Plans {
         @NonNull
         @Override
         public Producer<Maybe<Object>> read(@NonNull final Readable input) {
-            return singleton(nothing());
+            return constant(nothing());
         }
     };
 
@@ -91,7 +91,7 @@ public final class Plans {
                     public Producer<Maybe<List<V>>> read(@NonNull final Readable input) {
                         final List<V> values = new ArrayList<>(input.size());
                         Many.read(name, reading, input, values);
-                        return singleton(something(values));
+                        return constant(something(values));
                     }
                 };
     }
@@ -107,7 +107,7 @@ public final class Plans {
                     public Producer<Maybe<Set<V>>> read(@NonNull final Readable input) {
                         final Set<V> values = new HashSet<>(input.size());
                         Many.read(name, reading, input, values);
-                        return singleton(something(values));
+                        return constant(something(values));
                     }
                 };
     }
@@ -285,7 +285,7 @@ public final class Plans {
                     Log.w(TAG, "Reading a single '" + mName + "' from cursor that contains multiple ones. Please consider from list/set item"); //NON-NLS
                 }
             } else {
-                result = singleton(Maybes.<V>nothing());
+                result = constant(Maybes.<V>nothing());
             }
 
             return result;
@@ -316,7 +316,7 @@ public final class Plans {
             final List<V> values = new ArrayList<>(input.size());
             read(mName, mReading, input, values);
             copy(values, result);
-            return singleton(something(result));
+            return constant(something(result));
         }
 
         @NonNull

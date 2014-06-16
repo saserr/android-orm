@@ -22,8 +22,8 @@ import android.util.Pair;
 public final class Producers {
 
     @NonNull
-    public static <V> Producer<V> singleton(@NonNull final V value) {
-        return new Singleton<>(value);
+    public static <V> Producer<V> constant(@NonNull final V value) {
+        return new Constant<>(value);
     }
 
     @NonNull
@@ -44,12 +44,12 @@ public final class Producers {
         return (Producer<V>) producer;
     }
 
-    private static class Singleton<V> implements Producer<V> {
+    private static class Constant<V> implements Producer<V> {
 
         @NonNull
         private final V mValue;
 
-        private Singleton(@NonNull final V value) {
+        private Constant(@NonNull final V value) {
             super();
 
             mValue = value;

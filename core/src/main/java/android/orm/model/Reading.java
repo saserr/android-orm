@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static android.orm.model.Instances.setter;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
+import static android.orm.util.Producers.constant;
 import static android.orm.util.Producers.convert;
-import static android.orm.util.Producers.singleton;
 
 public interface Reading<M> {
 
@@ -133,7 +133,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public Producer<Maybe<Object>> read(@NonNull final Readable input) {
-                    return singleton(nothing());
+                    return constant(nothing());
                 }
             };
 
@@ -181,7 +181,7 @@ public interface Reading<M> {
                             public Producer<Maybe<M>> read(@NonNull final Readable input) {
                                 final M model = producer.produce();
                                 model.prepareRead().read(input).run();
-                                return singleton(something(model));
+                                return constant(something(model));
                             }
                         };
             }
@@ -195,7 +195,7 @@ public interface Reading<M> {
                             @NonNull
                             @Override
                             public Producer<Maybe<M>> read(@NonNull final Readable input) {
-                                return singleton(value.read(input));
+                                return constant(value.read(input));
                             }
                         };
             }
@@ -221,7 +221,7 @@ public interface Reading<M> {
                     final Producer<Maybe<M>> result1 = mFirst.read(input);
                     final Producer<Maybe<N>> result2 = mSecond.read(input);
                     final Producer<Pair<Maybe<M>, Maybe<N>>> result = Producers.compose(result1, result2);
-                    return singleton(convert(result, Maybes.<M, N>liftPair()).produce());
+                    return constant(convert(result, Maybes.<M, N>liftPair()).produce());
                 }
             }
 
@@ -243,7 +243,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public final Producer<Maybe<N>> read(@NonNull final Readable input) {
-                    return singleton(convert(mCreate.read(input), mConverter).produce());
+                    return constant(convert(mCreate.read(input), mConverter).produce());
                 }
             }
         }
@@ -254,7 +254,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public Producer<Maybe<Object>> read(@NonNull final Readable input) {
-                    return singleton(nothing());
+                    return constant(nothing());
                 }
             };
 
@@ -501,7 +501,7 @@ public interface Reading<M> {
             if (result.isSomething()) {
                 final M model = result.get();
                 if (model == null) {
-                    product = singleton(result);
+                    product = constant(result);
                 } else {
                     final Collection<Runnable> updates = new ArrayList<>(entries.size());
                     for (final Function<M, Action> entry : entries) {
@@ -510,7 +510,7 @@ public interface Reading<M> {
                     product = eager(model, compose(updates));
                 }
             } else {
-                product = singleton(result);
+                product = constant(result);
             }
 
             return product;
@@ -538,7 +538,7 @@ public interface Reading<M> {
                                                    @NonNull final Runnable runnable) {
             runnable.run();
             final Maybe<V> result = something(value);
-            return singleton(result);
+            return constant(result);
         }
 
         @NonNull
