@@ -20,39 +20,59 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.util.Functions;
 import android.orm.util.Maybe;
+import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
+import org.jetbrains.annotations.NonNls;
 
 import static android.orm.util.Maybes.something;
 
 public abstract class Action<V, T> {
 
-    private static final Rollback Rollback = new Rollback();
+    private static final Abort Abort = new Abort();
 
     @NonNull
     public abstract Statement<T> onResult(@NonNull final DAO dao, @NonNull final Maybe<V> v);
 
     @NonNull
-    public final Statement<T> value(@Nullable final T value) {
+    public final Statement<T> rollback() {
+        throw Abort;
+    }
+
+    @NonNull
+    public final Statement<T> rollback(@NonNls @NonNull final String savepoint) {
+        return rollback(savepoint, Maybes.<T>nothing());
+    }
+
+    @NonNull
+    public final Statement<T> rollback(@NonNls @NonNull final String savepoint,
+                                       @NonNull final T result) {
+        return rollback(savepoint, something(result));
+    }
+
+    @NonNull
+    public final Statement<T> rollback(@NonNls @NonNull final String savepoint,
+                                       @NonNull final Maybe<T> result) {
+        return new Statement<>(new Rollback<>(savepoint, result));
+    }
+
+    @NonNull
+    public static <U> Statement<U> value(@Nullable final U value) {
         return value(something(value));
     }
 
     @NonNull
-    public final Statement<T> value(@NonNull final Maybe<T> value) {
-        return new Statement<>(Functions.<SQLiteDatabase, Maybe<T>>singleton(value));
+    public static <U> Statement<U> value(@NonNull final Maybe<U> value) {
+        return new Statement<>(Functions.<SQLiteDatabase, Maybe<U>>singleton(value));
     }
 
-    @NonNull
-    public final Statement<T> rollback() {
-        throw Rollback;
-    }
+    public static class Abort extends SQLException {
 
-    public static class Rollback extends SQLException {
+        private static final long serialVersionUID = -703635940178327094L;
 
-        private static final long serialVersionUID = -7085222963689272905L;
-
-        private Rollback() {
-            super("Rollback");
+        private Abort() {
+            super("Abort");
         }
     }
 }

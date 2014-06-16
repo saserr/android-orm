@@ -36,11 +36,14 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import org.jetbrains.annotations.NonNls;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
+import static android.orm.util.Maybes.nothing;
 import static android.util.Log.INFO;
 
 public interface Transaction<V> {
@@ -50,6 +53,9 @@ public interface Transaction<V> {
 
     @NonNull
     Result<V> execute();
+
+    @NonNull
+    Transaction<V> savepoint(@NonNls @NonNull final String name);
 
     final class Access {
 
@@ -151,11 +157,11 @@ public interface Transaction<V> {
                         @NonNull
                         @Override
                         public Maybe<V> invoke(@NonNull final SQLiteDatabase database) {
-                            Maybe<V> result = Maybes.nothing();
+                            Maybe<V> result = nothing();
 
                             try {
                                 result = notifier.invoke(executable.execute(dao, database));
-                            } catch (final Action.Rollback ignored) {
+                            } catch (final Action.Abort ignored) {
                                 if (Log.isLoggable(TAG, INFO)) {
                                     Log.i(TAG, "Transaction has been rolled back"); //NON-NLS
                                 }
@@ -251,6 +257,12 @@ public interface Transaction<V> {
                                           @NonNull final SQLiteDatabase database) {
                 return mExecutable.execute(dao, database);
             }
+
+            @NonNull
+            @Override
+            public final Transaction<V> savepoint(@NonNls @NonNull final String name) {
+                return new Next<>(mExecutor, this, new Checkpoint<V>(name));
+            }
         }
 
         private static class Next<V, T extends V, U> implements Transaction<U>, Executable<U> {
@@ -291,6 +303,12 @@ public interface Transaction<V> {
                 final Maybe<V> result = Maybes.<V>safeCast(mExecutable.execute(dao, database));
                 final Statement<? extends U> next = mAction.onResult(dao, result);
                 return Maybes.safeCast(next.execute(database));
+            }
+
+            @NonNull
+            @Override
+            public final Transaction<U> savepoint(@NonNls @NonNull final String name) {
+                return new Next<>(mExecutor, this, new Checkpoint<U>(name));
             }
         }
 
@@ -537,6 +555,26 @@ public interface Transaction<V> {
             @Override
             public final Result<V> execute() {
                 return mExecutor.execute(mQuery.execute());
+            }
+        }
+
+        private static class Checkpoint<V> extends Action<V, V> {
+
+            @NonNls
+            @NonNull
+            private final String mName;
+
+            private Checkpoint(@NonNull final String name) {
+                super();
+
+                mName = name;
+            }
+
+            @NonNull
+            @Override
+            public final Statement<V> onResult(@NonNull final DAO dao,
+                                               @NonNull final Maybe<V> result) {
+                return new Statement<>(new Savepoint<>(mName, result));
             }
         }
     }
