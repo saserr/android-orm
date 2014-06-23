@@ -16,237 +16,47 @@
 
 package android.orm;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.orm.access.ErrorHandler;
-import android.orm.access.Result;
-import android.orm.dao.Watcher;
+import android.orm.dao.ErrorHandler;
+import android.orm.dao.Result;
+import android.orm.model.Instance;
 import android.orm.model.Mapper;
+import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
+import android.orm.sql.Statement;
 import android.orm.sql.Value;
 import android.orm.sql.statement.Select;
 import android.orm.util.Cancelable;
+import android.orm.util.Function;
 import android.orm.util.Maybe;
-import android.orm.util.Producer;
-import android.orm.util.Promise;
-import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
-import org.jetbrains.annotations.NonNls;
-
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class DAO {
+import static android.orm.model.Observer.beforeCreate;
+import static android.orm.model.Observer.beforeUpdate;
+import static android.orm.model.Plans.write;
+import static android.orm.util.Maybes.something;
 
-    // TODO logging
+public final class DAO {
 
-    private static final String TAG = DAO.class.getSimpleName();
     private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool();
 
-    @NonNls
-    private static final String UNKNOWN_STATE = "Unknown state: ";
-    @NonNls
-    private static final String DAO_STOPPED = "DAO is stopped";
-    @NonNls
-    private static final String EXECUTE_TASK_ON_NON_STARTED = "Task has been executed on a non-started DAO. For now this is allowed, but that might change in future!";
-
     @NonNull
-    private final ExecutorService mExecutor;
-
-    private final AtomicReference<ErrorHandler> mErrorHandler = new AtomicReference<>();
-    private final Semaphore mSemaphore = new Semaphore(1);
-    private final Collection<Watcher> mWatchers = new ArrayList<>();
-
-    @State
-    private int mState = State.INITIALIZED;
-
-    protected DAO(@NonNull final ExecutorService executor) {
-        super();
-
-        mExecutor = executor;
+    public static Direct direct(@NonNull final Context context,
+                                @NonNull final SQLiteDatabase database) {
+        return new android.orm.dao.Direct(context, database);
     }
 
     @NonNull
-    public abstract Access.Single at(@NonNull final Route.Item route,
-                                     @NonNull final Object... arguments);
-
-    @NonNull
-    public abstract Access.Many at(@NonNull final Route.Dir route,
-                                   @NonNull final Object... arguments);
-
-    @NonNull
-    public abstract Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
-
-    public final void setErrorHandler(@Nullable final ErrorHandler handler) {
-        mErrorHandler.set(handler);
-    }
-
-    public final void start() {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        for (final Watcher watcher : mWatchers) {
-                            watcher.start();
-                        }
-                        mState = State.STARTED;
-                        break;
-                    case State.STARTED:
-                        /* do nothing */
-                        break;
-                    case State.STOPPED:
-                        throw new UnsupportedOperationException(DAO_STOPPED);
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while starting DAO", ex); //NON-NLS
-        }
-    }
-
-    public final void pause() {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.STARTED:
-                        for (final Watcher watcher : mWatchers) {
-                            watcher.stop();
-                        }
-                        mState = State.PAUSED;
-                        break;
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        /* do nothing */
-                        break;
-                    case State.STOPPED:
-                        throw new UnsupportedOperationException(DAO_STOPPED);
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while pausing DAO", ex); //NON-NLS
-        }
-    }
-
-    public final void stop() {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.STARTED:
-                        for (final Watcher watcher : mWatchers) {
-                            watcher.stop();
-                        }
-                        //noinspection fallthrough
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        mWatchers.clear();
-                        mState = State.STOPPED;
-                        break;
-                    case State.STOPPED:
-                        /* do nothing */
-                        break;
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-
-            mErrorHandler.set(null);
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while stopping DAO", ex); //NON-NLS
-        }
-    }
-
-    @NonNull
-    protected final <V> Result<V> execute(@NonNull final Producer<Maybe<V>> producer) {
-        try {
-            mSemaphore.acquire();
-            try {
-                if (mState != State.STARTED) {
-                    Log.w(TAG, EXECUTE_TASK_ON_NON_STARTED, new Throwable());
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ignored) {
-        }
-
-        final Promise<Maybe<V>> promise = new Promise<>();
-        mExecutor.execute(new Task<>(promise, producer));
-        return new Result<>(promise.getFuture(), mErrorHandler.get());
-    }
-
-    @NonNull
-    protected final Cancelable watch(@NonNull final Watcher watcher) {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.STARTED:
-                        watcher.start();
-                        //noinspection fallthrough
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        mWatchers.add(watcher);
-                        break;
-                    case State.STOPPED:
-                        throw new UnsupportedOperationException(DAO_STOPPED);
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while starting a watcher", ex); //NON-NLS
-        }
-
-        return cancelable(watcher);
-    }
-
-    @NonNull
-    private Cancelable cancelable(@NonNull final Watcher watcher) {
-        return new Cancelable() {
-            @Override
-            public void cancel() {
-                try {
-                    mSemaphore.acquire();
-                    try {
-                        mWatchers.remove(watcher);
-                        watcher.stop();
-                    } finally {
-                        mSemaphore.release();
-                    }
-                } catch (final InterruptedException ex) {
-                    Log.e(TAG, "Thread interrupted while stopping a watcher", ex); //NON-NLS
-                }
-            }
-        };
-    }
-
-    @NonNull
-    public static Local local(@NonNull final Context context,
-                              @NonNull final Database database) {
+    public static Local local(@NonNull final Context context, @NonNull final Database database) {
         return local(context, database, DEFAULT_EXECUTOR);
     }
 
@@ -268,99 +78,140 @@ public abstract class DAO {
         return new android.orm.dao.Remote(context, executor);
     }
 
-    public abstract static class Local extends DAO {
+    public interface Direct {
 
-        protected Local(@NonNull final ExecutorService executor) {
-            super(executor);
+        @NonNull
+        Access.Single at(@NonNull final Route.Item route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Many at(@NonNull final Route.Dir route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
+
+        void execute(@NonNull final Statement statement);
+
+        @NonNull
+        <V> Maybe<V> execute(@NonNull final Function<SQLiteDatabase, Maybe<V>> function);
+
+        interface Exists extends DAO.Access.Exists<Maybe<Boolean>> {
         }
 
-        @NonNull
-        @Override
-        public abstract Access.Single at(@NonNull final Route.Item route,
-                                         @NonNull final Object... arguments);
+        final class Query {
 
-        @NonNull
-        @Override
-        public abstract Access.Many at(@NonNull final Route.Dir route,
-                                       @NonNull final Object... arguments);
-
-        @NonNull
-        public abstract android.orm.dao.local.Transaction.Begin transaction();
-
-        public static final class Access {
-
-            public interface Query<V> extends DAO.Access.Query<V> {
+            public interface Single extends DAO.Access.Read.Single<Maybe<Boolean>> {
 
                 @NonNull
                 @Override
-                Query<V> with(@Nullable final Select.Where where);
+                <M> Builder<M> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
                 @Override
-                Query<V> with(@Nullable final Select.Order order);
+                <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
-                Query<V> with(@Nullable final Select.Limit limit);
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+            }
+
+            public interface Many extends DAO.Access.Read.Many<Maybe<Boolean>> {
 
                 @NonNull
-                Query<V> with(@Nullable final Select.Offset offset);
+                @Override
+                <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
 
-                interface Refreshable<V> extends Query<V>, DAO.Access.Query.Refreshable<V> {
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+            }
+
+            public interface Builder<V> extends DAO.Access.Query.Builder<V, Maybe<V>> {
+
+                @NonNull
+                @Override
+                Builder<V> with(@Nullable final Select.Where where);
+
+                @NonNull
+                @Override
+                Builder<V> with(@Nullable final Select.Order order);
+
+                @NonNull
+                Builder<V> with(@Nullable final Select.Limit limit);
+
+                @NonNull
+                Builder<V> with(@Nullable final Select.Offset offset);
+
+                interface Refreshable<V> extends Builder<V>, DAO.Access.Query.Builder.Refreshable<V, Maybe<V>> {
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> with(@Nullable final Select.Where where);
+                    Builder.Refreshable<V> with(@Nullable final Select.Where where);
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> with(@Nullable final Select.Order order);
+                    Builder.Refreshable<V> with(@Nullable final Select.Order order);
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> with(@Nullable final Select.Limit limit);
+                    Builder.Refreshable<V> with(@Nullable final Select.Limit limit);
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> with(@Nullable final Select.Offset offset);
+                    Builder.Refreshable<V> with(@Nullable final Select.Offset offset);
 
                     @NonNull
                     @Override
-                    Access.Query.Refreshable<V> using(@Nullable final V v);
+                    Builder.Refreshable<V> using(@Nullable final V v);
                 }
             }
 
-            public interface Single extends DAO.Access.Single {
+            private Query() {
+                super();
+            }
+        }
 
-                @NonNull
-                @Override
-                <M> Query<M> query(@NonNull final Value.Read<M> value);
+        final class Read {
 
-                @NonNull
-                @Override
-                <M> Query.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
-
-                @NonNull
-                @Override
-                <M> Query.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+            public interface Single extends Exists, Query.Single {
             }
 
-            public interface Many extends DAO.Access.Many {
+            public interface Many extends Exists, Query.Many {
+            }
 
-                @NonNull
-                @Override
-                <M> Query<M> query(@NonNull final AggregateFunction<M> function);
+            private Read() {
+                super();
+            }
+        }
 
-                @NonNull
-                @Override
-                <M> Query.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+        interface Insert extends DAO.Access.Insert<Maybe<Uri>> {
+        }
 
-                @NonNull
-                @Override
-                <M> Query.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+        interface Update extends DAO.Access.Update<Maybe<Integer>> {
+        }
 
-                @NonNull
-                @Override
-                <M> Query.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+        interface Delete extends DAO.Access.Delete<Maybe<Integer>> {
+        }
+
+        interface Write extends Insert, Update, Delete, DAO.Access.Write<Maybe<Uri>, Maybe<Integer>, Maybe<Integer>> {
+        }
+
+        final class Access {
+
+            public interface Single extends Read.Single, Write {
+            }
+
+            public interface Many extends Read.Many, Write {
+            }
+
+            public interface Some extends Exists, Write {
             }
 
             private Access() {
@@ -369,98 +220,518 @@ public abstract class DAO {
         }
     }
 
-    public abstract static class Remote extends DAO {
-
-        protected Remote(@NonNull final ExecutorService executor) {
-            super(executor);
-        }
+    public interface Local extends Async {
 
         @NonNull
-        public abstract android.orm.dao.remote.Transaction transaction();
+        Access.Single at(@NonNull final Route.Item route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Many at(@NonNull final Route.Dir route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
+
+        @NonNull
+        android.orm.dao.local.Transaction.Begin transaction();
+
+        @NonNull
+        <V> Result<V> async(@NonNull final Function<Direct, Maybe<V>> function);
+
+        @NonNull
+        <V> Result<V> execute(@NonNull final Function<SQLiteDatabase, Maybe<V>> function);
+
+        final class Query {
+
+            public interface Single extends Async.Query.Single {
+
+                @NonNull
+                @Override
+                <M> Builder<M> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+            }
+
+            public interface Many extends Async.Query.Many {
+
+                @NonNull
+                @Override
+                <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+            }
+
+            public interface Builder<V> extends Async.Query.Builder<V> {
+
+                @NonNull
+                @Override
+                Builder<V> with(@Nullable final Select.Where where);
+
+                @NonNull
+                @Override
+                Builder<V> with(@Nullable final Select.Order order);
+
+                @NonNull
+                Builder<V> with(@Nullable final Select.Limit limit);
+
+                @NonNull
+                Builder<V> with(@Nullable final Select.Offset offset);
+
+                interface Refreshable<V> extends Builder<V>, Async.Query.Builder.Refreshable<V> {
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> with(@Nullable final Select.Where where);
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> with(@Nullable final Select.Order order);
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> with(@Nullable final Select.Limit limit);
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> with(@Nullable final Select.Offset offset);
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> using(@Nullable final V v);
+                }
+            }
+
+            private Query() {
+                super();
+            }
+        }
+
+        final class Read {
+
+            public interface Single extends Query.Single, Async.Read.Single {
+            }
+
+            public interface Many extends Query.Many, Async.Read.Many {
+            }
+
+            private Read() {
+                super();
+            }
+        }
+
+        final class Access {
+
+            public interface Single extends Read.Single, Async.Access.Single {
+            }
+
+            public interface Many extends Read.Many, Async.Access.Many {
+            }
+
+            public interface Some extends Async.Access.Some {
+            }
+
+            private Access() {
+                super();
+            }
+        }
+    }
+
+    public interface Remote extends Async {
+
+        @NonNull
+        Access.Single at(@NonNull final Route.Item route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Many at(@NonNull final Route.Dir route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
+
+        @NonNull
+        android.orm.dao.remote.Transaction transaction();
+
+        @NonNull
+        <V> Result<V> execute(@NonNull final Function<ContentResolver, Maybe<V>> function);
+    }
+
+    public interface Async {
+
+        @NonNull
+        Access.Single at(@NonNull final Route.Item route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Many at(@NonNull final Route.Dir route, @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
+
+        void start();
+
+        void pause();
+
+        void stop();
+
+        void setErrorHandler(@Nullable final ErrorHandler handler);
+
+        interface Exists extends DAO.Access.Exists<Result<Boolean>> {
+        }
+
+        final class Query {
+
+            public interface Single extends DAO.Access.Read.Single<Result<Boolean>> {
+
+                @NonNull
+                @Override
+                <M> Builder<M> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+            }
+
+            public interface Many extends DAO.Access.Read.Many<Result<Boolean>> {
+
+                @NonNull
+                @Override
+                <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                @Override
+                <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+            }
+
+            public interface Builder<V> extends DAO.Access.Query.Builder<V, Result<V>>, DAO.Access.Watchable<V> {
+
+                @NonNull
+                @Override
+                Builder<V> with(@Nullable final Select.Where where);
+
+                @NonNull
+                @Override
+                Builder<V> with(@Nullable final Select.Order order);
+
+                interface Refreshable<V> extends Builder<V>, DAO.Access.Query.Builder.Refreshable<V, Result<V>> {
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> with(@Nullable final Select.Where where);
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> with(@Nullable final Select.Order order);
+
+                    @NonNull
+                    @Override
+                    Builder.Refreshable<V> using(@Nullable final V v);
+                }
+            }
+
+            private Query() {
+                super();
+            }
+        }
+
+        final class Read {
+
+            public interface Single extends Exists, Query.Single {
+            }
+
+            public interface Many extends Exists, Query.Many {
+            }
+
+            private Read() {
+                super();
+            }
+        }
+
+        interface Insert extends DAO.Access.Insert<Result<Uri>> {
+        }
+
+        interface Update extends DAO.Access.Update<Result<Integer>> {
+        }
+
+        interface Delete extends DAO.Access.Delete<Result<Integer>> {
+        }
+
+        interface Write extends Insert, Update, Delete, DAO.Access.Write<Result<Uri>, Result<Integer>, Result<Integer>> {
+        }
+
+        final class Access {
+
+            public interface Single extends Read.Single, Write {
+            }
+
+            public interface Many extends Read.Many, Write {
+            }
+
+            public interface Some extends Exists, Write {
+            }
+
+            private Access() {
+                super();
+            }
+        }
     }
 
     public static final class Access {
 
-        public interface Insert extends android.orm.Access.Insert<Result<Uri>> {
+        public interface Watchable<V> {
+            @NonNull
+            Cancelable watch(@NonNull final Result.Callback<? super V> callback);
         }
 
-        public interface Update extends android.orm.Access.Update<Result<Integer>> {
+        public interface Exists<R> {
+
+            @NonNull
+            R exists();
+
+            @NonNull
+            R exists(@NonNull final Select.Where where);
         }
 
-        public interface Delete extends android.orm.Access.Delete<Result<Integer>> {
-        }
+        public static final class Query {
 
-        public interface Write extends Insert, Update, Delete, android.orm.Access.Write<Result<Uri>, Result<Integer>, Result<Integer>> {
-            abstract class Base extends android.orm.Access.Write.Base<Result<Uri>, Result<Integer>, Result<Integer>> implements Write {
-                protected Base() {
-                    super();
+            public interface Single {
+
+                @NonNull
+                <M> Builder<M, ?> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                <M> Builder<M, ?> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                <M> Builder<M, ?> query(@NonNull final Reading.Single<M> reading);
+            }
+
+            public interface Many {
+
+                @NonNull
+                <M> Builder<M, ?> query(@NonNull final AggregateFunction<M> function);
+
+                @NonNull
+                <M> Builder<List<M>, ?> query(@NonNull final Value.Read<M> value);
+
+                @NonNull
+                <M> Builder<List<M>, ?> query(@NonNull final Mapper.Read<M> mapper);
+
+                @NonNull
+                <M> Builder<M, ?> query(@NonNull final Reading.Many<M> reading);
+            }
+
+            public interface Builder<V, R> {
+
+                @NonNull
+                Builder<V, R> with(@Nullable final Select.Where where);
+
+                @NonNull
+                Builder<V, R> with(@Nullable final Select.Order order);
+
+                @NonNull
+                R execute();
+
+                interface Refreshable<V, R> extends Builder<V, R> {
+
+                    @NonNull
+                    @Override
+                    Refreshable<V, R> with(@Nullable final Select.Where where);
+
+                    @NonNull
+                    @Override
+                    Refreshable<V, R> with(@Nullable final Select.Order order);
+
+                    @NonNull
+                    Refreshable<V, R> using(@Nullable final V v);
                 }
             }
-        }
 
-        public interface Exists extends android.orm.Access.Exists<Result<Boolean>> {
-        }
-
-        public interface Query<V> extends android.orm.Access.Query.Builder<V, Result<V>>, android.orm.Access.Watchable<V> {
-
-            @NonNull
-            @Override
-            Query<V> with(@Nullable final Select.Where where);
-
-            @NonNull
-            @Override
-            Query<V> with(@Nullable final Select.Order order);
-
-            interface Refreshable<V> extends Query<V> {
-
-                @NonNull
-                @Override
-                Refreshable<V> with(@Nullable final Select.Where where);
-
-                @NonNull
-                @Override
-                Refreshable<V> with(@Nullable final Select.Order order);
-
-                @NonNull
-                Refreshable<V> using(@Nullable final V v);
+            private Query() {
+                super();
             }
         }
 
-        public interface Some extends Exists, Write {
+        public static final class Read {
+
+            public interface Single<E> extends Exists<E>, Query.Single {
+            }
+
+            public interface Many<E> extends Exists<E>, Query.Many {
+            }
+
+            private Read() {
+                super();
+            }
         }
 
-        public interface Single extends Exists, Write, android.orm.Access.Read.Single<Result<Boolean>> {
+        public interface Insert<R> {
 
             @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final Value.Read<M> value);
+            <M extends Instance.Writable> R insert(@NonNull final M model);
 
             @NonNull
-            @Override
-            <M> Query.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
+            <M> R insert(@NonNull final M model, @NonNull final Value.Write<M> value);
 
             @NonNull
-            @Override
-            <M> Query.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+            <M> R insert(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
         }
 
-        public interface Many extends Exists, Write, android.orm.Access.Read.Many<Result<Boolean>> {
+        public interface Update<R> {
 
             @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final AggregateFunction<M> function);
+            <M extends Instance.Writable> R update(@NonNull final M model);
 
             @NonNull
-            @Override
-            <M> Query.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+            <M extends Instance.Writable> R update(@NonNull final Select.Where where,
+                                                   @NonNull final M model);
 
             @NonNull
-            @Override
-            <M> Query.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+            <M> R update(@NonNull final M model, @NonNull final Value.Write<M> value);
 
             @NonNull
-            @Override
-            <M> Query.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+            <M> R update(@NonNull final Select.Where where,
+                         @NonNull final M model,
+                         @NonNull final Value.Write<M> value);
+
+            @NonNull
+            <M> R update(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
+
+            @NonNull
+            <M> R update(@NonNull final Select.Where where,
+                         @NonNull final M model,
+                         @NonNull final Mapper.Write<M> mapper);
+        }
+
+        public interface Delete<R> {
+
+            @NonNull
+            R delete();
+
+            @NonNull
+            R delete(@NonNull final Select.Where where);
+        }
+
+        public interface Write<I, U, D> extends Insert<I>, Update<U>, Delete<D> {
+
+            abstract class Base<I, U, D> implements Write<I, U, D> {
+
+                @NonNull
+                protected abstract <M> I insert(@NonNull final M model,
+                                                @NonNull final Plan.Write plan);
+
+                @NonNull
+                protected abstract <M> U update(@NonNull final Select.Where where,
+                                                @NonNull final M model,
+                                                @NonNull final Plan.Write plan);
+
+                @NonNull
+                @Override
+                public final <M extends Instance.Writable> I insert(@NonNull final M model) {
+                    beforeCreate(model);
+                    return insert(model, write(model));
+                }
+
+                @NonNull
+                @Override
+                public final <M> I insert(@NonNull final M model,
+                                          @NonNull final Value.Write<M> value) {
+                    beforeCreate(model);
+                    return insert(model, write(something(model), value));
+                }
+
+                @NonNull
+                @Override
+                public final <M> I insert(@NonNull final M model,
+                                          @NonNull final Mapper.Write<M> mapper) {
+                    beforeCreate(model);
+                    return insert(model, mapper.prepareWrite(something(model)));
+                }
+
+                @NonNull
+                @Override
+                public final <M extends Instance.Writable> U update(@NonNull final M model) {
+                    beforeUpdate(model);
+                    return update(model, write(model));
+                }
+
+                @NonNull
+                @Override
+                public final <M extends Instance.Writable> U update(@NonNull final Select.Where where,
+                                                                    @NonNull final M model) {
+                    beforeUpdate(model);
+                    return update(where, model, write(model));
+                }
+
+                @NonNull
+                @Override
+                public final <M> U update(@NonNull final M model,
+                                          @NonNull final Value.Write<M> value) {
+                    beforeUpdate(model);
+                    return update(model, write(something(model), value));
+                }
+
+                @NonNull
+                @Override
+                public final <M> U update(@NonNull final Select.Where where,
+                                          @NonNull final M model,
+                                          @NonNull final Value.Write<M> value) {
+                    beforeUpdate(model);
+                    return update(where, model, write(something(model), value));
+                }
+
+                @NonNull
+                @Override
+                public final <M> U update(@NonNull final M model,
+                                          @NonNull final Mapper.Write<M> mapper) {
+                    beforeUpdate(model);
+                    return update(model, mapper.prepareWrite(something(model)));
+                }
+
+                @NonNull
+                @Override
+                public final <M> U update(@NonNull final Select.Where where,
+                                          @NonNull final M model,
+                                          @NonNull final Mapper.Write<M> mapper) {
+                    beforeUpdate(model);
+                    return update(where, model, mapper.prepareWrite(something(model)));
+                }
+
+                @NonNull
+                @Override
+                public final D delete() {
+                    return delete(Select.Where.None);
+                }
+
+                @NonNull
+                private <M> U update(@NonNull final M model, @NonNull final Plan.Write plan) {
+                    return update(Select.Where.None, model, plan);
+                }
+            }
         }
 
         private Access() {
@@ -468,37 +739,7 @@ public abstract class DAO {
         }
     }
 
-    @IntDef({State.INITIALIZED, State.STARTED, State.PAUSED, State.STOPPED})
-    private @interface State {
-        int INITIALIZED = 0;
-        int STARTED = 1;
-        int PAUSED = 2;
-        int STOPPED = 3;
-    }
-
-    private static class Task<V> implements Runnable {
-
-        @NonNull
-        private final Promise<Maybe<V>> mPromise;
-        @NonNull
-        private final Producer<Maybe<V>> mProducer;
-
-        private Task(@NonNull final Promise<Maybe<V>> promise,
-                     @NonNull final Producer<Maybe<V>> producer) {
-            super();
-
-            mPromise = promise;
-            mProducer = producer;
-        }
-
-        @Override
-        public final void run() {
-            try {
-                mPromise.success(mProducer.produce());
-            } catch (final Throwable error) {
-                Log.e(TAG, "DAO operation has been aborted", error); //NON-NLS
-                mPromise.failure(error);
-            }
-        }
+    private DAO() {
+        super();
     }
 }

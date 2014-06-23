@@ -18,8 +18,8 @@ package android.orm.tasks;
 
 import android.content.res.Resources;
 import android.orm.DAO;
-import android.orm.access.ErrorHandler;
-import android.orm.access.Result;
+import android.orm.dao.ErrorHandler;
+import android.orm.dao.Result;
 import android.orm.tasks.data.Provider;
 import android.orm.tasks.model.Task;
 import android.orm.tasks.view.Form;
@@ -49,8 +49,8 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     private static final Collection<Task> NO_TASKS = emptyList();
     private static final String EDITED_TASK_STATE = "edited_task"; //NON-NLS
 
-    private DAO mDAO;
-    private DAO.Access.Many mTasks;
+    private DAO.Async mDAO;
+    private DAO.Async.Access.Many mTasks;
     private long mEditedTask = Task.NO_ID;
 
     private Form mForm;

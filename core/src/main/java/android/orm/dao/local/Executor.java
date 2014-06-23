@@ -16,7 +16,7 @@
 
 package android.orm.dao.local;
 
-import android.orm.access.Result;
+import android.orm.dao.Result;
 import android.support.annotation.NonNull;
 
 public interface Executor {

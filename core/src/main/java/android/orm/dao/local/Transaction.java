@@ -21,8 +21,8 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.orm.Route;
-import android.orm.access.Result;
 import android.orm.dao.Local;
+import android.orm.dao.Result;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Reading;
@@ -57,78 +57,104 @@ public interface Transaction<V> {
     @NonNull
     Transaction<V> savepoint(@NonNls @NonNull final String name);
 
-    final class Access {
+    interface Exists extends android.orm.DAO.Access.Exists<Transaction<Boolean>> {
+    }
 
-        public interface Insert extends android.orm.Access.Insert<Transaction<Uri>> {
-        }
+    final class Query {
 
-        public interface Update extends android.orm.Access.Update<Transaction<Integer>> {
-        }
-
-        public interface Delete extends android.orm.Access.Delete<Transaction<Integer>> {
-        }
-
-        public interface Write extends Insert, Update, Delete, android.orm.Access.Write<Transaction<Uri>, Transaction<Integer>, Transaction<Integer>> {
-        }
-
-        public interface Exists extends android.orm.Access.Exists<Transaction<Boolean>> {
-        }
-
-        public interface Query<V> extends android.orm.Access.Query.Builder<V, Result<V>> {
+        public interface Single extends android.orm.DAO.Access.Query.Single {
 
             @NonNull
             @Override
-            Query<V> with(@Nullable final Select.Where where);
+            <M> Builder<M> query(@NonNull final Value.Read<M> value);
 
             @NonNull
             @Override
-            Query<V> with(@Nullable final Select.Order order);
+            <M> Builder<M> query(@NonNull final Mapper.Read<M> mapper);
 
             @NonNull
-            Query<V> with(@Nullable final Select.Limit limit);
+            @Override
+            <M> Builder<M> query(@NonNull final Reading.Single<M> reading);
+        }
+
+        public interface Many extends android.orm.DAO.Access.Query.Many {
 
             @NonNull
-            Query<V> with(@Nullable final Select.Offset offset);
+            @Override
+            <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+
+            @NonNull
+            @Override
+            <M> Builder<List<M>> query(@NonNull final Value.Read<M> value);
+
+            @NonNull
+            @Override
+            <M> Builder<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+
+            @NonNull
+            @Override
+            <M> Builder<M> query(@NonNull final Reading.Many<M> reading);
+        }
+
+        public interface Builder<V> extends android.orm.DAO.Access.Query.Builder<V, Result<V>> {
+
+            @NonNull
+            @Override
+            Builder<V> with(@Nullable final Select.Where where);
+
+            @NonNull
+            @Override
+            Builder<V> with(@Nullable final Select.Order order);
+
+            @NonNull
+            Builder<V> with(@Nullable final Select.Limit limit);
+
+            @NonNull
+            Builder<V> with(@Nullable final Select.Offset offset);
 
             @NonNull
             <T> Transaction<T> andThen(@NonNull final Action<? super V, ? extends T> action);
         }
 
+        private Query() {
+            super();
+        }
+    }
+
+    final class Read {
+
+        public interface Single extends Exists, Query.Single {
+        }
+
+        public interface Many extends Exists, Query.Many {
+        }
+
+        private Read() {
+            super();
+        }
+    }
+
+    interface Insert extends android.orm.DAO.Access.Insert<Transaction<Uri>> {
+    }
+
+    interface Update extends android.orm.DAO.Access.Update<Transaction<Integer>> {
+    }
+
+    interface Delete extends android.orm.DAO.Access.Delete<Transaction<Integer>> {
+    }
+
+    interface Write extends Insert, Update, Delete, android.orm.DAO.Access.Write<Transaction<Uri>, Transaction<Integer>, Transaction<Integer>> {
+    }
+
+    final class Access {
+
+        public interface Single extends Read.Single, Write {
+        }
+
+        public interface Many extends Read.Many, Write {
+        }
+
         public interface Some extends Exists, Write {
-        }
-
-        public interface Single extends Some, android.orm.Access.Read.Single<Transaction<Boolean>> {
-
-            @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final Value.Read<M> value);
-
-            @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final Mapper.Read<M> mapper);
-
-            @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final Reading.Single<M> reading);
-        }
-
-        public interface Many extends Some, android.orm.Access.Read.Many<Transaction<Boolean>> {
-
-            @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final AggregateFunction<M> function);
-
-            @NonNull
-            @Override
-            <M> Query<List<M>> query(@NonNull final Value.Read<M> value);
-
-            @NonNull
-            @Override
-            <M> Query<List<M>> query(@NonNull final Mapper.Read<M> mapper);
-
-            @NonNull
-            @Override
-            <M> Query<M> query(@NonNull final Reading.Many<M> reading);
         }
 
         private Access() {
@@ -333,20 +359,20 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final <M> Query<M> query(@NonNull final Value.Read<M> value) {
+            public final <M> QueryBuilder<M> query(@NonNull final Value.Read<M> value) {
                 return query(single(value));
             }
 
             @NonNull
             @Override
-            public final <M> Query<M> query(@NonNull final Mapper.Read<M> mapper) {
+            public final <M> QueryBuilder<M> query(@NonNull final Mapper.Read<M> mapper) {
                 return query(single(mapper));
             }
 
             @NonNull
             @Override
-            public final <M> Query<M> query(@NonNull final Reading.Single<M> reading) {
-                return new Query<>(mExecutor, new Executable.Query.Single<>(reading, mRoute, mArguments));
+            public final <M> QueryBuilder<M> query(@NonNull final Reading.Single<M> reading) {
+                return new QueryBuilder<>(mExecutor, new Executable.Query.Single<>(reading, mRoute, mArguments));
             }
         }
 
@@ -371,26 +397,26 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final <M> Query<M> query(@NonNull final AggregateFunction<M> function) {
-                return new Query<>(mExecutor, new Executable.Query.Aggregate<>(function, mRoute, mArguments));
+            public final <M> QueryBuilder<M> query(@NonNull final AggregateFunction<M> function) {
+                return new QueryBuilder<>(mExecutor, new Executable.Query.Aggregate<>(function, mRoute, mArguments));
             }
 
             @NonNull
             @Override
-            public final <M> Query<List<M>> query(@NonNull final Value.Read<M> value) {
+            public final <M> QueryBuilder<List<M>> query(@NonNull final Value.Read<M> value) {
                 return query(list(value));
             }
 
             @NonNull
             @Override
-            public final <M> Query<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
+            public final <M> QueryBuilder<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
                 return query(list(mapper));
             }
 
             @NonNull
             @Override
-            public final <M> Query<M> query(@NonNull final Reading.Many<M> reading) {
-                return new Query<>(mExecutor, new Executable.Query.Many<>(reading, mRoute, mArguments));
+            public final <M> QueryBuilder<M> query(@NonNull final Reading.Many<M> reading) {
+                return new QueryBuilder<>(mExecutor, new Executable.Query.Many<>(reading, mRoute, mArguments));
             }
         }
 
@@ -399,7 +425,7 @@ public interface Transaction<V> {
             @NonNull
             private final Executor mExecutor;
             @NonNull
-            private final Executable.SomeAccess mAccess;
+            private final Executable.Access.Some mAccess;
 
             private SomeAccess(@NonNull final Executor executor,
                                @NonNull final Route route,
@@ -407,7 +433,7 @@ public interface Transaction<V> {
                 super();
 
                 mExecutor = executor;
-                mAccess = new Executable.SomeAccess(route, arguments);
+                mAccess = new Executable.Access.Some(route, arguments);
             }
 
             @NonNull
@@ -502,15 +528,15 @@ public interface Transaction<V> {
             }
         }
 
-        private static class Query<V> implements Access.Query<V> {
+        private static class QueryBuilder<V> implements Query.Builder<V> {
 
             @NonNull
             private final Executor mExecutor;
             @NonNull
-            private final Executable.Query<V> mQuery;
+            private final Executable.Query.Builder<V> mQuery;
 
-            private Query(@NonNull final Executor executor,
-                          @NonNull final Executable.Query<V> query) {
+            private QueryBuilder(@NonNull final Executor executor,
+                                 @NonNull final Executable.Query.Builder<V> query) {
                 super();
 
                 mExecutor = executor;
@@ -519,28 +545,28 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final Query<V> with(@Nullable final Select.Where where) {
+            public final QueryBuilder<V> with(@Nullable final Select.Where where) {
                 mQuery.with(where);
                 return this;
             }
 
             @NonNull
             @Override
-            public final Query<V> with(@Nullable final Select.Order order) {
+            public final QueryBuilder<V> with(@Nullable final Select.Order order) {
                 mQuery.with(order);
                 return this;
             }
 
             @NonNull
             @Override
-            public final Query<V> with(@Nullable final Select.Limit limit) {
+            public final QueryBuilder<V> with(@Nullable final Select.Limit limit) {
                 mQuery.with(limit);
                 return this;
             }
 
             @NonNull
             @Override
-            public final Query<V> with(@Nullable final Select.Offset offset) {
+            public final QueryBuilder<V> with(@Nullable final Select.Offset offset) {
                 mQuery.with(offset);
                 return this;
             }

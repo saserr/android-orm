@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.access;
+package android.orm.dao;
 
 import android.support.annotation.NonNull;
 

@@ -17,6 +17,7 @@
 package android.orm.database;
 
 import android.database.SQLException;
+import android.orm.DAO;
 import android.orm.sql.Column;
 import android.orm.sql.ForeignKey;
 import android.orm.sql.Statement;
@@ -122,7 +123,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void upgrade(@NonNull final DAO dao,
+        public final void upgrade(@NonNull final DAO.Direct dao,
                                   final int oldVersion,
                                   final int newVersion) {
             if ((oldVersion < mVersion) && (mVersion <= newVersion)) {
@@ -131,7 +132,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO dao,
+        public final void downgrade(@NonNull final DAO.Direct dao,
                                     final int oldVersion,
                                     final int newVersion) {
             if ((newVersion < mVersion) && (mVersion <= oldVersion)) {
@@ -155,14 +156,14 @@ public final class Migrations {
         }
 
         @Override
-        public final void create(@NonNull final DAO dao, final int version) {
+        public final void create(@NonNull final DAO.Direct dao, final int version) {
             for (final Migration migration : mUp) {
                 migration.create(dao, version);
             }
         }
 
         @Override
-        public final void upgrade(@NonNull final DAO dao,
+        public final void upgrade(@NonNull final DAO.Direct dao,
                                   final int oldVersion,
                                   final int newVersion) {
             for (final Migration migration : mUp) {
@@ -171,7 +172,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO dao,
+        public final void downgrade(@NonNull final DAO.Direct dao,
                                     final int oldVersion,
                                     final int newVersion) {
             for (final Migration migration : mDown.get()) {
@@ -204,7 +205,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void create(@NonNull final DAO dao, final int version) {
+        public final void create(@NonNull final DAO.Direct dao, final int version) {
             final int createdAt = mTable.getVersion();
 
             if ((createdAt > 0) && (createdAt <= version)) {
@@ -227,7 +228,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void upgrade(@NonNull final DAO dao,
+        public final void upgrade(@NonNull final DAO.Direct dao,
                                   final int oldVersion,
                                   final int newVersion) {
             final int createdAt = mTable.getVersion();
@@ -257,7 +258,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO dao,
+        public final void downgrade(@NonNull final DAO.Direct dao,
                                     final int oldVersion,
                                     final int newVersion) {
             final int createdAt = mTable.getVersion();

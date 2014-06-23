@@ -20,7 +20,7 @@ import android.app.Activity;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.orm.DAO;
-import android.orm.access.ErrorHandler;
+import android.orm.dao.ErrorHandler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NonNls;
 public abstract class Fragment extends DialogFragment {
 
     @Nullable
-    private DAO mDAO;
+    private DAO.Async mDAO;
     @Nullable
     private final ErrorHandler.Factory<Activity> mFactory;
 
@@ -44,7 +44,7 @@ public abstract class Fragment extends DialogFragment {
     }
 
     @NonNull
-    protected abstract DAO create(@NonNull final Context context);
+    protected abstract DAO.Async create(@NonNull final Context context);
 
     @Override
     public final void onAttach(@NonNull final Activity activity) {
@@ -83,7 +83,7 @@ public abstract class Fragment extends DialogFragment {
     }
 
     @NonNull
-    protected final DAO getDAO() {
+    protected final DAO.Async getDAO() {
         if (mDAO == null) {
             throw new UnsupportedOperationException("You are accessing DAO too early or to late");
         }
@@ -91,7 +91,7 @@ public abstract class Fragment extends DialogFragment {
     }
 
     @NonNull
-    protected final Form.Builder form(@NonNls @NonNull final String name) {
+    protected static Form.Builder form(@NonNls @NonNull final String name) {
         return Form.builder(name);
     }
 

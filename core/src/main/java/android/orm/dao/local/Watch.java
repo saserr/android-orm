@@ -21,7 +21,7 @@ import android.database.ContentObserver;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.Route;
-import android.orm.access.Result;
+import android.orm.dao.Result;
 import android.orm.dao.Watcher;
 import android.orm.model.Plan;
 import android.orm.model.Reading;

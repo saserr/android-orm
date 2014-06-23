@@ -25,14 +25,8 @@ import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Database;
 import android.orm.Route;
-import android.orm.access.Result;
-import android.orm.dao.local.Delete;
-import android.orm.dao.local.Exists;
-import android.orm.dao.local.Insert;
 import android.orm.dao.local.Notifier;
-import android.orm.dao.local.Read;
 import android.orm.dao.local.Transaction;
-import android.orm.dao.local.Update;
 import android.orm.dao.local.Watch;
 import android.orm.model.Mapper;
 import android.orm.model.Observer;
@@ -53,12 +47,13 @@ import android.support.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import static android.orm.dao.local.Read.afterRead;
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 import static android.orm.sql.statement.Select.select;
 
-public class Local extends DAO.Local {
+public class Local extends Async implements DAO.Local {
 
     @NonNull
     private final Context mContext;
@@ -103,7 +98,7 @@ public class Local extends DAO.Local {
 
     @NonNull
     @Override
-    public final DAO.Access.Some at(@NonNull final Route route, @NonNull final Object... arguments) {
+    public final DAO.Local.Access.Some at(@NonNull final Route route, @NonNull final Object... arguments) {
         return new SomeAccess(this, mNotifier, route, arguments);
     }
 
@@ -114,6 +109,19 @@ public class Local extends DAO.Local {
     }
 
     @NonNull
+    @Override
+    public final <V> Result<V> async(@NonNull final Function<DAO.Direct, Maybe<V>> function) {
+        return execute(new Function<SQLiteDatabase, Maybe<V>>() {
+            @NonNull
+            @Override
+            public Maybe<V> invoke(@NonNull final SQLiteDatabase database) {
+                return function.invoke(DAO.direct(mContext, database));
+            }
+        });
+    }
+
+    @NonNull
+    @Override
     public final <V> Result<V> execute(@NonNull final Function<SQLiteDatabase, Maybe<V>> function) {
         return execute(new Task<>(mHelper, function));
     }
@@ -160,20 +168,20 @@ public class Local extends DAO.Local {
 
         @NonNull
         @Override
-        public final <M> Query<M> query(@NonNull final Value.Read<M> value) {
+        public final <M> QueryBuilder<M> query(@NonNull final Value.Read<M> value) {
             return query(single(value));
         }
 
         @NonNull
         @Override
-        public final <M> Query<M> query(@NonNull final Mapper.Read<M> mapper) {
+        public final <M> QueryBuilder<M> query(@NonNull final Mapper.Read<M> mapper) {
             return query(single(mapper));
         }
 
         @NonNull
         @Override
-        public final <M> Query<M> query(@NonNull final Reading.Single<M> reading) {
-            return new Query<>(mDAO, reading, mRoute, mArguments);
+        public final <M> QueryBuilder<M> query(@NonNull final Reading.Single<M> reading) {
+            return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
         }
     }
 
@@ -199,30 +207,30 @@ public class Local extends DAO.Local {
 
         @NonNull
         @Override
-        public final <M> Query<M> query(@NonNull final AggregateFunction<M> function) {
-            return new Query<>(mDAO, single(function), mRoute, mArguments);
+        public final <M> QueryBuilder<M> query(@NonNull final AggregateFunction<M> function) {
+            return new QueryBuilder<>(mDAO, single(function), mRoute, mArguments);
         }
 
         @NonNull
         @Override
-        public final <M> Query<List<M>> query(@NonNull final Value.Read<M> value) {
+        public final <M> QueryBuilder<List<M>> query(@NonNull final Value.Read<M> value) {
             return query(list(value));
         }
 
         @NonNull
         @Override
-        public final <M> Query<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
+        public final <M> QueryBuilder<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
             return query(list(mapper));
         }
 
         @NonNull
         @Override
-        public final <M> Query<M> query(@NonNull final Reading.Many<M> reading) {
-            return new Query<>(mDAO, reading, mRoute, mArguments);
+        public final <M> QueryBuilder<M> query(@NonNull final Reading.Many<M> reading) {
+            return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
         }
     }
 
-    private static class SomeAccess extends DAO.Access.Write.Base implements DAO.Access.Some {
+    private static class SomeAccess extends DAO.Access.Write.Base<Result<Uri>, Result<Integer>, Result<Integer>> implements DAO.Local.Access.Some {
 
         @NonNull
         private final android.orm.dao.Local mDAO;
@@ -251,8 +259,8 @@ public class Local extends DAO.Local {
             mOnInsert = route.createValues(arguments);
             mWhere = route.getWhere(arguments);
 
-            mInsertNotify = new Insert.Notify(notifier);
-            mUpdateNotify = new Update.Notify(notifier, route.createUri(arguments));
+            mInsertNotify = new android.orm.dao.local.Insert.Notify(notifier);
+            mUpdateNotify = new android.orm.dao.local.Update.Notify(notifier, route.createUri(arguments));
         }
 
         @NonNull
@@ -264,7 +272,7 @@ public class Local extends DAO.Local {
         @NonNull
         @Override
         public final Result<Boolean> exists(@NonNull final Select.Where where) {
-            return mDAO.execute(new Exists(mTable, mWhere.and(where)));
+            return mDAO.execute(new android.orm.dao.local.Exists(mTable, mWhere.and(where)));
         }
 
         @NonNull
@@ -274,7 +282,7 @@ public class Local extends DAO.Local {
             return afterCreate(
                     plan.isEmpty() ?
                             Result.<Uri>nothing() :
-                            mDAO.execute(new Insert(mItemRoute, plan, mOnInsert)).map(mInsertNotify),
+                            mDAO.execute(new android.orm.dao.local.Insert(mItemRoute, plan, mOnInsert)).map(mInsertNotify),
                     model
             );
         }
@@ -287,7 +295,7 @@ public class Local extends DAO.Local {
             return afterUpdate(
                     plan.isEmpty() ?
                             Result.<Integer>nothing() :
-                            mDAO.execute(new Update(mTable, mWhere.and(where), plan)).map(mUpdateNotify),
+                            mDAO.execute(new android.orm.dao.local.Update(mTable, mWhere.and(where), plan)).map(mUpdateNotify),
                     model
             );
         }
@@ -295,7 +303,7 @@ public class Local extends DAO.Local {
         @NonNull
         @Override
         public final Result<Integer> delete(@NonNull final Select.Where where) {
-            return mDAO.execute(new Delete(mTable, mWhere.and(where))).map(mUpdateNotify);
+            return mDAO.execute(new android.orm.dao.local.Delete(mTable, mWhere.and(where))).map(mUpdateNotify);
         }
 
         @NonNull
@@ -330,7 +338,7 @@ public class Local extends DAO.Local {
 
     }
 
-    private static class Query<V> implements DAO.Local.Access.Query.Refreshable<V> {
+    private static class QueryBuilder<V> implements DAO.Local.Query.Builder.Refreshable<V> {
 
         @NonNull
         private final android.orm.dao.Local mDAO;
@@ -343,17 +351,17 @@ public class Local extends DAO.Local {
         @NonNull
         private final Uri mURI;
 
-        private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = Read.afterRead();
+        private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = afterRead();
 
         @NonNull
         private Select.Builder mSelect;
         @Nullable
         private V mValue;
 
-        private Query(@NonNull final android.orm.dao.Local dao,
-                      @NonNull final Reading<V> reading,
-                      @NonNull final Route route,
-                      @NonNull final Object... arguments) {
+        private QueryBuilder(@NonNull final android.orm.dao.Local dao,
+                             @NonNull final Reading<V> reading,
+                             @NonNull final Route route,
+                             @NonNull final Object... arguments) {
             super();
 
             mDAO = dao;
@@ -367,35 +375,35 @@ public class Local extends DAO.Local {
 
         @NonNull
         @Override
-        public final Query<V> with(@Nullable final Select.Where where) {
+        public final QueryBuilder<V> with(@Nullable final Select.Where where) {
             mSelect = mSelect.with((where == null) ? mDefault : mDefault.and(where));
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> with(@Nullable final Select.Order order) {
+        public final QueryBuilder<V> with(@Nullable final Select.Order order) {
             mSelect = mSelect.with(order);
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> with(@Nullable final Select.Limit limit) {
+        public final QueryBuilder<V> with(@Nullable final Select.Limit limit) {
             mSelect = mSelect.with(limit);
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> with(@Nullable final Select.Offset offset) {
+        public final QueryBuilder<V> with(@Nullable final Select.Offset offset) {
             mSelect = mSelect.with(offset);
             return this;
         }
 
         @NonNull
         @Override
-        public final Query<V> using(@Nullable final V value) {
+        public final QueryBuilder<V> using(@Nullable final V value) {
             mValue = value;
             return this;
         }
@@ -412,7 +420,7 @@ public class Local extends DAO.Local {
             if (plan.isEmpty()) {
                 result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
             } else {
-                result = mDAO.execute(new Read<>(plan, mSelect.build())).flatMap(mAfterRead);
+                result = mDAO.execute(new android.orm.dao.local.Read<>(plan, mSelect.build())).flatMap(mAfterRead);
             }
 
             return result;

@@ -61,25 +61,25 @@ public class Transaction {
         return new WriteAccess(route, arguments);
     }
 
-    public final android.orm.access.Result<Result> commit() {
-        final android.orm.access.Result<Result> result = ((mAuthority == null) || mBatch.isEmpty()) ?
-                android.orm.access.Result.<Result>nothing() :
+    public final android.orm.dao.Result<Result> commit() {
+        final android.orm.dao.Result<Result> result = ((mAuthority == null) || mBatch.isEmpty()) ?
+                android.orm.dao.Result.<Result>nothing() :
                 mExecutor.execute(mAuthority, Collections.unmodifiableCollection(mBatch));
         mAuthority = null;
         mBatch = new ArrayList<>();
         return result;
     }
 
-    public interface Access extends android.orm.Access.Write<Access, Access, Access> {
+    public interface Access extends android.orm.DAO.Access.Write<Access, Access, Access> {
     }
 
     public interface Executor {
         @NonNull
-        android.orm.access.Result<Result> execute(@NonNull final String authority,
-                                                  @NonNull final Collection<Producer<ContentProviderOperation>> batch);
+        android.orm.dao.Result<Result> execute(@NonNull final String authority,
+                                               @NonNull final Collection<Producer<ContentProviderOperation>> batch);
     }
 
-    private class WriteAccess extends android.orm.Access.Write.Base<Access, Access, Access> implements Access {
+    private class WriteAccess extends android.orm.DAO.Access.Write.Base<Access, Access, Access> implements Access {
 
         @NonNull
         private final Uri mUri;

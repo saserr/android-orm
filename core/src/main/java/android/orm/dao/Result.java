@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.access;
+package android.orm.dao;
 
 import android.orm.util.Consumer;
 import android.orm.util.Either;

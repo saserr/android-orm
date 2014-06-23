@@ -20,7 +20,7 @@ import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.orm.database.DAO;
+import android.orm.dao.Direct;
 import android.orm.database.IntegrityCheck;
 import android.orm.database.IntegrityChecks;
 import android.orm.database.Migration;
@@ -198,7 +198,7 @@ public class Database {
             }
 
             try {
-                mMigration.create(new DAO(mContext, database), mVersion);
+                mMigration.create(new Direct(mContext, database), mVersion);
             } catch (final SQLException cause) {
                 @NonNls final String message = "There was a problem creating database " + mName + " at version " + mVersion;
                 Log.e(TAG, message, cause);
@@ -218,7 +218,7 @@ public class Database {
                 }
 
                 try {
-                    mMigration.upgrade(new DAO(mContext, database), oldVersion, newVersion);
+                    mMigration.upgrade(new Direct(mContext, database), oldVersion, newVersion);
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem updating database " + mName +
                             " from version " + oldVersion + " to version " + newVersion;
@@ -240,7 +240,7 @@ public class Database {
                 }
 
                 try {
-                    mMigration.downgrade(new android.orm.database.DAO(mContext, database), oldVersion, newVersion);
+                    mMigration.downgrade(new Direct(mContext, database), oldVersion, newVersion);
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem downgrading database " + mName +
                             " from version " + oldVersion + " to version " + newVersion;
