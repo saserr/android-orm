@@ -344,8 +344,8 @@ public class DAO {
 
         @NonNull
         @Override
-        protected final <M> Maybe<Integer> update(@NonNull final M model,
-                                                  @NonNull final Select.Where where,
+        protected final <M> Maybe<Integer> update(@NonNull final Select.Where where,
+                                                  @NonNull final M model,
                                                   @NonNull final Plan.Write plan) {
             final Maybe<Integer> result;
 

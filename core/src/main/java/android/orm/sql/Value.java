@@ -21,7 +21,6 @@ import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
-import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.util.Pair;
 
@@ -87,7 +86,7 @@ public final class Value {
         @NonNull
         String getName();
 
-        void write(@Operation final int operation,
+        void write(@NonNull final Operation operation,
                    @NonNull final Maybe<V> value,
                    @NonNull final Writable output);
 
@@ -130,10 +129,8 @@ public final class Value {
             }
         }
 
-        @IntDef({Operation.Insert, Operation.Update})
-        @interface Operation {
-            int Insert = 0;
-            int Update = 1;
+        enum Operation {
+            Insert, Update
         }
     }
 

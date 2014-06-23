@@ -122,7 +122,7 @@ public final class Values {
         }
 
         @Override
-        public final void write(@Operation final int operation,
+        public final void write(@NonNull final Operation operation,
                                 @NonNull final Maybe<V> value,
                                 @NonNull final Writable output) {
             if (value.isSomething()) {
@@ -205,7 +205,7 @@ public final class Values {
         }
 
         @Override
-        public final void write(@Operation final int operation,
+        public final void write(@NonNull final Operation operation,
                                 @NonNull final Maybe<Pair<V, T>> value,
                                 @NonNull final Writable output) {
             final Maybe<V> value1;
@@ -294,7 +294,7 @@ public final class Values {
         }
 
         @Override
-        public final void write(@Operation final int operation,
+        public final void write(@NonNull final Operation operation,
                                 @NonNull final Maybe<T> value,
                                 @NonNull final Writable output) {
             mWrite.write(operation, mConverter.invoke(value), output);
@@ -335,7 +335,7 @@ public final class Values {
         }
 
         @Override
-        public final void write(@Operation final int operation,
+        public final void write(@NonNull final Operation operation,
                                 @NonNull final Maybe<V> value,
                                 @NonNull final Writable output) {
             mWrite.write(operation, value, output);

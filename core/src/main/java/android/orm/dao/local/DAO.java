@@ -279,8 +279,8 @@ public class DAO {
 
         @NonNull
         @Override
-        protected final <M> Statement<Integer> update(@NonNull final M model,
-                                                      @NonNull final Select.Where where,
+        protected final <M> Statement<Integer> update(@NonNull final Select.Where where,
+                                                      @NonNull final M model,
                                                       @NonNull final Plan.Write plan) {
             final Statement<Integer> statement = new Statement<>(compose(new Update(mTable, mWhere.and(where), plan), mUpdateNotify));
             afterUpdate(model);

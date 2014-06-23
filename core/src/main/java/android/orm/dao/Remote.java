@@ -279,8 +279,8 @@ public class Remote extends DAO.Remote {
 
         @NonNull
         @Override
-        protected final <M> Result<Integer> update(@NonNull final M model,
-                                                   @NonNull final Select.Where where,
+        protected final <M> Result<Integer> update(@NonNull final Select.Where where,
+                                                   @NonNull final M model,
                                                    @NonNull final Plan.Write plan) {
             return afterUpdate(
                     plan.isEmpty() ? Result.<Integer>nothing() : mDAO.execute(Pair.<Writer, Select.Where>create(plan, where), mUpdate),

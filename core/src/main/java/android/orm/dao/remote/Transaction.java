@@ -114,8 +114,8 @@ public class Transaction {
 
         @NonNull
         @Override
-        protected final <M> Access update(@NonNull final M model,
-                                          @NonNull final Select.Where where,
+        protected final <M> Access update(@NonNull final Select.Where where,
+                                          @NonNull final M model,
                                           @NonNull final Plan.Write plan) {
             // TODO invoke afterUpdate somehow
             if (!plan.isEmpty()) {

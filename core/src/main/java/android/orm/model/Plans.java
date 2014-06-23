@@ -57,7 +57,7 @@ public final class Plans {
         }
 
         @Override
-        public void write(@Value.Write.Operation final int operation,
+        public void write(@NonNull final Value.Write.Operation operation,
                           @NonNull final Writable output) {/* do nothing */}
     };
 
@@ -232,7 +232,7 @@ public final class Plans {
             }
 
             @Override
-            public void write(@Value.Write.Operation final int operation,
+            public void write(@NonNull final Value.Write.Operation operation,
                               @NonNull final Writable output) {
                 value.write(operation, model, output);
             }
@@ -251,7 +251,7 @@ public final class Plans {
             }
 
             @Override
-            public void write(@Value.Write.Operation final int operation,
+            public void write(@NonNull final Value.Write.Operation operation,
                               @NonNull final Writable output) {
                 output.putAll(values);
             }
@@ -469,7 +469,7 @@ public final class Plans {
         }
 
         @Override
-        public final void write(@Value.Write.Operation final int operation,
+        public final void write(@NonNull final Value.Write.Operation operation,
                                 @NonNull final Writable output) {
             for (final Plan.Write plan : mPlans) {
                 plan.write(operation, output);

@@ -116,7 +116,7 @@ public interface Segment {
             return result;
         }
 
-        public final void write(@Value.Write.Operation final int operation,
+        public final void write(@NonNull final Value.Write.Operation operation,
                                 @NonNull final V value,
                                 @NonNull final Writable output) {
             mColumn.write(operation, something(value), output);

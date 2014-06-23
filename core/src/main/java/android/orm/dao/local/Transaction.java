@@ -450,9 +450,9 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final <M extends Instance.Writable> Transaction<Integer> update(@NonNull final M model,
-                                                                                   @NonNull final Select.Where where) {
-                return transaction(mAccess.update(model, where));
+            public final <M extends Instance.Writable> Transaction<Integer> update(@NonNull final Select.Where where,
+                                                                                   @NonNull final M model) {
+                return transaction(mAccess.update(where, model));
             }
 
             @NonNull
@@ -464,10 +464,10 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final <M> Transaction<Integer> update(@NonNull final M model,
-                                                         @NonNull final Select.Where where,
+            public final <M> Transaction<Integer> update(@NonNull final Select.Where where,
+                                                         @NonNull final M model,
                                                          @NonNull final Value.Write<M> value) {
-                return transaction(mAccess.update(model, where, value));
+                return transaction(mAccess.update(where, model, value));
             }
 
             @NonNull
@@ -479,10 +479,10 @@ public interface Transaction<V> {
 
             @NonNull
             @Override
-            public final <M> Transaction<Integer> update(@NonNull final M model,
-                                                         @NonNull final Select.Where where,
+            public final <M> Transaction<Integer> update(@NonNull final Select.Where where,
+                                                         @NonNull final M model,
                                                          @NonNull final Mapper.Write<M> mapper) {
-                return transaction(mAccess.update(model, where, mapper));
+                return transaction(mAccess.update(where, model, mapper));
             }
 
             @NonNull

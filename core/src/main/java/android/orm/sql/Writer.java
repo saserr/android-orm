@@ -19,5 +19,5 @@ package android.orm.sql;
 import android.support.annotation.NonNull;
 
 public interface Writer {
-    void write(@Value.Write.Operation final int operation, @NonNull final Writable output);
+    void write(@NonNull final Value.Write.Operation operation, @NonNull final Writable output);
 }

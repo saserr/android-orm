@@ -93,7 +93,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @Override
-    public final void write(@Operation final int operation,
+    public final void write(@NonNull final Operation operation,
                             @NonNull final Maybe<V> value,
                             @NonNull final Writable output) {
         mValue.write(operation, value, output);

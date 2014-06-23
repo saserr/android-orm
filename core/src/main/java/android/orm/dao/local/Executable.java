@@ -122,12 +122,12 @@ public interface Executable<V> {
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> Executable<Integer> update(@NonNull final M model,
-                                                                              @NonNull final Select.Where where) {
+        public final <M extends Instance.Writable> Executable<Integer> update(@NonNull final Select.Where where,
+                                                                              @NonNull final M model) {
             return new OnAccess<Integer>(mRoute, mArguments) {
                 @Override
                 protected Statement<Integer> execute(@NonNull final DAO.Access.Some access) {
-                    return access.update(model, where);
+                    return access.update(where, model);
                 }
             };
         }
@@ -146,13 +146,13 @@ public interface Executable<V> {
 
         @NonNull
         @Override
-        public final <M> Executable<Integer> update(@NonNull final M model,
-                                                    @NonNull final Select.Where where,
+        public final <M> Executable<Integer> update(@NonNull final Select.Where where,
+                                                    @NonNull final M model,
                                                     @NonNull final Value.Write<M> value) {
             return new OnAccess<Integer>(mRoute, mArguments) {
                 @Override
                 protected Statement<Integer> execute(@NonNull final DAO.Access.Some access) {
-                    return access.update(model, where, value);
+                    return access.update(where, model, value);
                 }
             };
         }
@@ -171,13 +171,13 @@ public interface Executable<V> {
 
         @NonNull
         @Override
-        public final <M> Executable<Integer> update(@NonNull final M model,
-                                                    @NonNull final Select.Where where,
+        public final <M> Executable<Integer> update(@NonNull final Select.Where where,
+                                                    @NonNull final M model,
                                                     @NonNull final Mapper.Write<M> mapper) {
             return new OnAccess<Integer>(mRoute, mArguments) {
                 @Override
                 protected Statement<Integer> execute(@NonNull final DAO.Access.Some access) {
-                    return access.update(model, where, mapper);
+                    return access.update(where, model, mapper);
                 }
             };
         }

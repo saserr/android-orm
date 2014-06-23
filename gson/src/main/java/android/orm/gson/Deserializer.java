@@ -61,7 +61,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
     }
 
     @Override
-    public final void write(@Operation final int operation,
+    public final void write(@NonNull final Operation operation,
                             @NonNull final Maybe<E> value,
                             @NonNull final Writable output) {
         mPlan.build(value).write(operation, output);

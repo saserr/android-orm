@@ -128,23 +128,23 @@ public final class Access {
         <M extends Instance.Writable> R update(@NonNull final M model);
 
         @NonNull
-        <M extends Instance.Writable> R update(@NonNull final M model,
-                                               @NonNull final Select.Where where);
+        <M extends Instance.Writable> R update(@NonNull final Select.Where where,
+                                               @NonNull final M model);
 
         @NonNull
         <M> R update(@NonNull final M model, @NonNull final Value.Write<M> value);
 
         @NonNull
-        <M> R update(@NonNull final M model,
-                     @NonNull final Select.Where where,
+        <M> R update(@NonNull final Select.Where where,
+                     @NonNull final M model,
                      @NonNull final Value.Write<M> value);
 
         @NonNull
         <M> R update(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
 
         @NonNull
-        <M> R update(@NonNull final M model,
-                     @NonNull final Select.Where where,
+        <M> R update(@NonNull final Select.Where where,
+                     @NonNull final M model,
                      @NonNull final Mapper.Write<M> mapper);
     }
 
@@ -166,8 +166,8 @@ public final class Access {
                                             @NonNull final Plan.Write plan);
 
             @NonNull
-            protected abstract <M> U update(@NonNull final M model,
-                                            @NonNull final Select.Where where,
+            protected abstract <M> U update(@NonNull final Select.Where where,
+                                            @NonNull final M model,
                                             @NonNull final Plan.Write plan);
 
             @NonNull
@@ -202,10 +202,10 @@ public final class Access {
 
             @NonNull
             @Override
-            public final <M extends Instance.Writable> U update(@NonNull final M model,
-                                                                @NonNull final Select.Where where) {
+            public final <M extends Instance.Writable> U update(@NonNull final Select.Where where,
+                                                                @NonNull final M model) {
                 beforeUpdate(model);
-                return update(model, where, write(model));
+                return update(where, model, write(model));
             }
 
             @NonNull
@@ -218,11 +218,11 @@ public final class Access {
 
             @NonNull
             @Override
-            public final <M> U update(@NonNull final M model,
-                                      @NonNull final Select.Where where,
+            public final <M> U update(@NonNull final Select.Where where,
+                                      @NonNull final M model,
                                       @NonNull final Value.Write<M> value) {
                 beforeUpdate(model);
-                return update(model, where, write(something(model), value));
+                return update(where, model, write(something(model), value));
             }
 
             @NonNull
@@ -235,11 +235,11 @@ public final class Access {
 
             @NonNull
             @Override
-            public final <M> U update(@NonNull final M model,
-                                      @NonNull final Select.Where where,
+            public final <M> U update(@NonNull final Select.Where where,
+                                      @NonNull final M model,
                                       @NonNull final Mapper.Write<M> mapper) {
                 beforeUpdate(model);
-                return update(model, where, mapper.prepareWrite(something(model)));
+                return update(where, model, mapper.prepareWrite(something(model)));
             }
 
             @NonNull
@@ -250,7 +250,7 @@ public final class Access {
 
             @NonNull
             private <M> U update(@NonNull final M model, @NonNull final Plan.Write plan) {
-                return update(model, Select.Where.None, plan);
+                return update(Select.Where.None, model, plan);
             }
         }
     }
