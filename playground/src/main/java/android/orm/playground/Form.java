@@ -25,6 +25,7 @@ import android.orm.model.Reading;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.util.Maybe;
+import android.orm.util.Validations;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
@@ -39,7 +40,6 @@ import static android.orm.model.Plans.compose;
 import static android.orm.model.Plans.write;
 import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.something;
-import static android.orm.util.Validations.safeCast;
 import static android.orm.util.Validations.valid;
 
 public class Form implements Instance.ReadWrite {
@@ -306,7 +306,7 @@ public class Form implements Instance.ReadWrite {
                     result = valid(mapper.prepareWrite(value.get()));
                     binding.setErrors(Collections.<String>emptyList());
                 } else {
-                    result = safeCast((Validation.Result.Invalid<Maybe<V>>) value);
+                    result = Validations.<Plan.Write>safeCast((Validation.Result.Invalid<Maybe<V>>) value);
                 }
 
                 return result;

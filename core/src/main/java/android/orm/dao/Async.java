@@ -28,11 +28,14 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
+import java.lang.annotation.Retention;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 public abstract class Async implements DAO.Async {
 
@@ -225,6 +228,7 @@ public abstract class Async implements DAO.Async {
         };
     }
 
+    @Retention(SOURCE)
     @IntDef({State.INITIALIZED, State.STARTED, State.PAUSED, State.STOPPED})
     private @interface State {
         int INITIALIZED = 0;

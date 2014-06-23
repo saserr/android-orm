@@ -237,7 +237,7 @@ public class Direct implements DAO.Direct {
 
         @NonNull
         @Override
-        protected final <M> Maybe<Uri> insert(@NonNull final M model,
+        protected final <M> Maybe<Uri> insert(@Nullable final M model,
                                               @NonNull final Plan.Write plan) {
             final Maybe<Uri> result;
 
@@ -260,7 +260,7 @@ public class Direct implements DAO.Direct {
         @NonNull
         @Override
         protected final <M> Maybe<Integer> update(@NonNull final Select.Where where,
-                                                  @NonNull final M model,
+                                                  @Nullable final M model,
                                                   @NonNull final Plan.Write plan) {
             final Maybe<Integer> result;
 

@@ -279,7 +279,7 @@ public class Local extends Async implements DAO.Local {
 
         @NonNull
         @Override
-        protected final <M> Result<Uri> insert(@NonNull final M model,
+        protected final <M> Result<Uri> insert(@Nullable final M model,
                                                @NonNull final Plan.Write plan) {
             return afterCreate(
                     plan.isEmpty() ?
@@ -292,7 +292,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         @Override
         protected final <M> Result<Integer> update(@NonNull final Select.Where where,
-                                                   @NonNull final M model,
+                                                   @Nullable final M model,
                                                    @NonNull final Plan.Write plan) {
             return afterUpdate(
                     plan.isEmpty() ?
@@ -310,7 +310,7 @@ public class Local extends Async implements DAO.Local {
 
         @NonNull
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
-                                                    @NonNull final M model) {
+                                                    @Nullable final M model) {
             return (model instanceof Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull
@@ -325,7 +325,7 @@ public class Local extends Async implements DAO.Local {
 
         @NonNull
         private static <M, V> Result<V> afterUpdate(@NonNull final Result<V> result,
-                                                    @NonNull final M model) {
+                                                    @Nullable final M model) {
             return (model instanceof Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull

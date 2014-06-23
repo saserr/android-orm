@@ -34,7 +34,6 @@ import android.support.annotation.StringDef;
 import org.jetbrains.annotations.NonNls;
 
 import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,6 +43,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static android.orm.route.Paths.path;
+import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 public abstract class Route {
 
@@ -419,7 +419,7 @@ public abstract class Route {
         }
     }
 
-    @Retention(RetentionPolicy.CLASS)
+    @Retention(SOURCE)
     @StringDef({Type.Dir, Type.Item})
     private @interface Type {
         @NonNls

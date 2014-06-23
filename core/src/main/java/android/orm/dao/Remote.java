@@ -265,7 +265,7 @@ public class Remote extends Async implements DAO.Remote {
 
         @NonNull
         @Override
-        protected final <M> Result<Uri> insert(@NonNull final M model,
+        protected final <M> Result<Uri> insert(@Nullable final M model,
                                                @NonNull final Plan.Write plan) {
             return afterCreate(
                     plan.isEmpty() ? Result.<Uri>nothing() : mDAO.execute(plan, mInsert),
@@ -276,7 +276,7 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         @Override
         protected final <M> Result<Integer> update(@NonNull final Select.Where where,
-                                                   @NonNull final M model,
+                                                   @Nullable final M model,
                                                    @NonNull final Plan.Write plan) {
             return afterUpdate(
                     plan.isEmpty() ? Result.<Integer>nothing() : mDAO.execute(Pair.<Writer, Select.Where>create(plan, where), mUpdate),
@@ -292,7 +292,7 @@ public class Remote extends Async implements DAO.Remote {
 
         @NonNull
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
-                                                    @NonNull final M model) {
+                                                    @Nullable final M model) {
             return (model instanceof Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull
@@ -307,7 +307,7 @@ public class Remote extends Async implements DAO.Remote {
 
         @NonNull
         private static <M, V> Result<V> afterUpdate(@NonNull final Result<V> result,
-                                                    @NonNull final M model) {
+                                                    @Nullable final M model) {
             return (model instanceof Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull

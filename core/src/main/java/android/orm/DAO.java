@@ -600,7 +600,7 @@ public final class DAO {
             <M extends Instance.Writable> R insert(@NonNull final M model);
 
             @NonNull
-            <M> R insert(@NonNull final M model, @NonNull final Value.Write<M> value);
+            <M> R insert(@Nullable final M model, @NonNull final Value.Write<M> value);
 
             @NonNull
             <M> R insert(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
@@ -616,11 +616,11 @@ public final class DAO {
                                                    @NonNull final M model);
 
             @NonNull
-            <M> R update(@NonNull final M model, @NonNull final Value.Write<M> value);
+            <M> R update(@Nullable final M model, @NonNull final Value.Write<M> value);
 
             @NonNull
             <M> R update(@NonNull final Select.Where where,
-                         @NonNull final M model,
+                         @Nullable final M model,
                          @NonNull final Value.Write<M> value);
 
             @NonNull
@@ -646,12 +646,12 @@ public final class DAO {
             abstract class Base<I, U, D> implements Write<I, U, D> {
 
                 @NonNull
-                protected abstract <M> I insert(@NonNull final M model,
+                protected abstract <M> I insert(@Nullable final M model,
                                                 @NonNull final Plan.Write plan);
 
                 @NonNull
                 protected abstract <M> U update(@NonNull final Select.Where where,
-                                                @NonNull final M model,
+                                                @Nullable final M model,
                                                 @NonNull final Plan.Write plan);
 
                 @NonNull
@@ -663,7 +663,7 @@ public final class DAO {
 
                 @NonNull
                 @Override
-                public final <M> I insert(@NonNull final M model,
+                public final <M> I insert(@Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
                     beforeCreate(model);
                     return insert(model, write(something(model), value));
@@ -694,7 +694,7 @@ public final class DAO {
 
                 @NonNull
                 @Override
-                public final <M> U update(@NonNull final M model,
+                public final <M> U update(@Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
                     beforeUpdate(model);
                     return update(model, write(something(model), value));
@@ -703,7 +703,7 @@ public final class DAO {
                 @NonNull
                 @Override
                 public final <M> U update(@NonNull final Select.Where where,
-                                          @NonNull final M model,
+                                          @Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
                     beforeUpdate(model);
                     return update(where, model, write(something(model), value));
@@ -733,7 +733,7 @@ public final class DAO {
                 }
 
                 @NonNull
-                private <M> U update(@NonNull final M model, @NonNull final Plan.Write plan) {
+                private <M> U update(@Nullable final M model, @NonNull final Plan.Write plan) {
                     return update(Select.Where.None, model, plan);
                 }
             }

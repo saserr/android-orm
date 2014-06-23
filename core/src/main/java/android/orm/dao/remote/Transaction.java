@@ -103,7 +103,7 @@ public class Transaction {
 
         @NonNull
         @Override
-        protected final <M> Access insert(@NonNull final M model,
+        protected final <M> Access insert(@Nullable final M model,
                                           @NonNull final Plan.Write plan) {
             // TODO invoke afterCreate somehow
             if (!plan.isEmpty()) {
@@ -115,7 +115,7 @@ public class Transaction {
         @NonNull
         @Override
         protected final <M> Access update(@NonNull final Select.Where where,
-                                          @NonNull final M model,
+                                          @Nullable final M model,
                                           @NonNull final Plan.Write plan) {
             // TODO invoke afterUpdate somehow
             if (!plan.isEmpty()) {

@@ -43,7 +43,6 @@ import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
-import static android.orm.util.Validations.safeCast;
 import static android.orm.util.Validations.valid;
 import static android.text.Html.fromHtml;
 import static android.text.TextUtils.isEmpty;
@@ -354,7 +353,7 @@ public final class Bindings {
                     setErrors(mConverter.getErrorMessages(getName(context), context));
                 }
             } else {
-                result = safeCast((Validation.Result.Invalid<Maybe<V>>) value);
+                result = Validations.<Maybe<T>>safeCast((Validation.Result.Invalid<Maybe<V>>) value);
             }
 
             return result;
