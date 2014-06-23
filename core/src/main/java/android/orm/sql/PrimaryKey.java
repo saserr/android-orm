@@ -17,6 +17,7 @@
 package android.orm.sql;
 
 import android.orm.sql.fragment.ConflictResolution;
+import android.orm.sql.fragment.OrderType;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -39,20 +40,20 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     private final String mSQL;
 
     private PrimaryKey(@NonNull final Column<V> column,
-                       @Nullable final Order order,
+                       @Nullable final OrderType order,
                        @Nullable final ConflictResolution resolution) {
         this(Integer.equals(column.getType()), column, order, resolution);
     }
 
     private PrimaryKey(@NonNull final Value.ReadWrite<V> value,
-                       @Nullable final Order order,
+                       @Nullable final OrderType order,
                        @Nullable final ConflictResolution resolution) {
         this(false, value, order, resolution);
     }
 
     private PrimaryKey(final boolean isAlias,
                        @NonNull final Value.ReadWrite<V> value,
-                       @Nullable final Order order,
+                       @Nullable final OrderType order,
                        @Nullable final ConflictResolution resolution) {
         super();
 
@@ -129,41 +130,15 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
     @NonNull
     public static PrimaryKey<Long> primaryKey(@NonNull final Column<Long> column,
-                                              @NonNull final Order order) {
+                                              @NonNull final OrderType order) {
         return new PrimaryKey<>(column, order, null);
     }
 
     @NonNull
     public static PrimaryKey<Long> primaryKey(@NonNull final Column<Long> column,
-                                              @NonNull final Order order,
+                                              @NonNull final OrderType order,
                                               @NonNull final ConflictResolution resolution) {
         return new PrimaryKey<>(column, order, resolution);
-    }
-
-    public interface Order extends Fragment {
-
-        @NonNls
-        @NonNull
-        @Override
-        String toSQL();
-
-        Order Ascending = new Order() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "asc";
-            }
-        };
-
-        Order Descending = new Order() {
-            @NonNls
-            @NonNull
-            @Override
-            public String toSQL() {
-                return "desc";
-            }
-        };
     }
 
     @NonNls

@@ -476,7 +476,7 @@ public interface Reading<M> {
                             @NonNull
                             @Override
                             public Producer<Maybe<M>> read(@NonNull final Readable input) {
-                                return producerOnly.any(input.getKeys()) ?
+                                return producerOnly.isAny(input.getKeys()) ?
                                         create(producer, entries, input) :
                                         update(model, action, input);
                             }

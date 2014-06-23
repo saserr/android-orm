@@ -47,7 +47,7 @@ public class Promise<V> {
     private final Future<V> mFuture = new PromisedFuture<V>() {
         @Override
         public void onComplete(@Nullable final Handler handler,
-                               @NonNull final Callback<? super V> callback) {
+                               @NonNull final Future.Callback<? super V> callback) {
             try {
                 register(deliver(handler, callback));
             } catch (final InterruptedException ex) {
@@ -147,7 +147,7 @@ public class Promise<V> {
             return promise.getFuture();
         }
 
-        private static class FutureMap<V, T> implements Callback<V> {
+        private static class FutureMap<V, T> implements Future.Callback<V> {
 
             @NonNull
             private final Promise<T> mPromise;
@@ -178,7 +178,7 @@ public class Promise<V> {
             }
         }
 
-        private static class FutureFlatMap<V, T> implements Callback<V> {
+        private static class FutureFlatMap<V, T> implements Future.Callback<V> {
 
             @NonNull
             private final Promise<T> mPromise;

@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.Set;
 
 import static android.orm.sql.Columns.number;
-import static android.orm.sql.Select.Order.Type.Ascending;
 import static android.orm.sql.Select.order;
+import static android.orm.sql.fragment.OrderType.Ascending;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableList;

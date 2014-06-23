@@ -19,6 +19,7 @@ package android.orm.sql;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.orm.sql.fragment.OrderType;
 import android.orm.util.Function;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
@@ -46,13 +47,13 @@ public class Select {
     @NonNull
     private final Table<?> mTable;
     @NonNull
-    private Where mWhere;
+    private final Where mWhere;
     @Nullable
-    private Order mOrder;
+    private final Order mOrder;
     @Nullable
-    private Limit mLimit;
+    private final Limit mLimit;
     @Nullable
-    private Offset mOffset;
+    private final Offset mOffset;
 
     private <K> Select(@NonNull final Table<K> table,
                        @NonNull final Where where,
@@ -113,7 +114,7 @@ public class Select {
     }
 
     @NonNull
-    public static <V> Order order(@NonNull final Column<V> column, @NonNull final Order.Type type) {
+    public static <V> Order order(@NonNull final Column<V> column, @NonNull final OrderType type) {
         return new Order(escape(column.getName()) + ' ' + type.toSQL());
     }
 
@@ -196,7 +197,7 @@ public class Select {
         @NonNull
         Projection without(@NonNull final Set<String> names);
 
-        boolean any(@NonNull final Collection<String> columns);
+        boolean isAny(@NonNull final Collection<String> columns);
 
         Projection All = new Projection() {
 
@@ -236,7 +237,7 @@ public class Select {
             }
 
             @Override
-            public boolean any(@NonNull final Collection<String> columns) {
+            public boolean isAny(@NonNull final Collection<String> columns) {
                 return true;
             }
         };
@@ -279,7 +280,7 @@ public class Select {
             }
 
             @Override
-            public boolean any(@NonNull final Collection<String> columns) {
+            public boolean isAny(@NonNull final Collection<String> columns) {
                 return false;
             }
         };
@@ -395,7 +396,7 @@ public class Select {
                             }
 
                             @Override
-                            public boolean any(@NonNull final Collection<String> columns) {
+                            public boolean isAny(@NonNull final Collection<String> columns) {
                                 final Collection<String> difference = new HashSet<>(mNames);
                                 difference.retainAll(columns);
                                 return !difference.isEmpty();
@@ -741,32 +742,6 @@ public class Select {
 
         public final Order andThen(@NonNull final Order other) {
             return new Order(toSQL() + ", " + other.toSQL());
-        }
-
-        public interface Type extends Fragment {
-
-            @NonNls
-            @NonNull
-            @Override
-            String toSQL();
-
-            Type Ascending = new Type() {
-                @NonNls
-                @NonNull
-                @Override
-                public String toSQL() {
-                    return "asc";
-                }
-            };
-
-            Type Descending = new Type() {
-                @NonNls
-                @NonNull
-                @Override
-                public String toSQL() {
-                    return "desc";
-                }
-            };
         }
     }
 
