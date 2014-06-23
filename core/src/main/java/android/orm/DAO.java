@@ -213,13 +213,13 @@ public final class DAO {
 
         final class Access {
 
-            public interface Single extends Read.Single, Write {
-            }
-
-            public interface Many extends Read.Many, Write {
-            }
-
             public interface Some extends Exists, Write {
+            }
+
+            public interface Single extends Read.Single, Some {
+            }
+
+            public interface Many extends Read.Many, Some {
             }
 
             private Access() {
@@ -341,13 +341,13 @@ public final class DAO {
 
         final class Access {
 
-            public interface Single extends Read.Single, Async.Access.Single {
-            }
-
-            public interface Many extends Read.Many, Async.Access.Many {
-            }
-
             public interface Some extends Async.Access.Some {
+            }
+
+            public interface Single extends Read.Single, Async.Access.Single, Some {
+            }
+
+            public interface Many extends Read.Many, Async.Access.Many, Some {
             }
 
             private Access() {
@@ -490,13 +490,13 @@ public final class DAO {
 
         final class Access {
 
-            public interface Single extends Read.Single, Write {
-            }
-
-            public interface Many extends Read.Many, Write {
-            }
-
             public interface Some extends Exists, Write {
+            }
+
+            public interface Single extends Read.Single, Some {
+            }
+
+            public interface Many extends Read.Many, Some {
             }
 
             private Access() {
