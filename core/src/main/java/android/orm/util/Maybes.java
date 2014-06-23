@@ -131,7 +131,7 @@ public final class Maybes {
         @NonNull
         @Override
         public final <T> Maybe<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return something((mValue == null) ? null : function.invoke(mValue));
+            return Maybes.<T>something((mValue == null) ? null : function.invoke(mValue));
         }
 
         @NonNull

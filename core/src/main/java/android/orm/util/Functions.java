@@ -102,7 +102,7 @@ public final class Functions {
         @NonNull
         @Override
         public final Pair<T, U> invoke(@NonNull final V value) {
-            return Pair.create(mFirst.invoke(value), mSecond.invoke(value));
+            return Pair.<T, U>create(mFirst.invoke(value), mSecond.invoke(value));
         }
     }
 

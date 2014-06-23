@@ -102,7 +102,7 @@ public final class Producers {
         @NonNull
         @Override
         public final Pair<V, T> produce() {
-            return Pair.create(mFirst.produce(), mSecond.produce());
+            return Pair.<V, T>create(mFirst.produce(), mSecond.produce());
         }
     }
 

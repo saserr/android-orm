@@ -21,9 +21,11 @@ import android.orm.sql.Readable;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.statement.Select;
+import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
@@ -41,7 +43,6 @@ import java.util.Set;
 
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
-import static android.orm.util.Producers.constant;
 import static android.util.Log.DEBUG;
 
 public final class Plans {
@@ -61,10 +62,13 @@ public final class Plans {
     };
 
     private static final Plan.Read<Object> EmptyRead = new Plan.Read<Object>(Select.Projection.Nothing) {
+
+        private final Producer<Maybe<Object>> mNothing = Producers.constant(nothing());
+
         @NonNull
         @Override
         public Producer<Maybe<Object>> read(@NonNull final Readable input) {
-            return constant(nothing());
+            return mNothing;
         }
     };
 
@@ -72,6 +76,17 @@ public final class Plans {
     @SuppressWarnings("unchecked")
     public static <V> Plan.Read<V> emptyRead() {
         return (Plan.Read<V>) EmptyRead;
+    }
+
+    @NonNull
+    public static <V> Plan.Read<V> eagerly(@NonNull final Plan.Read<V> plan) {
+        return new Plan.Read<V>(plan.getProjection()) {
+            @NonNull
+            @Override
+            public Producer<Maybe<V>> read(@NonNull final Readable input) {
+                return Producers.constant(plan.read(input).produce());
+            }
+        };
     }
 
     @NonNull
@@ -91,7 +106,7 @@ public final class Plans {
                     public Producer<Maybe<List<V>>> read(@NonNull final Readable input) {
                         final List<V> values = new ArrayList<>(input.size());
                         Many.read(name, reading, input, values);
-                        return constant(something(values));
+                        return Producers.constant(something(values));
                     }
                 };
     }
@@ -107,7 +122,7 @@ public final class Plans {
                     public Producer<Maybe<Set<V>>> read(@NonNull final Readable input) {
                         final Set<V> values = new HashSet<>(input.size());
                         Many.read(name, reading, input, values);
-                        return constant(something(values));
+                        return Producers.constant(something(values));
                     }
                 };
     }
@@ -244,6 +259,12 @@ public final class Plans {
     }
 
     @NonNull
+    public static <V, T> Plan.Read<Pair<V, T>> compose(@NonNull final Plan.Read<V> first,
+                                                       @NonNull final Plan.Read<T> second) {
+        return new ReadComposition<>(first, second);
+    }
+
+    @NonNull
     public static Plan.Write compose(@NonNull final Iterable<Plan.Write> plans) {
         boolean isEmpty = true;
 
@@ -251,7 +272,13 @@ public final class Plans {
             isEmpty = isEmpty && plan.isEmpty();
         }
 
-        return isEmpty ? EmptyWrite : new Composition(plans);
+        return isEmpty ? EmptyWrite : new WriteComposition(plans);
+    }
+
+    @NonNull
+    public static <V, T> Plan.Read<T> convert(@NonNull final Plan.Read<V> plan,
+                                              @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
+        return new Conversion<>(plan, converter);
     }
 
     private static class Single<V> extends Plan.Read<V> {
@@ -285,7 +312,7 @@ public final class Plans {
                     Log.w(TAG, "Reading a single '" + mName + "' from cursor that contains multiple ones. Please consider from list/set item"); //NON-NLS
                 }
             } else {
-                result = constant(Maybes.<V>nothing());
+                result = Producers.constant(Maybes.<V>nothing());
             }
 
             return result;
@@ -316,7 +343,7 @@ public final class Plans {
             final List<V> values = new ArrayList<>(input.size());
             read(mName, mReading, input, values);
             copy(values, result);
-            return constant(something(result));
+            return Producers.constant(something(result));
         }
 
         @NonNull
@@ -400,12 +427,37 @@ public final class Plans {
         }
     }
 
-    private static class Composition extends Plan.Write {
+    private static class ReadComposition<V, T> extends Plan.Read<Pair<V, T>> {
+
+        @NonNull
+        private final Plan.Read<V> mFirst;
+        @NonNull
+        private final Plan.Read<T> mSecond;
+
+        private ReadComposition(@NonNull final Plan.Read<V> first,
+                                @NonNull final Plan.Read<T> second) {
+            super(first.getProjection().and(second.getProjection()));
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @NonNull
+        @Override
+        public final Producer<Maybe<Pair<V, T>>> read(@NonNull final Readable input) {
+            return Producers.convert(
+                    Producers.compose(mFirst.read(input), mSecond.read(input)),
+                    Maybes.<V, T>liftPair()
+            );
+        }
+    }
+
+    private static class WriteComposition extends Plan.Write {
 
         @NonNull
         private final Iterable<Plan.Write> mPlans;
 
-        private Composition(@NonNull final Iterable<Plan.Write> plans) {
+        private WriteComposition(@NonNull final Iterable<Plan.Write> plans) {
             super();
 
             mPlans = plans;
@@ -422,6 +474,28 @@ public final class Plans {
             for (final Plan.Write plan : mPlans) {
                 plan.write(operation, output);
             }
+        }
+    }
+
+    private static class Conversion<V, T> extends Plan.Read<T> {
+
+        @NonNull
+        private final Plan.Read<V> mPlan;
+        @NonNull
+        private final Function<Maybe<V>, Maybe<T>> mConverter;
+
+        private Conversion(@NonNull final Plan.Read<V> plan,
+                           @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
+            super(plan.getProjection());
+
+            mPlan = plan;
+            mConverter = converter;
+        }
+
+        @NonNull
+        @Override
+        public final Producer<Maybe<T>> read(@NonNull final Readable input) {
+            return Producers.convert(mPlan.read(input), mConverter);
         }
     }
 

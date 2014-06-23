@@ -19,6 +19,7 @@ package android.orm.model;
 import android.orm.sql.Readable;
 import android.orm.sql.Value;
 import android.orm.sql.statement.Select;
+import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
@@ -36,7 +37,6 @@ import static android.orm.model.Instances.setter;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.orm.util.Producers.constant;
-import static android.orm.util.Producers.convert;
 
 public interface Reading<M> {
 
@@ -46,10 +46,55 @@ public interface Reading<M> {
     @NonNull
     Plan.Read<M> preparePlan(@NonNull final M m);
 
+    @NonNull
+    <N> Reading<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
+
     interface Single<M> extends Reading<M> {
+
+        @NonNull
+        <N> Single<Pair<M, N>> and(@NonNull final Single<N> other);
+
+        @NonNull
+        <N> Single<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
+
+        abstract class Base<M> implements Single<M> {
+
+            @NonNull
+            @Override
+            public final <N> Single<Pair<M, N>> and(@NonNull final Single<N> other) {
+                return Readings.convert(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final <N> Single<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
+                return Readings.convert(this, converter);
+            }
+        }
     }
 
     interface Many<M> extends Reading<M> {
+
+        @NonNull
+        <N> Many<Pair<M, N>> and(@NonNull final Many<N> other);
+
+        @NonNull
+        <N> Many<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
+
+        abstract class Base<M> implements Many<M> {
+
+            @NonNull
+            @Override
+            public final <N> Many<Pair<M, N>> and(@NonNull final Many<N> other) {
+                return Readings.convert(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final <N> Many<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
+                return Readings.convert(this, converter);
+            }
+        }
     }
 
     abstract class Item<M> {
@@ -221,7 +266,7 @@ public interface Reading<M> {
                     final Producer<Maybe<M>> result1 = mFirst.read(input);
                     final Producer<Maybe<N>> result2 = mSecond.read(input);
                     final Producer<Pair<Maybe<M>, Maybe<N>>> result = Producers.compose(result1, result2);
-                    return constant(convert(result, Maybes.<M, N>liftPair()).produce());
+                    return constant(Producers.convert(result, Maybes.<M, N>liftPair()).produce());
                 }
             }
 
@@ -243,7 +288,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public final Producer<Maybe<N>> read(@NonNull final Readable input) {
-                    return constant(convert(mCreate.read(input), mConverter).produce());
+                    return constant(Producers.convert(mCreate.read(input), mConverter).produce());
                 }
             }
         }
@@ -316,7 +361,7 @@ public interface Reading<M> {
                 public final Producer<Maybe<Pair<M, N>>> read(@NonNull final Readable input) {
                     final Producer<Maybe<M>> result1 = mFirst.read(input);
                     final Producer<Maybe<N>> result2 = mSecond.read(input);
-                    return convert(Producers.compose(result1, result2), Maybes.<M, N>liftPair());
+                    return Producers.convert(Producers.compose(result1, result2), Maybes.<M, N>liftPair());
                 }
             }
 
@@ -338,7 +383,7 @@ public interface Reading<M> {
                 @NonNull
                 @Override
                 public final Producer<Maybe<N>> read(@NonNull final Readable input) {
-                    return convert(mUpdate.read(input), mConverter);
+                    return Producers.convert(mUpdate.read(input), mConverter);
                 }
             }
         }

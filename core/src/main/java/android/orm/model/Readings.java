@@ -17,7 +17,12 @@
 package android.orm.model;
 
 import android.orm.sql.Value;
+import android.orm.util.Converter;
+import android.orm.util.Converters;
+import android.orm.util.Function;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
+import android.util.Pair;
 import android.util.SparseArray;
 
 import org.jetbrains.annotations.NonNls;
@@ -26,6 +31,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static android.orm.util.Maybes.something;
 
 public final class Readings {
 
@@ -107,7 +114,31 @@ public final class Readings {
         return new SparseArrayReading<>(key, value);
     }
 
-    private static class Single<V> implements Reading.Single<V> {
+    @NonNull
+    public static <V, T> Reading.Single<Pair<V, T>> convert(@NonNull final Reading.Single<V> first,
+                                                            @NonNull final Reading.Single<T> second) {
+        return new SingleComposition<>(first, second);
+    }
+
+    @NonNull
+    public static <V, T> Reading.Many<Pair<V, T>> convert(@NonNull final Reading.Many<V> first,
+                                                          @NonNull final Reading.Many<T> second) {
+        return new ManyComposition<>(first, second);
+    }
+
+    @NonNull
+    public static <V, T> Reading.Single<T> convert(@NonNull final Reading.Single<V> reading,
+                                                   @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
+        return new SingleConversion<>(reading, converter);
+    }
+
+    @NonNull
+    public static <V, T> Reading.Many<T> convert(@NonNull final Reading.Many<V> reading,
+                                                 @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
+        return new ManyConversion<>(reading, converter);
+    }
+
+    private static class Single<V> extends Reading.Single.Base<V> {
 
         @NonNls
         @NonNull
@@ -142,7 +173,7 @@ public final class Readings {
         }
     }
 
-    private static class Many<V, C extends Collection<V>> implements Reading.Many<C> {
+    private static class Many<V, C extends Collection<V>> extends Reading.Many.Base<C> {
 
         @NonNls
         @NonNull
@@ -183,7 +214,7 @@ public final class Readings {
         }
     }
 
-    private static class MapReading<K, V> implements Reading.Many<Map<K, V>> {
+    private static class MapReading<K, V> extends Reading.Many.Base<Map<K, V>> {
 
         @NonNls
         @NonNull
@@ -255,7 +286,7 @@ public final class Readings {
         }
     }
 
-    private static class SparseArrayReading<V> implements Reading.Many<SparseArray<V>> {
+    private static class SparseArrayReading<V> extends Reading.Many.Base<SparseArray<V>> {
 
         @NonNls
         @NonNull
@@ -324,6 +355,176 @@ public final class Readings {
         @Override
         public final Plan.Read<SparseArray<V>> preparePlan(@NonNull final SparseArray<V> values) {
             return Plans.many(mName, values, mKey, mValue);
+        }
+    }
+
+    private static class SingleComposition<V, T> extends Reading.Single.Base<Pair<V, T>> {
+
+        @NonNull
+        private final Reading.Single<V> mFirst;
+        @NonNull
+        private final Reading.Single<T> mSecond;
+
+        private SingleComposition(@NonNull final Reading.Single<V> first,
+                                  @NonNull final Reading.Single<T> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<Pair<V, T>> preparePlan() {
+            return Plans.eagerly(mFirst.preparePlan().and(mSecond.preparePlan()));
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<Pair<V, T>> preparePlan(@NonNull final Pair<V, T> pair) {
+            final Plan.Read<Pair<V, T>> result;
+
+            final V v = pair.first;
+            final T t = pair.second;
+            if ((v == null) && (t == null)) {
+                result = preparePlan();
+            } else {
+                final Plan.Read<V> plan1 = (v == null) ?
+                        mFirst.preparePlan() :
+                        mFirst.preparePlan(v);
+                final Plan.Read<T> plan2 = (t == null) ?
+                        mSecond.preparePlan() :
+                        mSecond.preparePlan(t);
+                result = plan1.and(plan2);
+            }
+
+            return result;
+        }
+    }
+
+    private static class ManyComposition<V, T> extends Reading.Many.Base<Pair<V, T>> {
+
+        @NonNull
+        private final Reading.Many<V> mFirst;
+        @NonNull
+        private final Reading.Many<T> mSecond;
+
+        private ManyComposition(@NonNull final Reading.Many<V> first,
+                                @NonNull final Reading.Many<T> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<Pair<V, T>> preparePlan() {
+            return Plans.eagerly(mFirst.preparePlan().and(mSecond.preparePlan()));
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<Pair<V, T>> preparePlan(@NonNull final Pair<V, T> pair) {
+            final Plan.Read<Pair<V, T>> result;
+
+            final V v = pair.first;
+            final T t = pair.second;
+            if ((v == null) && (t == null)) {
+                result = preparePlan();
+            } else {
+                final Plan.Read<V> plan1 = (v == null) ?
+                        mFirst.preparePlan() :
+                        mFirst.preparePlan(v);
+                final Plan.Read<T> plan2 = (t == null) ?
+                        mSecond.preparePlan() :
+                        mSecond.preparePlan(t);
+                result = plan1.and(plan2);
+            }
+
+            return result;
+        }
+    }
+
+    private static class SingleConversion<T, V> extends Reading.Single.Base<T> {
+
+        @NonNull
+        private final Reading.Single<V> mReading;
+        @NonNull
+        private final Converter<Maybe<V>, Maybe<T>> mConverter;
+        @NonNull
+        private final Function<Maybe<V>, Maybe<T>> mFrom;
+
+        private SingleConversion(@NonNull final Reading.Single<V> reading,
+                                 @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
+            super();
+
+            mReading = reading;
+            mConverter = converter;
+            mFrom = Converters.from(converter);
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<T> preparePlan() {
+            return Plans.eagerly(mReading.preparePlan().convert(mFrom));
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<T> preparePlan(@NonNull final T t) {
+            final Plan.Read<T> result;
+
+            final Maybe<V> value = mConverter.to(something(t));
+            if (value.isSomething()) {
+                final V v = value.get();
+                result = (v == null) ? preparePlan() : mReading.preparePlan(v).convert(mFrom);
+            } else {
+                result = preparePlan();
+            }
+
+            return result;
+        }
+    }
+
+    private static class ManyConversion<T, V> extends Reading.Many.Base<T> {
+
+        @NonNull
+        private final Reading.Many<V> mReading;
+        @NonNull
+        private final Converter<Maybe<V>, Maybe<T>> mConverter;
+        @NonNull
+        private final Function<Maybe<V>, Maybe<T>> mFrom;
+
+        private ManyConversion(@NonNull final Reading.Many<V> reading,
+                               @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
+            super();
+
+            mReading = reading;
+            mConverter = converter;
+            mFrom = Converters.from(converter);
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<T> preparePlan() {
+            return Plans.eagerly(mReading.preparePlan().convert(mFrom));
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<T> preparePlan(@NonNull final T t) {
+            final Plan.Read<T> result;
+
+            final Maybe<V> value = mConverter.to(something(t));
+            if (value.isSomething()) {
+                final V v = value.get();
+                result = (v == null) ? preparePlan() : mReading.preparePlan(v).convert(mFrom);
+            } else {
+                result = preparePlan();
+            }
+
+            return result;
         }
     }
 

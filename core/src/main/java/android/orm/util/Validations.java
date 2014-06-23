@@ -365,7 +365,7 @@ public final class Validations {
         @NonNull
         @Override
         public final <T> Valid<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return valid(function.invoke(mValue));
+            return Validations.<T>valid(function.invoke(mValue));
         }
 
         @NonNull

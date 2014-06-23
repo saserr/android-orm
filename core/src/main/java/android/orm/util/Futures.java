@@ -101,7 +101,7 @@ public final class Futures {
         @NonNull
         @Override
         public final <T> Future<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return success(function.invoke(mValue));
+            return Futures.<T>success(function.invoke(mValue));
         }
 
         @NonNull

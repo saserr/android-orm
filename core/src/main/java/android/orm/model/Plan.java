@@ -17,6 +17,7 @@
 package android.orm.model;
 
 import android.orm.sql.Reader;
+import android.orm.sql.Readers;
 import android.orm.sql.Writer;
 import android.orm.sql.statement.Select;
 import android.orm.util.Function;
@@ -24,11 +25,11 @@ import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
+import android.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static android.orm.model.Plans.compose;
 import static android.orm.util.Maybes.nothing;
 import static java.util.Arrays.asList;
 
@@ -53,6 +54,35 @@ public final class Plan {
         public final boolean isEmpty() {
             return mProjection.isEmpty();
         }
+
+        @NonNull
+        @Override
+        public final <T> Reader<Pair<M, T>> and(@NonNull final Reader<T> other) {
+            return Readers.compose(this, other);
+        }
+
+        @NonNull
+        public final <T> Read<Pair<M, T>> and(@NonNull final Read<T> other) {
+            return Plans.compose(this, other);
+        }
+
+        @NonNull
+        @Override
+        public final <N> Read<N> map(@NonNull final Function<? super M, ? extends N> converter) {
+            return convert(Maybes.map(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <N> Read<N> flatMap(@NonNull final Function<? super M, Maybe<N>> converter) {
+            return convert(Maybes.flatMap(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <N> Read<N> convert(@NonNull final Function<Maybe<M>, Maybe<N>> converter) {
+            return Plans.convert(this, converter);
+        }
     }
 
     public abstract static class Write implements Writer {
@@ -65,7 +95,7 @@ public final class Plan {
 
         @NonNull
         public final Write and(@NonNull final Write other) {
-            return other.isEmpty() ? this : (isEmpty() ? other : compose(asList(this, other)));
+            return other.isEmpty() ? this : (isEmpty() ? other : Plans.compose(asList(this, other)));
         }
 
         @NonNull
@@ -129,7 +159,7 @@ public final class Plan {
                     }
                 }
 
-                return compose(plans);
+                return Plans.compose(plans);
             }
         }
     }
