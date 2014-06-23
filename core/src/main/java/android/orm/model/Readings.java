@@ -67,6 +67,12 @@ public final class Readings {
     }
 
     @NonNull
+    public static <M> Reading.Many<Set<M>> difference(@NonNull final Reading.Many<Set<M>> reading,
+                                                      @NonNull final Set<M> subtrahend) {
+        return new Subtraction<>(reading, subtrahend);
+    }
+
+    @NonNull
     public static <K, V> Reading.Many<Map<K, V>> map(@NonNull final Value.Read<K> key,
                                                      @NonNull final Value.Read<V> value) {
         return new MapReading<>(key, value);
@@ -211,6 +217,40 @@ public final class Readings {
         @Override
         public final Plan.Read<C> preparePlan(@NonNull final C values) {
             return Plans.many(mName, values, mReading);
+        }
+    }
+
+    private static class Subtraction<M> extends Reading.Many.Base<Set<M>> {
+
+        @NonNull
+        private final Many<Set<M>> mReading;
+        @NonNull
+        private final Function<Set<M>, Set<M>> mSubtract;
+
+        private Subtraction(@NonNull final Many<Set<M>> reading, @NonNull final Set<M> subtrahend) {
+            super();
+
+            mReading = reading;
+            mSubtract = new Function<Set<M>, Set<M>>() {
+                @NonNull
+                @Override
+                public Set<M> invoke(@NonNull final Set<M> minuend) {
+                    minuend.removeAll(subtrahend);
+                    return minuend;
+                }
+            };
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<Set<M>> preparePlan() {
+            return Plans.eagerly(mReading.preparePlan().map(mSubtract));
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Read<Set<M>> preparePlan(@NonNull final Set<M> minuend) {
+            return mReading.preparePlan(minuend).map(mSubtract);
         }
     }
 
