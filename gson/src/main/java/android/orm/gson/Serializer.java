@@ -21,41 +21,22 @@ import android.orm.model.Reading;
 import android.orm.sql.Readable;
 import android.orm.sql.Value;
 import android.orm.sql.statement.Select;
-import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.List;
-
 import static android.orm.util.Lenses.combine;
 import static android.orm.util.Maybes.something;
 
 public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
-
-    public static final Function<List<JsonObject>, JsonArray> TO_ARRAY =
-            new Function<List<JsonObject>, JsonArray>() {
-                @NonNull
-                @Override
-                public JsonArray invoke(@NonNull final List<JsonObject> objects) {
-                    final JsonArray array = new JsonArray();
-
-                    for (final JsonObject object : objects) {
-                        array.add(object);
-                    }
-
-                    return array;
-                }
-            };
 
     @NonNls
     @NonNull

@@ -25,11 +25,26 @@ import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 import static android.orm.util.Maybes.something;
 
 public final class Serializers {
+
+    private static final Object TO_ARRAY = new Function<Iterable<JsonElement>, JsonArray>() {
+        @NonNull
+        @Override
+        public JsonArray invoke(@NonNull final Iterable<JsonElement> elements) {
+            final JsonArray array = new JsonArray();
+
+            for (final JsonElement element : elements) {
+                array.add(element);
+            }
+
+            return array;
+        }
+    };
 
     @NonNull
     public static <V> Serializer<JsonElement> serializer(@NonNull final Gson gson,
@@ -41,6 +56,12 @@ public final class Serializers {
     public static <M> Serializer<JsonElement> serializer(@NonNull final Gson gson,
                                                          @NonNull final Mapper.Read<M> mapper) {
         return new Serializer<>(mapper.getName(), mapper.prepareRead().map(new ToJson<M>(gson)));
+    }
+
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public static <E extends JsonElement, C extends Iterable<E>> Function<C, JsonArray> toArray() {
+        return (Function<C, JsonArray>) TO_ARRAY;
     }
 
     private static class ToJson<V> implements Function<Maybe<V>, Maybe<JsonElement>> {
