@@ -22,19 +22,24 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
+import android.orm.dao.direct.Notifier;
+import android.orm.dao.direct.Savepoint;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
+import android.orm.sql.Expression;
+import android.orm.sql.Select;
 import android.orm.sql.Statement;
 import android.orm.sql.Value;
-import android.orm.sql.statement.Select;
 import android.orm.util.Cancelable;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
+import org.jetbrains.annotations.NonNls;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -50,9 +55,9 @@ public final class DAO {
     private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool();
 
     @NonNull
-    public static Direct direct(@NonNull final Context context,
-                                @NonNull final SQLiteDatabase database) {
-        return new android.orm.dao.Direct(context, database);
+    public static Direct direct(@NonNull final SQLiteDatabase database,
+                                @NonNull final Notifier notifier) {
+        return new android.orm.dao.Direct(database, notifier);
     }
 
     @NonNull
@@ -92,7 +97,10 @@ public final class DAO {
         void execute(@NonNull final Statement statement);
 
         @NonNull
-        <V> Maybe<V> execute(@NonNull final Function<SQLiteDatabase, Maybe<V>> function);
+        <V> Maybe<V> execute(@NonNull final Expression<V> expression);
+
+        @NonNull
+        Savepoint savepoint(@NonNls @NonNull final String name);
 
         interface Exists extends DAO.Access.Exists<Maybe<Boolean>> {
         }
@@ -232,13 +240,10 @@ public final class DAO {
         Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
 
         @NonNull
-        android.orm.dao.local.Transaction.Begin transaction();
+        <V> Result<V> execute(@NonNull final Expression<V> expression);
 
         @NonNull
-        <V> Result<V> async(@NonNull final Function<Direct, Maybe<V>> function);
-
-        @NonNull
-        <V> Result<V> execute(@NonNull final Function<SQLiteDatabase, Maybe<V>> function);
+        <V> Result<V> execute(@NonNull final android.orm.dao.local.Transaction<V> transaction);
 
         final class Query {
 

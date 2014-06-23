@@ -25,9 +25,9 @@ import android.orm.tasks.BuildConfig;
 import android.orm.tasks.model.Task;
 
 import static android.orm.sql.PrimaryKey.primaryKey;
+import static android.orm.sql.Select.Order.Type.Ascending;
+import static android.orm.sql.Select.order;
 import static android.orm.sql.Table.table;
-import static android.orm.sql.statement.Select.Order.Type.Ascending;
-import static android.orm.sql.statement.Select.order;
 
 public class Provider extends BaseContentProvider {
 

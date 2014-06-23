@@ -25,7 +25,7 @@ import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Database;
 import android.orm.Route;
-import android.orm.dao.local.Notifier;
+import android.orm.dao.direct.Notifier;
 import android.orm.dao.local.Transaction;
 import android.orm.dao.local.Watch;
 import android.orm.model.Mapper;
@@ -33,9 +33,10 @@ import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
+import android.orm.sql.Expression;
+import android.orm.sql.Select;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
-import android.orm.sql.statement.Select;
 import android.orm.util.Cancelable;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -47,39 +48,32 @@ import android.support.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import static android.orm.dao.local.Read.afterRead;
+import static android.orm.dao.direct.Read.afterRead;
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
-import static android.orm.sql.statement.Select.select;
+import static android.orm.sql.Select.select;
 
 public class Local extends Async implements DAO.Local {
 
-    @NonNull
-    private final Context mContext;
     @NonNull
     private final SQLiteOpenHelper mHelper;
     @NonNull
     private final ContentResolver mResolver;
     @NonNull
     private final Handler mHandler;
-
-    private final Notifier mNotifier = new Notifier() {
-        @Override
-        public void notifyChange(@NonNull final Uri uri) {
-            mResolver.notifyChange(uri, null);
-        }
-    };
+    @NonNull
+    private final Notifier mNotifier;
 
     public Local(@NonNull final Context context,
                  @NonNull final Database database,
                  @NonNull final ExecutorService executor) {
         super(executor);
 
-        mContext = context;
         mHelper = database.getDatabaseHelper(context);
         mResolver = context.getContentResolver();
         mHandler = new Handler();
+        mNotifier = new Notifier.Immediate(mResolver);
     }
 
     @NonNull
@@ -104,26 +98,14 @@ public class Local extends Async implements DAO.Local {
 
     @NonNull
     @Override
-    public final Transaction.Begin transaction() {
-        return new Transaction.Begin(mContext, this);
+    public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
+        return execute(new Task<>(mResolver, mHelper, expression));
     }
 
     @NonNull
     @Override
-    public final <V> Result<V> async(@NonNull final Function<DAO.Direct, Maybe<V>> function) {
-        return execute(new Function<SQLiteDatabase, Maybe<V>>() {
-            @NonNull
-            @Override
-            public Maybe<V> invoke(@NonNull final SQLiteDatabase database) {
-                return function.invoke(DAO.direct(mContext, database));
-            }
-        });
-    }
-
-    @NonNull
-    @Override
-    public final <V> Result<V> execute(@NonNull final Function<SQLiteDatabase, Maybe<V>> function) {
-        return execute(new Task<>(mHelper, function));
+    public final <V> Result<V> execute(@NonNull final Transaction<V> transaction) {
+        return execute(new Task<>(mResolver, mHelper, transaction));
     }
 
     @NonNull
@@ -245,7 +227,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private final Function<Uri, Uri> mInsertNotify;
         @NonNull
-        private final Function<Integer, Integer> mUpdateNotify;
+        private final Function<Integer, Integer> mChangeNotify;
 
         private SomeAccess(@NonNull final android.orm.dao.Local dao,
                            @NonNull final Notifier notifier,
@@ -259,8 +241,28 @@ public class Local extends Async implements DAO.Local {
             mOnInsert = route.createValues(arguments);
             mWhere = route.getWhere(arguments);
 
-            mInsertNotify = new android.orm.dao.local.Insert.Notify(notifier);
-            mUpdateNotify = new android.orm.dao.local.Update.Notify(notifier, route.createUri(arguments));
+            mInsertNotify = new Function<Uri, Uri>() {
+                @NonNull
+                @Override
+                public Uri invoke(@NonNull final Uri uri) {
+                    notifier.notifyChange(uri);
+                    return uri;
+                }
+            };
+
+            mChangeNotify = new Function<Integer, Integer>() {
+
+                private final Uri mUri = route.createUri(arguments);
+
+                @NonNull
+                @Override
+                public Integer invoke(@NonNull final Integer changed) {
+                    if (changed > 0) {
+                        notifier.notifyChange(mUri);
+                    }
+                    return changed;
+                }
+            };
         }
 
         @NonNull
@@ -272,7 +274,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         @Override
         public final Result<Boolean> exists(@NonNull final Select.Where where) {
-            return mDAO.execute(new android.orm.dao.local.Exists(mTable, mWhere.and(where)));
+            return mDAO.execute(new android.orm.dao.direct.Exists(mTable, mWhere.and(where)));
         }
 
         @NonNull
@@ -282,7 +284,7 @@ public class Local extends Async implements DAO.Local {
             return afterCreate(
                     plan.isEmpty() ?
                             Result.<Uri>nothing() :
-                            mDAO.execute(new android.orm.dao.local.Insert(mItemRoute, plan, mOnInsert)).map(mInsertNotify),
+                            mDAO.execute(new android.orm.dao.direct.Insert(mItemRoute, plan, mOnInsert)).map(mInsertNotify),
                     model
             );
         }
@@ -295,7 +297,7 @@ public class Local extends Async implements DAO.Local {
             return afterUpdate(
                     plan.isEmpty() ?
                             Result.<Integer>nothing() :
-                            mDAO.execute(new android.orm.dao.local.Update(mTable, mWhere.and(where), plan)).map(mUpdateNotify),
+                            mDAO.execute(new android.orm.dao.direct.Update(mTable, mWhere.and(where), plan)).map(mChangeNotify),
                     model
             );
         }
@@ -303,7 +305,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         @Override
         public final Result<Integer> delete(@NonNull final Select.Where where) {
-            return mDAO.execute(new android.orm.dao.local.Delete(mTable, mWhere.and(where))).map(mUpdateNotify);
+            return mDAO.execute(new android.orm.dao.direct.Delete(mTable, mWhere.and(where))).map(mChangeNotify);
         }
 
         @NonNull
@@ -420,7 +422,7 @@ public class Local extends Async implements DAO.Local {
             if (plan.isEmpty()) {
                 result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
             } else {
-                result = mDAO.execute(new android.orm.dao.local.Read<>(plan, mSelect.build())).flatMap(mAfterRead);
+                result = mDAO.execute(new android.orm.dao.direct.Read<>(plan, mSelect.build())).flatMap(mAfterRead);
             }
 
             return result;
@@ -444,16 +446,32 @@ public class Local extends Async implements DAO.Local {
     private static class Task<V> implements Producer<Maybe<V>> {
 
         @NonNull
+        private final ContentResolver mResolver;
+        @NonNull
         private final SQLiteOpenHelper mHelper;
         @NonNull
-        private final Function<SQLiteDatabase, Maybe<V>> mFunction;
+        private final Transaction<V> mTransaction;
 
-        private Task(@NonNull final SQLiteOpenHelper helper,
-                     @NonNull final Function<SQLiteDatabase, Maybe<V>> function) {
+        private Task(@NonNull final ContentResolver resolver,
+                     @NonNull final SQLiteOpenHelper helper,
+                     @NonNull final Expression<V> expression) {
+            this(resolver, helper, new Transaction<V>() {
+                @NonNull
+                @Override
+                protected Maybe<V> run(@NonNull final DAO.Direct dao) {
+                    return dao.execute(expression);
+                }
+            });
+        }
+
+        private Task(@NonNull final ContentResolver resolver,
+                     @NonNull final SQLiteOpenHelper helper,
+                     @NonNull final Transaction<V> transaction) {
             super();
 
+            mResolver = resolver;
             mHelper = helper;
-            mFunction = function;
+            mTransaction = transaction;
         }
 
         @NonNull
@@ -464,7 +482,7 @@ public class Local extends Async implements DAO.Local {
             final SQLiteDatabase database = mHelper.getWritableDatabase();
             database.beginTransaction();
             try {
-                result = mFunction.invoke(database);
+                result = mTransaction.execute(mResolver, database);
                 database.setTransactionSuccessful();
             } finally {
                 database.endTransaction();

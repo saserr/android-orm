@@ -22,10 +22,10 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.orm.Route;
-import android.orm.dao.local.Insert;
+import android.orm.dao.direct.Insert;
 import android.orm.model.Plans;
+import android.orm.sql.Select;
 import android.orm.sql.Table;
-import android.orm.sql.statement.Select;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -96,7 +96,7 @@ public class Match {
     public final Uri insert(@NonNull final SQLiteDatabase database,
                             @NonNull final ContentValues values) {
         final Insert insert = new Insert(mItemRoute, Plans.write(values), mOnInsert);
-        return insert.invoke(database).getOrElse(null);
+        return insert.execute(database).getOrElse(null);
     }
 
     public final int update(@NonNull final SQLiteDatabase database,

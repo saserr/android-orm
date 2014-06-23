@@ -16,11 +16,12 @@
 
 package android.orm;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.orm.dao.Direct;
+import android.orm.dao.direct.Notifier;
 import android.orm.database.IntegrityCheck;
 import android.orm.database.IntegrityChecks;
 import android.orm.database.Migration;
@@ -149,7 +150,7 @@ public class Database {
         private static final String TURN_ON_FOREIGN_KEYS_CHECK = "pragma foreign_keys=on;";
 
         @NonNull
-        private final Context mContext;
+        private final ContentResolver mResolver;
         @NonNull
         private final IntegrityCheck mCheck;
         private final int mVersion;
@@ -166,7 +167,7 @@ public class Database {
                        @NonNull final Migration migration) {
             super(context, database.getName(), null, database.getVersion());
 
-            mContext = context;
+            mResolver = context.getContentResolver();
             mCheck = check;
             mVersion = version;
             mMigration = migration;
@@ -198,7 +199,9 @@ public class Database {
             }
 
             try {
-                mMigration.create(new Direct(mContext, database), mVersion);
+                final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
+                mMigration.create(DAO.direct(database, notifier), mVersion);
+                notifier.sendAll();
             } catch (final SQLException cause) {
                 @NonNls final String message = "There was a problem creating database " + mName + " at version " + mVersion;
                 Log.e(TAG, message, cause);
@@ -218,7 +221,9 @@ public class Database {
                 }
 
                 try {
-                    mMigration.upgrade(new Direct(mContext, database), oldVersion, newVersion);
+                    final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
+                    mMigration.upgrade(DAO.direct(database, notifier), oldVersion, newVersion);
+                    notifier.sendAll();
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem updating database " + mName +
                             " from version " + oldVersion + " to version " + newVersion;
@@ -240,7 +245,9 @@ public class Database {
                 }
 
                 try {
-                    mMigration.downgrade(new Direct(mContext, database), oldVersion, newVersion);
+                    final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
+                    mMigration.downgrade(DAO.direct(database, notifier), oldVersion, newVersion);
+                    notifier.sendAll();
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem downgrading database " + mName +
                             " from version " + oldVersion + " to version " + newVersion;

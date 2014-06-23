@@ -18,7 +18,6 @@ package android.orm.sql;
 
 import android.database.SQLException;
 import android.orm.sql.fragment.ConflictResolution;
-import android.orm.sql.statement.Select;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;

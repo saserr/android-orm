@@ -37,7 +37,7 @@ import android.widget.Toast;
 
 import java.util.Collection;
 
-import static android.orm.sql.statement.Select.where;
+import static android.orm.sql.Select.where;
 import static android.orm.tasks.data.Provider.Routes.TaskById;
 import static android.orm.tasks.data.Provider.Routes.Tasks;
 import static android.widget.Toast.LENGTH_SHORT;

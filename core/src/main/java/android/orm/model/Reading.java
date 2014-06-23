@@ -17,8 +17,8 @@
 package android.orm.model;
 
 import android.orm.sql.Readable;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.statement.Select;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Lens;

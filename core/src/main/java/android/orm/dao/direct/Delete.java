@@ -14,34 +14,35 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.dao.direct;
 
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.util.Function;
+import android.orm.sql.Expression;
+import android.orm.sql.Helper;
+import android.orm.sql.Select;
+import android.orm.sql.Table;
 import android.orm.util.Maybe;
+import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 
-import org.jetbrains.annotations.NonNls;
+public class Delete implements Expression<Integer> {
 
-public class Savepoint<V> implements Function<SQLiteDatabase, Maybe<V>> {
-
-    @NonNls
     @NonNull
-    private final String mName;
+    private final Table<?> mTable;
     @NonNull
-    private final Maybe<V> mResult;
+    private final Select.Where mWhere;
 
-    public Savepoint(@NonNls @NonNull final String name, @NonNull final Maybe<V> result) {
+    public Delete(@NonNull final Table<?> table, @NonNull final Select.Where where) {
         super();
 
-        mName = name;
-        mResult = result;
+        mTable = table;
+        mWhere = where;
     }
 
     @NonNull
     @Override
-    public final Maybe<V> invoke(@NonNull final SQLiteDatabase database) {
-        database.execSQL("savepoint " + mName + ';'); //NON-NLS
-        return mResult;
+    public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
+        final int deleted = database.delete(Helper.escape(mTable.getName()), mWhere.toSQL(), null);
+        return (deleted > 0) ? Maybes.something(deleted) : Maybes.<Integer>nothing();
     }
 }

@@ -20,8 +20,8 @@ import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Reading;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.statement.Select;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;

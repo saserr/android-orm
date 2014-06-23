@@ -23,11 +23,12 @@ import android.net.Uri;
 import android.orm.Route;
 import android.orm.dao.Result;
 import android.orm.dao.Watcher;
+import android.orm.dao.direct.Read;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.route.Match;
+import android.orm.sql.Select;
 import android.orm.sql.Table;
-import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Future;
 import android.orm.util.Maybe;
@@ -207,7 +208,7 @@ public class Watch<V> implements Watcher {
         private void query() {
             final Promise<Maybe<Producer<Maybe<T>>>> promise = new Promise<>();
             promise.getFuture().onComplete(mHandler, this);
-            promise.success(new Read<>(mPlan.get(), mSelect).invoke(mHelper.getReadableDatabase()));
+            promise.success(new Read<>(mPlan.get(), mSelect).execute(mHelper.getReadableDatabase()));
         }
     }
 }

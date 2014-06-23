@@ -24,8 +24,8 @@ import android.orm.model.Property;
 import android.orm.model.Reading;
 import android.orm.model.Storage;
 import android.orm.model.View;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.statement.Select;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 

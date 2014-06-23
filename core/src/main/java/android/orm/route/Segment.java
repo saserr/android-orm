@@ -18,9 +18,9 @@ package android.orm.route;
 
 import android.orm.sql.Column;
 import android.orm.sql.Readable;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.statement.Select;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;

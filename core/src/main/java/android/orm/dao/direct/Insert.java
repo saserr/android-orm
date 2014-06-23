@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.dao.direct;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -22,13 +22,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.orm.Route;
 import android.orm.model.Plan;
+import android.orm.sql.Expression;
 import android.orm.sql.Helper;
 import android.orm.sql.PrimaryKey;
+import android.orm.sql.Select;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.statement.Select;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -38,18 +38,18 @@ import org.jetbrains.annotations.NonNls;
 
 import static android.orm.sql.Readables.combine;
 import static android.orm.sql.Readables.readable;
+import static android.orm.sql.Select.select;
+import static android.orm.sql.Select.where;
 import static android.orm.sql.Table.ROW_ID;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
-import static android.orm.sql.statement.Select.select;
-import static android.orm.sql.statement.Select.where;
 import static android.orm.util.Legacy.getKeys;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.DEBUG;
 import static android.util.Log.INFO;
 
-public class Insert implements Function<SQLiteDatabase, Maybe<Uri>> {
+public class Insert implements Expression<Uri> {
 
     private static final String TAG = Insert.class.getSimpleName();
     private static final Select.Where.Part<Long> WHERE_ROW_ID = where(ROW_ID);
@@ -84,7 +84,7 @@ public class Insert implements Function<SQLiteDatabase, Maybe<Uri>> {
     @NonNull
     @Override
     @SuppressWarnings("unchecked")
-    public final Maybe<Uri> invoke(@NonNull final SQLiteDatabase database) {
+    public final Maybe<Uri> execute(@NonNull final SQLiteDatabase database) {
         final ContentValues values = new ContentValues(mAdditional);
         final Writable output = writable(values);
         mPlan.write(Insert, output);
@@ -137,24 +137,5 @@ public class Insert implements Function<SQLiteDatabase, Maybe<Uri>> {
         }
 
         return result;
-    }
-
-    public static class Notify implements Function<Uri, Uri> {
-
-        @NonNull
-        private final Notifier mNotifier;
-
-        public Notify(@NonNull final Notifier notifier) {
-            super();
-
-            mNotifier = notifier;
-        }
-
-        @NonNull
-        @Override
-        public final Uri invoke(@NonNull final Uri uri) {
-            mNotifier.notifyChange(uri);
-            return uri;
-        }
     }
 }

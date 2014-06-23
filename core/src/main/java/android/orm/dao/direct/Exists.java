@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.dao.direct;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.orm.sql.Expression;
 import android.orm.sql.Helper;
+import android.orm.sql.Select;
 import android.orm.sql.Table;
-import android.orm.sql.statement.Select;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 
-public class Exists implements Function<SQLiteDatabase, Maybe<Boolean>> {
+public class Exists implements Expression<Boolean> {
 
     private static final String[] PROJECTION = {"1"};
     private static final String SINGLE = "1";
@@ -45,7 +45,7 @@ public class Exists implements Function<SQLiteDatabase, Maybe<Boolean>> {
 
     @NonNull
     @Override
-    public final Maybe<Boolean> invoke(@NonNull final SQLiteDatabase database) {
+    public final Maybe<Boolean> execute(@NonNull final SQLiteDatabase database) {
         final String table = Helper.escape(mTable.getName());
         final String where = mWhere.toSQL();
         final String order = mTable.getOrder().toSQL();

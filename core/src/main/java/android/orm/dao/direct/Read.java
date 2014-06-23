@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.dao.direct;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
-import android.orm.sql.statement.Select;
+import android.orm.sql.Expression;
+import android.orm.sql.Select;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -29,7 +30,7 @@ import android.support.annotation.NonNull;
 
 import static android.orm.sql.Readables.readable;
 
-public class Read<V> implements Function<SQLiteDatabase, Maybe<Producer<Maybe<V>>>> {
+public class Read<V> implements Expression<Producer<Maybe<V>>> {
 
     private static final Object AfterRead = new Function<Producer<Maybe<Object>>, Maybe<Object>>() {
         @NonNull
@@ -57,7 +58,7 @@ public class Read<V> implements Function<SQLiteDatabase, Maybe<Producer<Maybe<V>
 
     @NonNull
     @Override
-    public final Maybe<Producer<Maybe<V>>> invoke(@NonNull final SQLiteDatabase database) {
+    public final Maybe<Producer<Maybe<V>>> execute(@NonNull final SQLiteDatabase database) {
         final Maybe<Producer<Maybe<V>>> result;
 
         final Cursor cursor = mSelect.execute(mPlan.getProjection(), database);

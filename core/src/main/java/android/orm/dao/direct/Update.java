@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.dao.direct;
 
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
-import android.net.Uri;
 import android.orm.model.Plan;
+import android.orm.sql.Expression;
 import android.orm.sql.Helper;
+import android.orm.sql.Select;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.Writables;
-import android.orm.sql.statement.Select;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -33,7 +32,7 @@ import android.util.Log;
 
 import static android.util.Log.INFO;
 
-public class Update implements Function<SQLiteDatabase, Maybe<Integer>> {
+public class Update implements Expression<Integer> {
 
     private static final String TAG = Update.class.getSimpleName();
 
@@ -56,7 +55,7 @@ public class Update implements Function<SQLiteDatabase, Maybe<Integer>> {
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final SQLiteDatabase database) {
+    public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
         final ContentValues values = new ContentValues();
         mPlan.write(Value.Write.Operation.Update, Writables.writable(values));
         final int updated;
@@ -71,27 +70,5 @@ public class Update implements Function<SQLiteDatabase, Maybe<Integer>> {
         }
 
         return (updated > 0) ? Maybes.something(updated) : Maybes.<Integer>nothing();
-    }
-
-    public static class Notify implements Function<Integer, Integer> {
-
-        @NonNull
-        private final Notifier mNotifier;
-        @NonNull
-        private final Uri mUri;
-
-        public Notify(@NonNull final Notifier notifier, @NonNull final Uri uri) {
-            super();
-
-            mNotifier = notifier;
-            mUri = uri;
-        }
-
-        @NonNull
-        @Override
-        public final Integer invoke(@NonNull final Integer value) {
-            mNotifier.notifyChange(mUri);
-            return value;
-        }
     }
 }

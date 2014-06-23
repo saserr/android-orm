@@ -95,7 +95,7 @@ public class Watch<V> implements Watcher {
         @NonNull
         private final Read<T> mRead;
 
-        private final Function<Producer<Maybe<T>>, Maybe<T>> mAfterRead = android.orm.dao.local.Read.afterRead();
+        private final Function<Producer<Maybe<T>>, Maybe<T>> mAfterRead = android.orm.dao.direct.Read.afterRead();
         private final AtomicReference<Looper> mLooper = new AtomicReference<>();
 
         private final ContentObserver mObserver = new ContentObserver(new Handler()) {

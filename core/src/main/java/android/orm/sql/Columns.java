@@ -19,7 +19,6 @@ package android.orm.sql;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.orm.sql.statement.Select;
 import android.orm.util.Maybe;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;

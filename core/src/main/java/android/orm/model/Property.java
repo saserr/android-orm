@@ -16,8 +16,8 @@
 
 package android.orm.model;
 
+import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.statement.Select;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;

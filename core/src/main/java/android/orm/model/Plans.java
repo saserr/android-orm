@@ -18,9 +18,9 @@ package android.orm.model;
 
 import android.content.ContentValues;
 import android.orm.sql.Readable;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;

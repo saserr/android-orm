@@ -18,8 +18,8 @@ package android.orm.model;
 
 import android.orm.sql.Reader;
 import android.orm.sql.Readers;
+import android.orm.sql.Select;
 import android.orm.sql.Writer;
-import android.orm.sql.statement.Select;
 import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;

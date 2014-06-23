@@ -17,7 +17,6 @@
 package android.orm.sql;
 
 import android.orm.sql.fragment.ConflictResolution;
-import android.orm.sql.statement.Select;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;

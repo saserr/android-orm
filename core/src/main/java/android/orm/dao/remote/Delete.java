@@ -18,7 +18,7 @@ package android.orm.dao.remote;
 
 import android.content.ContentResolver;
 import android.net.Uri;
-import android.orm.sql.statement.Select;
+import android.orm.sql.Select;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;

@@ -17,7 +17,7 @@
 package android.orm.route;
 
 import android.orm.sql.Column;
-import android.orm.sql.statement.Select;
+import android.orm.sql.Select;
 import android.orm.util.Function;
 import android.support.annotation.NonNull;
 

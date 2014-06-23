@@ -14,35 +14,34 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.dao.direct;
 
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.util.Function;
-import android.orm.util.Maybe;
+import android.orm.sql.Statement;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
-public class Rollback<V> implements Function<SQLiteDatabase, Maybe<V>> {
+public abstract class Savepoint implements Statement {
 
     @NonNls
     @NonNull
-    private final String mSavepoint;
-    @NonNull
-    private final Maybe<V> mResult;
+    private final String mName;
 
-    public Rollback(@NonNls @NonNull final String savepoint,
-                    @NonNull final Maybe<V> result) {
+    protected Savepoint(@NonNls @NonNull final String name) {
         super();
 
-        mSavepoint = savepoint;
-        mResult = result;
+        mName = name;
     }
 
-    @NonNull
+    public abstract void rollback();
+
     @Override
-    public final Maybe<V> invoke(@NonNull final SQLiteDatabase database) {
-        database.execSQL("rollback transaction to savepoint " + mSavepoint + ';'); //NON-NLS
-        return mResult;
+    public final void execute(@NonNull final SQLiteDatabase database) {
+        database.execSQL("savepoint " + mName + ';'); //NON-NLS
+    }
+
+    protected final void rollback(@NonNull final SQLiteDatabase database) {
+        database.execSQL("rollback transaction to savepoint " + mName + ';'); //NON-NLS
     }
 }

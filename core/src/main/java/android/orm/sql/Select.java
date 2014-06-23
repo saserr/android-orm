@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-package android.orm.sql.statement;
+package android.orm.sql;
 
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.sql.Column;
-import android.orm.sql.Fragment;
-import android.orm.sql.Helper;
-import android.orm.sql.Table;
 import android.orm.util.Function;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;

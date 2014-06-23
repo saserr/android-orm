@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package android.orm.dao.local;
+package android.orm.sql;
 
-import android.net.Uri;
+import android.database.sqlite.SQLiteDatabase;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
-public interface Notifier {
-    void notifyChange(@NonNull final Uri uri);
+public interface Expression<V> {
+    @NonNull
+    Maybe<V> execute(@NonNull final SQLiteDatabase database);
 }
