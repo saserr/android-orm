@@ -24,6 +24,7 @@ import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.util.Pair;
 
@@ -114,6 +115,13 @@ public final class Plan {
 
             @NonNull
             public final <V> Builder<M> put(@NonNull final Mapper.Write<V> mapper,
+                                            @NonNull final Producer<Maybe<V>> producer) {
+                mEntries.add(Builder.<M, V>entry(mapper, producer));
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> put(@NonNull final Mapper.Write<V> mapper,
                                             @NonNull final Lens.Read<M, Maybe<V>> lens) {
                 mEntries.add(entry(mapper, lens));
                 return this;
@@ -122,6 +130,18 @@ public final class Plan {
             @NonNull
             public final Write build(@NonNull final Maybe<M> result) {
                 return build(result, mEntries);
+            }
+
+            @NonNull
+            private static <M, V> Function<Maybe<M>, Write> entry(@NonNull final Mapper.Write<V> mapper,
+                                                                  @NonNull final Producer<Maybe<V>> producer) {
+                return new Function<Maybe<M>, Write>() {
+                    @NonNull
+                    @Override
+                    public Write invoke(@NonNull final Maybe<M> ignored) {
+                        return mapper.prepareWrite(producer.produce());
+                    }
+                };
             }
 
             @NonNull

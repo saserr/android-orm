@@ -26,6 +26,7 @@ import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.orm.util.Producers;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
@@ -269,7 +270,7 @@ public final class Mapper {
                                                    @NonNull final Producer<M> producer) {
                 return new Value.Read.Base<M>() {
 
-                    private final Producer<Maybe<M>> mProducer = Producers.convert(producer, Maybes.<M>liftValue());
+                    private final Producer<Maybe<M>> mProducer = Maybes.lift(producer);
 
                     @NonNls
                     @NonNull
@@ -424,6 +425,32 @@ public final class Mapper {
                 super();
 
                 mName = name;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@Nullable final V v,
+                                             @NonNull final Value.Write<V> value) {
+                return with(v, Mappers.write(value));
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@Nullable final V value,
+                                             @NonNull final Write<V> mapper) {
+                mWrite.put(mapper, Producers.constant(something(value)));
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final Value.Write<V> value,
+                                             @NonNull final Producer<V> producer) {
+                return with(Mappers.write(value), producer);
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final Write<V> mapper,
+                                             @NonNull final Producer<V> producer) {
+                mWrite.put(mapper, Maybes.lift(producer));
+                return this;
             }
 
             @NonNull

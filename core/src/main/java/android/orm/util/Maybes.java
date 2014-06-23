@@ -76,6 +76,11 @@ public final class Maybes {
     }
 
     @NonNull
+    public static <V> Producer<Maybe<V>> lift(@NonNull final Producer<? extends V> producer) {
+        return Producers.convert(producer, Maybes.<V>liftValue());
+    }
+
+    @NonNull
     public static <V, T> Converter<Maybe<V>, Maybe<T>> lift(@NonNull final Converter<V, T> converter) {
         return new LiftedConverter<>(converter);
     }
