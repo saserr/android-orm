@@ -18,15 +18,14 @@ package android.orm.model;
 
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
-import android.orm.util.Producers;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
@@ -428,28 +427,8 @@ public final class Mapper {
             }
 
             @NonNull
-            public final <V> Builder<M> with(@Nullable final V v,
-                                             @NonNull final Value.Write<V> value) {
-                return with(v, Mappers.write(value));
-            }
-
-            @NonNull
-            public final <V> Builder<M> with(@Nullable final V value,
-                                             @NonNull final Write<V> mapper) {
-                mWrite.put(mapper, Producers.constant(something(value)));
-                return this;
-            }
-
-            @NonNull
-            public final <V> Builder<M> with(@NonNull final Value.Write<V> value,
-                                             @NonNull final Producer<V> producer) {
-                return with(Mappers.write(value), producer);
-            }
-
-            @NonNull
-            public final <V> Builder<M> with(@NonNull final Write<V> mapper,
-                                             @NonNull final Producer<V> producer) {
-                mWrite.put(mapper, Maybes.lift(producer));
+            public final Builder<M> with(@NonNull final Writer writer) {
+                mWrite.put(writer);
                 return this;
             }
 

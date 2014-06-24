@@ -168,12 +168,12 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
 
     @Override
     public final void open(final Task task) {
-        mDAO.at(TaskById, task.getId()).update(false, Task.Finished);
+        mDAO.at(TaskById, task.getId()).update(Task.Open);
     }
 
     @Override
     public final void close(final Task task) {
-        mDAO.at(TaskById, task.getId()).update(true, Task.Finished);
+        mDAO.at(TaskById, task.getId()).update(Task.Close);
     }
 
     @Override

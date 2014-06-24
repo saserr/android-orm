@@ -17,6 +17,7 @@
 package android.orm.model;
 
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -116,5 +117,23 @@ public class Storage<V> implements Instance.Writable, Observer.Write {
         mSaved = mSaving;
         mSaving = null;
         mObserver.afterSave();
+    }
+
+    public static class Constant implements Instance.Writable {
+
+        @NonNull
+        private final Plan.Write mPlan;
+
+        public Constant(@NonNull final Writer writer) {
+            super();
+
+            mPlan = Plans.write(writer);
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Write prepareWrite() {
+            return mPlan;
+        }
     }
 }

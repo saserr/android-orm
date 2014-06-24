@@ -19,6 +19,7 @@ package android.orm.sql;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
+import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.util.Pair;
 
@@ -39,9 +40,27 @@ public final class Values {
     }
 
     @NonNull
+    public static <V> Value.Constant constant(@NonNull final Value.Write<V> value,
+                                              @NonNull final Producer<Maybe<V>> producer) {
+        return new WriteConstant<>(value, producer);
+    }
+
+    @NonNull
     public static <V, T> Value.Read<Pair<V, T>> compose(@NonNull final Value.Read<V> first,
                                                         @NonNull final Value.Read<T> second) {
         return new ReadComposition<>(first, second);
+    }
+
+    @NonNull
+    public static Value.Constant compose(@NonNull final Value.Constant first,
+                                         @NonNull final Value.Constant second) {
+        return new ConstantComposition(first, second);
+    }
+
+    @NonNull
+    public static <V> Value.Write<V> compose(@NonNull final Value.Constant first,
+                                             @NonNull final Value.Write<V> second) {
+        return new ConstantWriteComposition<>(first, second);
     }
 
     @NonNull
@@ -135,6 +154,35 @@ public final class Values {
         }
     }
 
+    private static class WriteConstant<V> extends Value.Constant.Base {
+
+        @NonNull
+        private final Value.Write<V> mValue;
+        @NonNull
+        private final Producer<Maybe<V>> mProducer;
+
+        private WriteConstant(@NonNull final Value.Write<V> value,
+                              @NonNull final Producer<Maybe<V>> producer) {
+            super();
+
+            mValue = value;
+            mProducer = producer;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mValue.getName();
+        }
+
+        @Override
+        public final void write(@NonNull final Value.Write.Operation operation,
+                                @NonNull final Writable output) {
+            mValue.write(operation, mProducer.produce(), output);
+        }
+    }
+
     private static class ReadComposition<V, T> extends Value.Read.Base<Pair<V, T>> {
 
         @NonNull
@@ -174,6 +222,74 @@ public final class Values {
         @Override
         public final Maybe<Pair<V, T>> read(@NonNull final Readable input) {
             return mFirst.read(input).and(mSecond.read(input));
+        }
+    }
+
+    private static class ConstantComposition extends Value.Constant.Base {
+
+        @NonNull
+        private final Value.Constant mFirst;
+        @NonNull
+        private final Value.Constant mSecond;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private ConstantComposition(@NonNull final Value.Constant first,
+                                    @NonNull final Value.Constant second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+            mName = '(' + first.getName() + ", " + second.getName() + ')';
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @Override
+        public final void write(@NonNull final Value.Write.Operation operation,
+                                @NonNull final Writable output) {
+            mFirst.write(operation, output);
+            mSecond.write(operation, output);
+        }
+    }
+
+    private static class ConstantWriteComposition<V> extends Value.Write.Base<V> {
+
+        @NonNull
+        private final Value.Constant mFirst;
+        @NonNull
+        private final Value.Write<V> mSecond;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private ConstantWriteComposition(@NonNull final Value.Constant first,
+                                         @NonNull final Value.Write<V> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+            mName = '(' + first.getName() + ", " + second.getName() + ')';
+        }
+
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @Override
+        public final void write(@NonNull final Operation operation,
+                                @NonNull final Maybe<V> value,
+                                @NonNull final Writable output) {
+            mFirst.write(operation, output);
+            mSecond.write(operation, value, output);
         }
     }
 

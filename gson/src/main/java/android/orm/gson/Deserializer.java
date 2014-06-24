@@ -22,12 +22,11 @@ import android.orm.model.Mappers;
 import android.orm.model.Plan;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
+import android.orm.sql.Writer;
 import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
-import android.orm.util.Producer;
-import android.orm.util.Producers;
 import android.orm.util.Validation;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -93,25 +92,8 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
             mPlan = Plan.Write.builder();
         }
 
-        public final <V> Builder with(@Nullable final V v,
-                                      @NonNull final Value.Write<V> value) {
-            return with(v, Mappers.write(value));
-        }
-
-        public final <V> Builder with(@Nullable final V value,
-                                      @NonNull final Mapper.Write<V> mapper) {
-            mPlan.put(mapper, Producers.constant(something(value)));
-            return this;
-        }
-
-        public final <V> Builder with(@NonNull final Value.Write<V> value,
-                                      @NonNull final Producer<V> producer) {
-            return with(Mappers.write(value), producer);
-        }
-
-        public final <V> Builder with(@NonNull final Mapper.Write<V> mapper,
-                                      @NonNull final Producer<V> producer) {
-            mPlan.put(mapper, Maybes.lift(producer));
+        public final Builder with(@NonNull final Writer writer) {
+            mPlan.put(writer);
             return this;
         }
 

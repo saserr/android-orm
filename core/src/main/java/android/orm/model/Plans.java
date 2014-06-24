@@ -21,6 +21,7 @@ import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
+import android.orm.sql.Writer;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -207,6 +208,25 @@ public final class Plans {
     @NonNull
     public static <M extends Instance.Writable> Plan.Write write(@NonNull final M model) {
         return model.prepareWrite();
+    }
+
+    @NonNull
+    public static Plan.Write write(@NonNull final Writer writer) {
+        return (writer instanceof Plan.Write) ?
+                (Plan.Write) writer :
+                new Plan.Write() {
+
+                    @Override
+                    public boolean isEmpty() {
+                        return false;
+                    }
+
+                    @Override
+                    public void write(@NonNull final Value.Write.Operation operation,
+                                      @NonNull final Writable output) {
+                        writer.write(operation, output);
+                    }
+                };
     }
 
     @NonNull

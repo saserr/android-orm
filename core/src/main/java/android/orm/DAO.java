@@ -33,6 +33,7 @@ import android.orm.sql.Expression;
 import android.orm.sql.Select;
 import android.orm.sql.Statement;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.orm.util.Cancelable;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -600,6 +601,9 @@ public final class DAO {
             <M extends Instance.Writable> R insert(@NonNull final M model);
 
             @NonNull
+            R insert(@NonNull final Writer writer);
+
+            @NonNull
             <M> R insert(@Nullable final M model, @NonNull final Value.Write<M> value);
 
             @NonNull
@@ -614,6 +618,12 @@ public final class DAO {
             @NonNull
             <M extends Instance.Writable> R update(@NonNull final Select.Where where,
                                                    @NonNull final M model);
+
+            @NonNull
+            R update(@NonNull final Writer writer);
+
+            @NonNull
+            R update(@NonNull final Select.Where where, @NonNull final Writer writer);
 
             @NonNull
             <M> R update(@Nullable final M model, @NonNull final Value.Write<M> value);
@@ -663,6 +673,12 @@ public final class DAO {
 
                 @NonNull
                 @Override
+                public final I insert(@NonNull final Writer writer) {
+                    return insert(null, write(writer));
+                }
+
+                @NonNull
+                @Override
                 public final <M> I insert(@Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
                     beforeCreate(model);
@@ -690,6 +706,19 @@ public final class DAO {
                                                                     @NonNull final M model) {
                     beforeUpdate(model);
                     return update(where, model, write(model));
+                }
+
+                @NonNull
+                @Override
+                public final U update(@NonNull final Writer writer) {
+                    return update((Void) null, write(writer));
+                }
+
+                @NonNull
+                @Override
+                public final U update(@NonNull final Select.Where where,
+                                      @NonNull final Writer writer) {
+                    return update(where, null, write(writer));
                 }
 
                 @NonNull

@@ -23,6 +23,7 @@ import android.orm.model.Property;
 import android.orm.model.View;
 import android.orm.sql.Column;
 import android.orm.sql.Columns;
+import android.orm.sql.Value;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 
@@ -38,6 +39,9 @@ public class Task extends Model {
     public static final Column<Long> Id = Columns.Id;
     public static final Column<String> Title = text("title").asNotNull();
     public static final Column<Boolean> Finished = bool("finished").asNotNull().withDefault(false);
+
+    public static final Value.Constant Open = Finished.write(false);
+    public static final Value.Constant Close = Finished.write(true);
 
     public static final Mapper.ReadWrite<Task> Mapper = Mappers.mapper(new Producer<Task>() {
         @NonNull

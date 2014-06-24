@@ -26,6 +26,7 @@ import android.orm.model.Storage;
 import android.orm.model.View;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -115,6 +116,10 @@ public abstract class Model implements Instance.ReadWrite, Observer.ReadWrite {
         final View<V> view = new View<>(mapper, observer);
         with(view);
         return view;
+    }
+
+    protected final void storage(@NonNull final Writer writer) {
+        with(new Storage.Constant(writer));
     }
 
     @NonNull

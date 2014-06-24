@@ -20,10 +20,15 @@ import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
+
+import static android.orm.util.Maybes.something;
 
 public final class Value {
 
@@ -79,11 +84,45 @@ public final class Value {
         }
     }
 
+    public interface Constant extends Writer {
+
+        @NonNls
+        @NonNull
+        String getName();
+
+        @NonNull
+        Constant and(@NonNull final Constant other);
+
+        @NonNull
+        <V> Write<V> and(@NonNull final Write<V> other);
+
+        abstract class Base implements Constant {
+
+            @NonNull
+            @Override
+            public final Constant and(@NonNull final Constant other) {
+                return Values.compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final <V> Write<V> and(@NonNull final Write<V> other) {
+                return Values.compose(this, other);
+            }
+        }
+    }
+
     public interface Write<V> {
 
         @NonNls
         @NonNull
         String getName();
+
+        @NonNull
+        Constant write(@Nullable final V value);
+
+        @NonNull
+        Constant write(@NonNull final Producer<V> producer);
 
         void write(@NonNull final Operation operation,
                    @NonNull final Maybe<V> value,
@@ -91,6 +130,9 @@ public final class Value {
 
         @NonNull
         <T> Write<Pair<V, T>> and(@NonNull final Write<T> other);
+
+        @NonNull
+        Write<V> and(@NonNull final Constant other);
 
         @NonNull
         <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter);
@@ -105,8 +147,26 @@ public final class Value {
 
             @NonNull
             @Override
+            public final Constant write(@Nullable final V value) {
+                return Values.constant(this, Producers.constant(something(value)));
+            }
+
+            @NonNull
+            @Override
+            public final Constant write(@NonNull final Producer<V> producer) {
+                return Values.constant(this, Maybes.lift(producer));
+            }
+
+            @NonNull
+            @Override
             public final <T> Write<Pair<V, T>> and(@NonNull final Write<T> other) {
                 return Values.compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final Write<V> and(@NonNull final Constant other) {
+                return Values.compose(other, this);
             }
 
             @NonNull
@@ -139,6 +199,10 @@ public final class Value {
         <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other);
 
         @NonNull
+        @Override
+        ReadWrite<V> and(@NonNull final Constant other);
+
+        @NonNull
         <T> ReadWrite<T> map(@NonNull final Converter<V, T> converter);
 
         @NonNull
@@ -148,8 +212,26 @@ public final class Value {
 
             @NonNull
             @Override
+            public final Constant write(@Nullable final V value) {
+                return Values.constant(this, Producers.constant(something(value)));
+            }
+
+            @NonNull
+            @Override
+            public final Constant write(@NonNull final Producer<V> producer) {
+                return Values.constant(this, Maybes.lift(producer));
+            }
+
+            @NonNull
+            @Override
             public final <T> Read<Pair<V, T>> and(@NonNull final Read<T> other) {
                 return Values.compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite<V> and(@NonNull final Constant other) {
+                return Values.combine(this, Values.compose(other, this));
             }
 
             @NonNull
