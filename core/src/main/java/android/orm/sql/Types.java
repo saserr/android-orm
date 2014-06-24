@@ -165,16 +165,19 @@ public final class Types {
             Integer,
             new Converter<Boolean, Long>() {
 
+                private static final long False = 0L;
+                private static final long True = 1L;
+
                 @NonNull
                 @Override
                 public Long from(@NonNull final Boolean value) {
-                    return value ? 1L : 0L;
+                    return value ? True : False;
                 }
 
                 @NonNull
                 @Override
                 public Boolean to(@NonNull final Long value) {
-                    return value > 0L;
+                    return value != False;
                 }
             }
     );
