@@ -489,12 +489,14 @@ public abstract class Direct implements Transaction.Direct {
 
             @Override
             public void execute(@NonNull final Statement statement) {
+                Async.interruptIfNecessary();
                 statement.execute(database);
             }
 
             @NonNull
             @Override
             public <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
+                Async.interruptIfNecessary();
                 return expression.execute(database);
             }
         };

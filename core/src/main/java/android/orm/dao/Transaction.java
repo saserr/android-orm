@@ -64,10 +64,10 @@ public final class Transaction {
 
     public static class Rollback extends Exception {
 
-        private static final long serialVersionUID = -3964626269111732824L;
+        private static final long serialVersionUID = 4413464485439328954L;
 
-        public Rollback(@NonNls @NonNull final String message) {
-            super(message);
+        private Rollback(@NonNls @NonNull final String error) {
+            super(error);
         }
     }
 

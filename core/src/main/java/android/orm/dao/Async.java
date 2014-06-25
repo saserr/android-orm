@@ -16,6 +16,7 @@
 
 package android.orm.dao;
 
+import android.database.SQLException;
 import android.orm.DAO;
 import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
@@ -32,6 +33,7 @@ import java.lang.annotation.Retention;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,12 +45,13 @@ public abstract class Async implements DAO.Async {
 
     private static final String TAG = DAO.class.getSimpleName();
 
+    private static final Interrupted Interrupted = new Interrupted("Interrupted");
     @NonNls
     private static final String UNKNOWN_STATE = "Unknown state: ";
     @NonNls
     private static final String DAO_STOPPED = "DAO is stopped";
     @NonNls
-    private static final String EXECUTE_TASK_ON_NON_STARTED = "Task has been executed on a non-started DAO. For now this is allowed, but that might change in future!";
+    private static final String EXECUTE_TASK_ON_NON_STARTED_DAO = "Task has been executed on a non-started DAO. For now this is allowed, but that might change in future!";
 
     @NonNull
     private final ExecutorService mExecutor;
@@ -167,7 +170,7 @@ public abstract class Async implements DAO.Async {
             mSemaphore.acquire();
             try {
                 if (mState != State.STARTED) {
-                    Log.w(TAG, EXECUTE_TASK_ON_NON_STARTED, new Throwable());
+                    Log.w(TAG, EXECUTE_TASK_ON_NON_STARTED_DAO, new Throwable());
                 }
             } finally {
                 mSemaphore.release();
@@ -176,8 +179,8 @@ public abstract class Async implements DAO.Async {
         }
 
         final Promise<Maybe<V>> promise = new Promise<>();
-        mExecutor.execute(new Task<>(promise, producer));
-        return new Result<>(promise.getFuture(), mErrorHandler.get());
+        final Cancelable cancelable = cancelable(mExecutor.submit(new Task<>(promise, producer)));
+        return new Result<>(promise.getFuture(), cancelable, mErrorHandler.get());
     }
 
     @NonNull
@@ -228,6 +231,31 @@ public abstract class Async implements DAO.Async {
         };
     }
 
+    public static void interruptIfNecessary() {
+        if (Thread.interrupted()) {
+            throw Interrupted;
+        }
+    }
+
+    @NonNull
+    private static Cancelable cancelable(@NonNull final Future<?> future) {
+        return new Cancelable() {
+            @Override
+            public void cancel() {
+                future.cancel(true);
+            }
+        };
+    }
+
+    public static class Interrupted extends SQLException {
+
+        private static final long serialVersionUID = 1316911609066835294L;
+
+        private Interrupted(@NonNls @NonNull final String error) {
+            super(error);
+        }
+    }
+
     @Retention(SOURCE)
     @IntDef({State.INITIALIZED, State.STARTED, State.PAUSED, State.STOPPED})
     private @interface State {
@@ -256,6 +284,8 @@ public abstract class Async implements DAO.Async {
         public final void run() {
             try {
                 mPromise.success(mProducer.produce());
+            } catch (final Interrupted error) {
+                Log.w(TAG, "DAO operation has been interrupted", error); //NON-NLS
             } catch (final Throwable error) {
                 Log.e(TAG, "DAO operation has been aborted", error); //NON-NLS
                 mPromise.failure(error);

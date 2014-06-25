@@ -16,6 +16,7 @@
 
 package android.orm.dao;
 
+import android.orm.util.Cancelable;
 import android.orm.util.Consumer;
 import android.orm.util.Either;
 import android.orm.util.Eithers;
@@ -32,24 +33,29 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.Pair;
 
-public class Result<V> {
+public class Result<V> implements Cancelable {
 
     private static final String TAG = Result.class.getSimpleName();
     private static final Result<Object> Nothing = constant(Maybes.nothing());
 
     @NonNull
     private final Future<Maybe<V>> mFuture;
+    @NonNull
+    private final Cancelable mCancelable;
     @Nullable
     private final ErrorHandler mErrorHandler;
 
-    public Result(@NonNull final Future<Maybe<V>> future) {
-        this(future, null);
+    public Result(@NonNull final Future<Maybe<V>> future, @NonNull final Cancelable cancelable) {
+        this(future, cancelable, null);
     }
 
-    public Result(@NonNull final Future<Maybe<V>> future, @Nullable final ErrorHandler handler) {
+    public Result(@NonNull final Future<Maybe<V>> future,
+                  @NonNull final Cancelable cancelable,
+                  @Nullable final ErrorHandler handler) {
         super();
 
         mFuture = future;
+        mCancelable = cancelable;
         mErrorHandler = handler;
     }
 
@@ -58,14 +64,19 @@ public class Result<V> {
         return mFuture;
     }
 
+    @Override
+    public final void cancel() {
+        mCancelable.cancel();
+    }
+
     @NonNull
     public final <T> Result<T> map(@NonNull final Function<? super V, ? extends T> function) {
-        return new Result<>(mFuture.map(Maybes.map(function)), mErrorHandler);
+        return new Result<>(mFuture.map(Maybes.map(function)), mCancelable, mErrorHandler);
     }
 
     @NonNull
     public final <T> Result<T> flatMap(@NonNull final Function<? super V, Maybe<T>> function) {
-        return new Result<>(mFuture.map(Maybes.flatMap(function)), mErrorHandler);
+        return new Result<>(mFuture.map(Maybes.flatMap(function)), mCancelable, mErrorHandler);
     }
 
     @NonNull
@@ -108,7 +119,7 @@ public class Result<V> {
     public final <T> Result<T> onComplete(@NonNull final Producer<Result<T>> producer) {
         final Promise<Maybe<T>> promise = new Promise<>();
         onComplete(null, new CompleteWith<>(promise, producer, true, true));
-        return new Result<>(promise.getFuture(), mErrorHandler);
+        return new Result<>(promise.getFuture(), mCancelable, mErrorHandler);
     }
 
     @NonNull
@@ -138,7 +149,7 @@ public class Result<V> {
     public final <T> Result<T> onSomething(@NonNull final Producer<Result<T>> producer) {
         final Promise<Maybe<T>> promise = new Promise<>();
         onComplete(null, new CompleteWith<>(promise, producer, true, false));
-        return new Result<>(promise.getFuture(), mErrorHandler);
+        return new Result<>(promise.getFuture(), mCancelable, mErrorHandler);
     }
 
     @NonNull
@@ -150,13 +161,13 @@ public class Result<V> {
     public final <T> Result<T> onNothing(@NonNull final Producer<Result<T>> producer) {
         final Promise<Maybe<T>> promise = new Promise<>();
         onComplete(null, new CompleteWith<>(promise, producer, false, true));
-        return new Result<>(promise.getFuture(), mErrorHandler);
+        return new Result<>(promise.getFuture(), mCancelable, mErrorHandler);
     }
 
     @NonNull
     public final <T> Result<Pair<V, T>> and(@NonNull final Result<T> other) {
         final Future<Maybe<Pair<V, T>>> future = mFuture.and(other.mFuture).map(Maybes.<V, T>liftPair());
-        return new Result<>(future, mErrorHandler);
+        return new Result<>(future, mCancelable, mErrorHandler);
     }
 
     @NonNull
@@ -166,7 +177,7 @@ public class Result<V> {
         promise.completeWith(mFuture.map(Maybes.map(Eithers.<V, T>leftLift())));
         promise.completeWith(other.mFuture.map(Maybes.map(Eithers.<V, T>rightLift())));
 
-        return new Result<>(promise.getFuture(), mErrorHandler);
+        return new Result<>(promise.getFuture(), mCancelable, mErrorHandler);
     }
 
     @NonNull

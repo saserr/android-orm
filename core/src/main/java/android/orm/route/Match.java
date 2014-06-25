@@ -22,6 +22,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.orm.Route;
+import android.orm.dao.Async;
 import android.orm.dao.direct.Insert;
 import android.orm.model.Plans;
 import android.orm.sql.Select;
@@ -85,6 +86,8 @@ public class Match {
                               @Nullable final String selection,
                               @Nullable final String[] arguments,
                               @Nullable final String sortOrder) {
+        Async.interruptIfNecessary();
+
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         builder.setTables(mTableName);
         final String where = mWhere.and(new Select.Where(selection)).toSQL();
@@ -95,6 +98,8 @@ public class Match {
     @Nullable
     public final Uri insert(@NonNull final SQLiteDatabase database,
                             @NonNull final ContentValues values) {
+        Async.interruptIfNecessary();
+
         final Insert insert = new Insert(mItemRoute, Plans.write(values), mOnInsert);
         return insert.execute(database).getOrElse(null);
     }
@@ -103,6 +108,8 @@ public class Match {
                             @NonNull final ContentValues values,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
+        Async.interruptIfNecessary();
+
         final String where = mWhere.and(new Select.Where(selection)).toSQL();
         return database.update(mTableName, values, where, arguments);
     }
@@ -110,6 +117,8 @@ public class Match {
     public final int delete(@NonNull final SQLiteDatabase database,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
+        Async.interruptIfNecessary();
+
         final String where = mWhere.and(new Select.Where(selection)).toSQL();
         return database.delete(mTableName, where, arguments);
     }
