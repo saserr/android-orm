@@ -18,6 +18,7 @@ package android.orm.dao;
 
 import android.database.SQLException;
 import android.orm.DAO;
+import android.orm.dao.async.Watch;
 import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -58,7 +59,7 @@ public abstract class Async implements DAO.Async {
 
     private final AtomicReference<ErrorHandler> mErrorHandler = new AtomicReference<>();
     private final Semaphore mSemaphore = new Semaphore(1);
-    private final Collection<Watcher> mWatchers = new ArrayList<>();
+    private final Collection<Watch> mWatches = new ArrayList<>();
 
     @State
     private int mState = State.INITIALIZED;
@@ -82,8 +83,8 @@ public abstract class Async implements DAO.Async {
                 switch (mState) {
                     case State.INITIALIZED:
                     case State.PAUSED:
-                        for (final Watcher watcher : mWatchers) {
-                            watcher.start();
+                        for (final Watch watch : mWatches) {
+                            watch.start();
                         }
                         mState = State.STARTED;
                         break;
@@ -110,8 +111,8 @@ public abstract class Async implements DAO.Async {
             try {
                 switch (mState) {
                     case State.STARTED:
-                        for (final Watcher watcher : mWatchers) {
-                            watcher.stop();
+                        for (final Watch watch : mWatches) {
+                            watch.stop();
                         }
                         mState = State.PAUSED;
                         break;
@@ -139,13 +140,13 @@ public abstract class Async implements DAO.Async {
             try {
                 switch (mState) {
                     case State.STARTED:
-                        for (final Watcher watcher : mWatchers) {
-                            watcher.stop();
+                        for (final Watch watch : mWatches) {
+                            watch.stop();
                         }
                         //noinspection fallthrough
                     case State.INITIALIZED:
                     case State.PAUSED:
-                        mWatchers.clear();
+                        mWatches.clear();
                         mState = State.STOPPED;
                         break;
                     case State.STOPPED:
@@ -184,17 +185,17 @@ public abstract class Async implements DAO.Async {
     }
 
     @NonNull
-    protected final Cancelable watch(@NonNull final Watcher watcher) {
+    protected final Cancelable watch(@NonNull final Watch watch) {
         try {
             mSemaphore.acquire();
             try {
                 switch (mState) {
                     case State.STARTED:
-                        watcher.start();
+                        watch.start();
                         //noinspection fallthrough
                     case State.INITIALIZED:
                     case State.PAUSED:
-                        mWatchers.add(watcher);
+                        mWatches.add(watch);
                         break;
                     case State.STOPPED:
                         throw new UnsupportedOperationException(DAO_STOPPED);
@@ -208,19 +209,19 @@ public abstract class Async implements DAO.Async {
             Log.e(TAG, "Thread interrupted while starting a watcher", ex); //NON-NLS
         }
 
-        return cancelable(watcher);
+        return cancelable(watch);
     }
 
     @NonNull
-    private Cancelable cancelable(@NonNull final Watcher watcher) {
+    private Cancelable cancelable(@NonNull final Watch watch) {
         return new Cancelable() {
             @Override
             public void cancel() {
                 try {
                     mSemaphore.acquire();
                     try {
-                        mWatchers.remove(watcher);
-                        watcher.stop();
+                        mWatches.remove(watch);
+                        watch.stop();
                     } finally {
                         mSemaphore.release();
                     }

@@ -517,7 +517,7 @@ public final class DAO {
 
         final class Access {
 
-            public interface Some extends Exists, Write {
+            public interface Some extends Exists, Write, DAO.Access.Notifiable {
             }
 
             public interface Single extends Read.Single, Some {
@@ -534,9 +534,12 @@ public final class DAO {
 
     public static final class Access {
 
-        public interface Watchable<V> {
-            @NonNull
-            Cancelable watch(@NonNull final Result.Callback<? super V> callback);
+        public interface Notifiable {
+            Cancelable onChange(@NonNull final Runnable runnable);
+        }
+
+        public interface Watchable<V> extends Notifiable {
+            Cancelable onChange(@NonNull final Result.Callback<? super V> callback);
         }
 
         public interface Exists<R> {

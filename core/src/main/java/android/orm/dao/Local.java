@@ -25,6 +25,7 @@ import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Database;
 import android.orm.Route;
+import android.orm.dao.async.Notify;
 import android.orm.dao.direct.Notifier;
 import android.orm.dao.local.Watch;
 import android.orm.model.Mapper;
@@ -112,6 +113,13 @@ public class Local extends Async implements DAO.Local {
     @Override
     public final <V> Result<V> execute(@NonNull final Transaction.Local<V> transaction) {
         return execute(new Task<>(mResolver, mHelper, transaction));
+    }
+
+    @NonNull
+    private Cancelable notify(@NonNull final Route.Manager manager,
+                              @NonNull final Uri uri,
+                              @NonNull final Runnable runnable) {
+        return watch(new Notify(manager, mHandler, mResolver, uri, runnable));
     }
 
     @NonNull
@@ -223,7 +231,11 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private final android.orm.dao.Local mDAO;
         @NonNull
+        private final Route.Manager mRouteManager;
+        @NonNull
         private final Route.Item mItemRoute;
+        @NonNull
+        private final Uri mUri;
         @NonNull
         private final Table<?> mTable;
         @NonNull
@@ -242,7 +254,9 @@ public class Local extends Async implements DAO.Local {
             super();
 
             mDAO = dao;
+            mRouteManager = route.getManager();
             mItemRoute = route.getItemRoute();
+            mUri = route.createUri(arguments);
             mTable = route.getTable();
             mOnInsert = route.createValues(arguments);
             mWhere = route.getWhere(arguments);
@@ -257,9 +271,6 @@ public class Local extends Async implements DAO.Local {
             };
 
             mChangeNotify = new Function<Integer, Integer>() {
-
-                private final Uri mUri = route.createUri(arguments);
-
                 @NonNull
                 @Override
                 public Integer invoke(@NonNull final Integer changed) {
@@ -317,6 +328,12 @@ public class Local extends Async implements DAO.Local {
         }
 
         @NonNull
+        @Override
+        public final Cancelable onChange(@NonNull final Runnable runnable) {
+            return mDAO.notify(mRouteManager, mUri, runnable);
+        }
+
+        @NonNull
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
                                                     @Nullable final M model) {
             return (model instanceof Observer.Write) ?
@@ -345,7 +362,6 @@ public class Local extends Async implements DAO.Local {
                     }) :
                     result;
         }
-
     }
 
     private static class QueryBuilder<V> implements DAO.Local.Query.Builder.Refreshable<V> {
@@ -359,7 +375,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private final Route.Manager mRouteManager;
         @NonNull
-        private final Uri mURI;
+        private final Uri mUri;
 
         private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = afterRead();
 
@@ -378,7 +394,7 @@ public class Local extends Async implements DAO.Local {
             mReading = reading;
             mDefault = route.getWhere(arguments);
             mRouteManager = route.getManager();
-            mURI = route.createUri(arguments);
+            mUri = route.createUri(arguments);
 
             mSelect = select(route.getTable());
         }
@@ -438,7 +454,7 @@ public class Local extends Async implements DAO.Local {
 
         @NonNull
         @Override
-        public final Cancelable watch(@NonNull final Result.Callback<? super V> callback) {
+        public final Cancelable onChange(@NonNull final Result.Callback<? super V> callback) {
             beforeRead(mValue);
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
@@ -447,7 +463,12 @@ public class Local extends Async implements DAO.Local {
                 throw new IllegalArgumentException("Nothing will be watched");
             }
 
-            return mDAO.watch(mRouteManager, mURI, mReading, plan, mSelect.build(), callback);
+            return mDAO.watch(mRouteManager, mUri, mReading, plan, mSelect.build(), callback);
+        }
+
+        @Override
+        public final Cancelable onChange(@NonNull final Runnable runnable) {
+            return mDAO.notify(mRouteManager, mUri, runnable);
         }
     }
 

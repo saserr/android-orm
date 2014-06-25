@@ -22,6 +22,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Route;
+import android.orm.dao.async.Notify;
 import android.orm.dao.remote.Apply;
 import android.orm.dao.remote.Watch;
 import android.orm.model.Mapper;
@@ -109,6 +110,13 @@ public class Remote extends Async implements DAO.Remote {
     @Override
     public final <V> Result<V> execute(@NonNull final Function<ContentResolver, Maybe<V>> function) {
         return execute(mResolver, function);
+    }
+
+    @NonNull
+    private Cancelable notify(@NonNull final Route.Manager manager,
+                              @NonNull final Uri uri,
+                              @NonNull final Runnable runnable) {
+        return watch(new Notify(manager, mHandler, mResolver, uri, runnable));
     }
 
     @NonNull
@@ -229,6 +237,10 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         private final android.orm.dao.Remote mDAO;
         @NonNull
+        private final Route.Manager mRouteManager;
+        @NonNull
+        private final Uri mUri;
+        @NonNull
         private final android.orm.dao.remote.Exists mExists;
         @NonNull
         private final Function<Writer, Maybe<Uri>> mInsert;
@@ -243,13 +255,14 @@ public class Remote extends Async implements DAO.Remote {
                            @NonNull final Object... arguments) {
             super();
 
-            final Uri uri = route.createUri(arguments);
-
             mDAO = dao;
-            mExists = new android.orm.dao.remote.Exists(resolver, uri);
-            mInsert = new android.orm.dao.remote.Insert(resolver, uri);
-            mUpdate = new android.orm.dao.remote.Update(resolver, uri);
-            mDelete = new android.orm.dao.remote.Delete(resolver, uri);
+            mRouteManager = route.getManager();
+            mUri = route.createUri(arguments);
+
+            mExists = new android.orm.dao.remote.Exists(resolver, mUri);
+            mInsert = new android.orm.dao.remote.Insert(resolver, mUri);
+            mUpdate = new android.orm.dao.remote.Update(resolver, mUri);
+            mDelete = new android.orm.dao.remote.Delete(resolver, mUri);
         }
 
         @NonNull
@@ -291,6 +304,12 @@ public class Remote extends Async implements DAO.Remote {
         @Override
         public final Result<Integer> delete(@NonNull final Select.Where where) {
             return mDAO.execute(where, mDelete);
+        }
+
+        @NonNull
+        @Override
+        public final Cancelable onChange(@NonNull final Runnable runnable) {
+            return mDAO.notify(mRouteManager, mUri, runnable);
         }
 
         @NonNull
@@ -403,13 +422,18 @@ public class Remote extends Async implements DAO.Remote {
 
         @NonNull
         @Override
-        public final Cancelable watch(@NonNull final Result.Callback<? super V> callback) {
+        public final Cancelable onChange(@NonNull final Result.Callback<? super V> callback) {
             beforeRead(mValue);
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
             final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, mWhere, mOrder);
             return mDAO.watch(mRouteManager, mUri, mReading, arguments, callback);
+        }
+
+        @Override
+        public final Cancelable onChange(@NonNull final Runnable runnable) {
+            return mDAO.notify(mRouteManager, mUri, runnable);
         }
     }
 

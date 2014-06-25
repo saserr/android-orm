@@ -34,7 +34,7 @@ import static android.orm.sql.Columns.text;
 
 public class Task extends Model {
 
-    public static final long NO_ID = -1L;
+    public static final long NoId = -1L;
 
     public static final Column<Long> Id = Columns.Id;
     public static final Column<String> Title = text("title").asNotNull();
@@ -70,7 +70,7 @@ public class Task extends Model {
 
     public final long getId() {
         final Long id = mId.getValue();
-        return (id == null) ? NO_ID : id;
+        return (id == null) ? NoId : id;
     }
 
     public final String getTitle() {

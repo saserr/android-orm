@@ -51,7 +51,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
 
     private DAO.Async mDAO;
     private DAO.Async.Access.Many mTasks;
-    private long mEditedTask = Task.NO_ID;
+    private long mEditedTask = Task.NoId;
 
     private Form mForm;
     private List mList;
@@ -59,7 +59,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     private final Runnable mClearForm = new Runnable() {
         @Override
         public void run() {
-            mEditedTask = Task.NO_ID;
+            mEditedTask = Task.NoId;
             mForm.clear();
             mForm.enable();
         }
@@ -131,7 +131,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
             mList = (List) fragments.findFragmentById(R.id.tasks_list);
         }
 
-        mTasks.query(Task.Mapper).watch(mShowTasks);
+        mTasks.query(Task.Mapper).onChange(mShowTasks);
     }
 
     @Override
@@ -154,7 +154,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     @Override
     public final void save(final Task task) {
         mForm.disable();
-        final Result<?> save = (mEditedTask == Task.NO_ID) ?
+        final Result<?> save = (mEditedTask == Task.NoId) ?
                 mTasks.insert(task) :
                 mDAO.at(TaskById, mEditedTask).update(task);
         save.onSomething(mClearForm).onNothing(mSaveError);
@@ -204,7 +204,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     @Override
     protected final void onSaveInstanceState(final Bundle state) {
         super.onSaveInstanceState(state);
-        if (mEditedTask != Task.NO_ID) {
+        if (mEditedTask != Task.NoId) {
             state.putLong(EDITED_TASK_STATE, mEditedTask);
         }
     }

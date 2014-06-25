@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package android.orm.dao;
+package android.orm.dao.async;
 
-public interface Watcher {
+public interface Watch {
 
     void start();
 

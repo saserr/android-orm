@@ -22,7 +22,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.Route;
 import android.orm.dao.Result;
-import android.orm.dao.Watcher;
 import android.orm.dao.direct.Read;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
@@ -46,7 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static android.orm.model.Observer.beforeRead;
 
-public class Watch<V> implements Watcher {
+public class Watch<V> implements android.orm.dao.async.Watch {
 
     private final Watching<? super V, V> mWatching;
 
