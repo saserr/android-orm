@@ -18,12 +18,10 @@ package android.orm;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
-import android.orm.dao.direct.Notifier;
-import android.orm.dao.direct.Savepoint;
+import android.orm.dao.Transaction;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
@@ -40,8 +38,6 @@ import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import org.jetbrains.annotations.NonNls;
-
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,9 +50,9 @@ public final class DAO {
     private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool();
 
     @NonNull
-    public static Direct direct(@NonNull final SQLiteDatabase database,
-                                @NonNull final Notifier notifier) {
-        return new android.orm.dao.Direct(database, notifier);
+    public static Direct direct(@NonNull final Context context,
+                                @NonNull final Database database) {
+        return android.orm.dao.Direct.create(context, database);
     }
 
     @NonNull
@@ -97,9 +93,6 @@ public final class DAO {
 
         @NonNull
         <V> Maybe<V> execute(@NonNull final Expression<V> expression);
-
-        @NonNull
-        Savepoint savepoint(@NonNls @NonNull final String name);
 
         interface Exists extends DAO.Access.Exists<Maybe<Boolean>> {
         }
@@ -277,7 +270,7 @@ public final class DAO {
         <V> Result<V> execute(@NonNull final Expression<V> expression);
 
         @NonNull
-        <V> Result<V> execute(@NonNull final android.orm.dao.local.Transaction<V> transaction);
+        <V> Result<V> execute(@NonNull final Transaction.Local<V> transaction);
 
         final class Query {
 
@@ -402,7 +395,7 @@ public final class DAO {
         Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
 
         @NonNull
-        android.orm.dao.remote.Transaction transaction();
+        Transaction.Remote transaction();
 
         @NonNull
         <V> Result<V> execute(@NonNull final Function<ContentResolver, Maybe<V>> function);

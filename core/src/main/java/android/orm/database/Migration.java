@@ -16,56 +16,66 @@
 
 package android.orm.database;
 
-import android.orm.DAO;
+import android.orm.dao.Transaction;
 import android.support.annotation.NonNull;
 
 public interface Migration {
 
-    void create(@NonNull final DAO.Direct dao, final int version);
+    void create(@NonNull final Transaction.Direct transaction, final int version);
 
-    void upgrade(@NonNull final DAO.Direct dao, final int oldVersion, final int newVersion);
+    void upgrade(@NonNull final Transaction.Direct transaction,
+                 final int oldVersion,
+                 final int newVersion);
 
-    void downgrade(@NonNull final DAO.Direct dao, final int oldVersion, final int newVersion);
+    void downgrade(@NonNull final Transaction.Direct transaction,
+                   final int oldVersion,
+                   final int newVersion);
 
     abstract class Base implements Migration {
 
         @Override
-        public void create(@NonNull final DAO.Direct dao, final int version) {
+        public void create(@NonNull final Transaction.Direct transaction, final int version) {
             /* do nothing */
         }
 
         @Override
-        public void upgrade(@NonNull final DAO.Direct dao, final int oldVersion, final int newVersion) {
+        public void upgrade(@NonNull final Transaction.Direct transaction,
+                            final int oldVersion,
+                            final int newVersion) {
             /* do nothing */
         }
 
         @Override
-        public void downgrade(@NonNull final DAO.Direct dao, final int oldVersion, final int newVersion) {
+        public void downgrade(@NonNull final Transaction.Direct transaction,
+                              final int oldVersion,
+                              final int newVersion) {
             /* do nothing */
         }
     }
 
     abstract class StepWise extends Base {
 
-        protected abstract void upgrade(@NonNull final DAO.Direct dao, final int version);
+        protected abstract void upgrade(@NonNull final Transaction.Direct transaction,
+                                        final int version);
 
-        protected abstract void downgrade(@NonNull final DAO.Direct dao, final int version);
+        protected abstract void downgrade(@NonNull final Transaction.Direct transaction,
+                                          final int version);
 
         @Override
-        public final void upgrade(@NonNull final DAO.Direct dao,
+        public final void upgrade(@NonNull final Transaction.Direct transaction,
                                   final int oldVersion,
                                   final int newVersion) {
             for (int version = oldVersion + 1; version <= newVersion; version++) {
-                upgrade(dao, version);
+                upgrade(transaction, version);
             }
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO.Direct dao,
+        public final void downgrade(@NonNull final Transaction.Direct transaction,
                                     final int oldVersion,
                                     final int newVersion) {
             for (int version = oldVersion; version > newVersion; version--) {
-                downgrade(dao, version);
+                downgrade(transaction, version);
             }
         }
     }

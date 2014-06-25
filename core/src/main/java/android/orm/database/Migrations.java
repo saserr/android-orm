@@ -17,7 +17,7 @@
 package android.orm.database;
 
 import android.database.SQLException;
-import android.orm.DAO;
+import android.orm.dao.Transaction;
 import android.orm.sql.Column;
 import android.orm.sql.ForeignKey;
 import android.orm.sql.Statement;
@@ -123,20 +123,20 @@ public final class Migrations {
         }
 
         @Override
-        public final void upgrade(@NonNull final DAO.Direct dao,
+        public final void upgrade(@NonNull final Transaction.Direct transaction,
                                   final int oldVersion,
                                   final int newVersion) {
             if ((oldVersion < mVersion) && (mVersion <= newVersion)) {
-                dao.execute(mUpgrade);
+                transaction.execute(mUpgrade);
             }
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO.Direct dao,
+        public final void downgrade(@NonNull final Transaction.Direct transaction,
                                     final int oldVersion,
                                     final int newVersion) {
             if ((newVersion < mVersion) && (mVersion <= oldVersion)) {
-                dao.execute(mDowngrade);
+                transaction.execute(mDowngrade);
             }
         }
     }
@@ -156,27 +156,27 @@ public final class Migrations {
         }
 
         @Override
-        public final void create(@NonNull final DAO.Direct dao, final int version) {
+        public final void create(@NonNull final Transaction.Direct transaction, final int version) {
             for (final Migration migration : mUp) {
-                migration.create(dao, version);
+                migration.create(transaction, version);
             }
         }
 
         @Override
-        public final void upgrade(@NonNull final DAO.Direct dao,
+        public final void upgrade(@NonNull final Transaction.Direct transaction,
                                   final int oldVersion,
                                   final int newVersion) {
             for (final Migration migration : mUp) {
-                migration.upgrade(dao, oldVersion, newVersion);
+                migration.upgrade(transaction, oldVersion, newVersion);
             }
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO.Direct dao,
+        public final void downgrade(@NonNull final Transaction.Direct transaction,
                                     final int oldVersion,
                                     final int newVersion) {
             for (final Migration migration : mDown.get()) {
-                migration.downgrade(dao, oldVersion, newVersion);
+                migration.downgrade(transaction, oldVersion, newVersion);
             }
         }
 
@@ -205,7 +205,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void create(@NonNull final DAO.Direct dao, final int version) {
+        public final void create(@NonNull final Transaction.Direct transaction, final int version) {
             final int createdAt = mTable.getVersion();
 
             if ((createdAt > 0) && (createdAt <= version)) {
@@ -223,19 +223,19 @@ public final class Migrations {
                     );
                 }
 
-                dao.execute(createTable(name, columns, mTable.getPrimaryKey(), mTable.getForeignKeys(version)));
+                transaction.execute(createTable(name, columns, mTable.getPrimaryKey(), mTable.getForeignKeys(version)));
             }
         }
 
         @Override
-        public final void upgrade(@NonNull final DAO.Direct dao,
+        public final void upgrade(@NonNull final Transaction.Direct transaction,
                                   final int oldVersion,
                                   final int newVersion) {
             final int createdAt = mTable.getVersion();
 
             if ((createdAt > 0) && (createdAt <= newVersion)) {
                 if (oldVersion < createdAt) {
-                    create(dao, newVersion);
+                    create(transaction, newVersion);
                 } else {
                     @NonNls final String name = mTable.getName();
 
@@ -250,7 +250,7 @@ public final class Migrations {
 
                         // table is created
                         for (final Column<?> column : columns) {
-                            dao.execute(addColumn(name, column));
+                            transaction.execute(addColumn(name, column));
                         }
                     }
                 }
@@ -258,7 +258,7 @@ public final class Migrations {
         }
 
         @Override
-        public final void downgrade(@NonNull final DAO.Direct dao,
+        public final void downgrade(@NonNull final Transaction.Direct transaction,
                                     final int oldVersion,
                                     final int newVersion) {
             final int createdAt = mTable.getVersion();
@@ -272,7 +272,7 @@ public final class Migrations {
                     }
 
                     // table must be dropped
-                    dao.execute(dropTable(name));
+                    transaction.execute(dropTable(name));
                 } else {
                     final Set<Column<?>> columns = mTable.getColumns(newVersion);
                     final List<ForeignKey<?>> foreignKeys = mTable.getForeignKeys(newVersion);
@@ -301,7 +301,7 @@ public final class Migrations {
                         for (final Column<?> column : columns) {
                             pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
                         }
-                        dao.execute(alterColumns(mTable, pairs, foreignKeys));
+                        transaction.execute(alterColumns(mTable, pairs, foreignKeys));
                     }
                 }
             }

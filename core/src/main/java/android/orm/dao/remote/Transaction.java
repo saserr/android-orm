@@ -17,10 +17,11 @@
 package android.orm.dao.remote;
 
 import android.content.ContentProviderOperation;
-import android.content.ContentProviderResult;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.orm.DAO;
 import android.orm.Route;
+import android.orm.dao.Result;
 import android.orm.model.Plan;
 import android.orm.sql.Select;
 import android.orm.sql.Writer;
@@ -39,9 +40,8 @@ import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.sql.Writables.writable;
-import static java.lang.System.arraycopy;
 
-public class Transaction {
+public class Transaction implements android.orm.dao.Transaction.Remote {
 
     @NonNull
     private final Executor mExecutor;
@@ -58,35 +58,35 @@ public class Transaction {
         mExecutor = executor;
     }
 
+    @Override
     @NonNull
-    public final Access at(@NonNull final Route route, @NonNull final Object... arguments) {
-        return new WriteAccess(route, arguments);
+    public final android.orm.dao.Transaction.Remote.Access at(@NonNull final Route route, @NonNull final Object... arguments) {
+        return new Access(route, arguments);
     }
 
-    public final android.orm.dao.Result<Result> commit() {
-        final android.orm.dao.Result<Result> result = ((mAuthority == null) || mBatch.isEmpty()) ?
-                android.orm.dao.Result.<Result>nothing() :
+    @NonNull
+    @Override
+    public final Result<android.orm.dao.Transaction.Remote.CommitResult> commit() {
+        final Result<android.orm.dao.Transaction.Remote.CommitResult> result = ((mAuthority == null) || mBatch.isEmpty()) ?
+                Result.<android.orm.dao.Transaction.Remote.CommitResult>nothing() :
                 mExecutor.execute(mAuthority, Collections.unmodifiableCollection(mBatch));
         mAuthority = null;
         mBatch = new ArrayList<>();
         return result;
     }
 
-    public interface Access extends android.orm.DAO.Access.Write<Access, Access, Access> {
-    }
-
     public interface Executor {
         @NonNull
-        android.orm.dao.Result<Result> execute(@NonNull final String authority,
-                                               @NonNull final Collection<Producer<ContentProviderOperation>> batch);
+        Result<android.orm.dao.Transaction.Remote.CommitResult> execute(@NonNull final String authority,
+                                                                        @NonNull final Collection<Producer<ContentProviderOperation>> batch);
     }
 
-    private class WriteAccess extends android.orm.DAO.Access.Write.Base<Access, Access, Access> implements Access {
+    private class Access extends DAO.Access.Write.Base<android.orm.dao.Transaction.Remote.Access, android.orm.dao.Transaction.Remote.Access, android.orm.dao.Transaction.Remote.Access> implements android.orm.dao.Transaction.Remote.Access {
 
         @NonNull
         private final Uri mUri;
 
-        private WriteAccess(@NonNull final Route route, @NonNull final Object... arguments) {
+        private Access(@NonNull final Route route, @NonNull final Object... arguments) {
             super();
 
             mUri = route.createUri(arguments);
@@ -105,8 +105,8 @@ public class Transaction {
 
         @NonNull
         @Override
-        protected final <M> Access insert(@Nullable final M model,
-                                          @NonNull final Plan.Write plan) {
+        protected final <M> android.orm.dao.Transaction.Remote.Access insert(@Nullable final M model,
+                                                                             @NonNull final Plan.Write plan) {
             beforeCreate(model);
             // TODO invoke afterCreate somehow
             if (!plan.isEmpty()) {
@@ -117,9 +117,9 @@ public class Transaction {
 
         @NonNull
         @Override
-        protected final <M> Access update(@NonNull final Select.Where where,
-                                          @Nullable final M model,
-                                          @NonNull final Plan.Write plan) {
+        protected final <M> android.orm.dao.Transaction.Remote.Access update(@NonNull final Select.Where where,
+                                                                             @Nullable final M model,
+                                                                             @NonNull final Plan.Write plan) {
             beforeUpdate(model);
             // TODO invoke afterUpdate somehow
             if (!plan.isEmpty()) {
@@ -130,38 +130,9 @@ public class Transaction {
 
         @NonNull
         @Override
-        public final Access delete(@NonNull final Select.Where where) {
+        public final android.orm.dao.Transaction.Remote.Access delete(@NonNull final Select.Where where) {
             mBatch.add(new Delete(mUri, where));
             return this;
-        }
-    }
-
-    public static class Result {
-
-        @NonNull
-        private final String mAuthority;
-        @NonNull
-        private final ContentProviderResult[] mResults;
-
-        public Result(@NonNull final String authority,
-                      @NonNull final ContentProviderResult... results) {
-            super();
-
-            mAuthority = authority;
-            mResults = new ContentProviderResult[results.length];
-            arraycopy(results, 0, mResults, 0, mResults.length);
-        }
-
-        @NonNull
-        public final String getAuthority() {
-            return mAuthority;
-        }
-
-        @NonNull
-        public final ContentProviderResult[] getResults() {
-            final ContentProviderResult[] results = new ContentProviderResult[mResults.length];
-            arraycopy(mResults, 0, results, 0, results.length);
-            return results;
         }
     }
 

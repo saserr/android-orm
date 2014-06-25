@@ -17,11 +17,14 @@
 package android.orm.dao.remote;
 
 import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.OperationApplicationException;
+import android.orm.dao.Transaction;
 import android.orm.util.Function;
 import android.orm.util.Legacy;
 import android.orm.util.Maybe;
+import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
@@ -34,9 +37,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static android.orm.util.Maybes.nothing;
-import static android.orm.util.Maybes.something;
+import static java.lang.System.arraycopy;
 
-public class Apply implements Function<Pair<String, Collection<Producer<ContentProviderOperation>>>, Maybe<Transaction.Result>> {
+public class Apply implements Function<Pair<String, Collection<Producer<ContentProviderOperation>>>, Maybe<Transaction.Remote.CommitResult>> {
 
     private static final String TAG = Apply.class.getSimpleName();
 
@@ -51,10 +54,10 @@ public class Apply implements Function<Pair<String, Collection<Producer<ContentP
 
     @NonNull
     @Override
-    public final Maybe<Transaction.Result> invoke(@NonNull final Pair<String, Collection<Producer<ContentProviderOperation>>> pair) {
+    public final Maybe<Transaction.Remote.CommitResult> invoke(@NonNull final Pair<String, Collection<Producer<ContentProviderOperation>>> pair) {
         final String authority = pair.first;
         final Collection<Producer<ContentProviderOperation>> batch = pair.second;
-        final Maybe<Transaction.Result> result;
+        final Maybe<Transaction.Remote.CommitResult> result;
 
         try {
             if (batch.isEmpty()) {
@@ -64,8 +67,8 @@ public class Apply implements Function<Pair<String, Collection<Producer<ContentP
                 for (final Producer<ContentProviderOperation> producer : batch) {
                     operations.add(producer.produce());
                 }
-                result = something(
-                        new Transaction.Result(authority, mResolver.applyBatch(authority, operations))
+                result = Maybes.<Transaction.Remote.CommitResult>something(
+                        new Result(authority, mResolver.applyBatch(authority, operations))
                 );
             }
         } catch (final RemoteException | OperationApplicationException cause) {
@@ -75,5 +78,37 @@ public class Apply implements Function<Pair<String, Collection<Producer<ContentP
         }
 
         return result;
+    }
+
+    private static class Result implements Transaction.Remote.CommitResult {
+
+        @NonNull
+        private final String mAuthority;
+        @NonNull
+        private final ContentProviderResult[] mResults;
+
+        private Result(@NonNull final String authority,
+                       @NonNull final ContentProviderResult... results) {
+            super();
+
+            mAuthority = authority;
+            mResults = new ContentProviderResult[results.length];
+            arraycopy(results, 0, mResults, 0, mResults.length);
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getAuthority() {
+            return mAuthority;
+        }
+
+        @NonNull
+        @Override
+        public final ContentProviderResult[] getResults() {
+            final ContentProviderResult[] results = new ContentProviderResult[mResults.length];
+            arraycopy(mResults, 0, results, 0, results.length);
+            return results;
+        }
     }
 }

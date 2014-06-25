@@ -17,9 +17,12 @@
 package android.orm.dao;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.DAO;
+import android.orm.Database;
 import android.orm.Route;
 import android.orm.dao.direct.Notifier;
 import android.orm.dao.direct.Savepoint;
@@ -58,17 +61,14 @@ import static android.orm.sql.Select.select;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Direct implements DAO.Direct {
+public abstract class Direct implements Transaction.Direct {
 
-    @NonNull
-    private final SQLiteDatabase mDatabase;
     @NonNull
     private final Notifier mNotifier;
 
-    public Direct(@NonNull final SQLiteDatabase database, @NonNull final Notifier notifier) {
+    protected Direct(@NonNull final Notifier notifier) {
         super();
 
-        mDatabase = database;
         mNotifier = notifier;
     }
 
@@ -90,28 +90,6 @@ public class Direct implements DAO.Direct {
     @Override
     public final DAO.Direct.Access.Some at(@NonNull final Route route, @NonNull final Object... arguments) {
         return new SomeAccess(this, mNotifier, route, arguments);
-    }
-
-    @NonNull
-    @Override
-    public final Savepoint savepoint(@NonNls @NonNull final String name) {
-        return new Savepoint(name) {
-            @Override
-            public void rollback() {
-                rollback(mDatabase);
-            }
-        };
-    }
-
-    @Override
-    public final void execute(@NonNull final Statement statement) {
-        statement.execute(mDatabase);
-    }
-
-    @NonNull
-    @Override
-    public final <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
-        return expression.execute(mDatabase);
     }
 
     private static class SingleAccess extends BaseAccess<Uri> implements DAO.Direct.Access.Single {
@@ -491,5 +469,78 @@ public class Direct implements DAO.Direct {
 
             return result;
         }
+    }
+
+    @NonNull
+    public static Transaction.Direct create(@NonNull final SQLiteDatabase database,
+                                            @NonNull final Notifier notifier) {
+        return new Direct(notifier) {
+
+            @NonNull
+            @Override
+            public Savepoint savepoint(@NonNls @NonNull final String name) {
+                return new Savepoint(name) {
+                    @Override
+                    public void rollback() {
+                        rollback(database);
+                    }
+                };
+            }
+
+            @Override
+            public void execute(@NonNull final Statement statement) {
+                statement.execute(database);
+            }
+
+            @NonNull
+            @Override
+            public <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
+                return expression.execute(database);
+            }
+        };
+    }
+
+    @NonNull
+    public static DAO.Direct create(@NonNull final Context context,
+                                    @NonNull final Database database) {
+        return new Direct(new Notifier.Immediate(context.getContentResolver())) {
+
+            private final SQLiteOpenHelper mHelper = database.getDatabaseHelper(context);
+
+            @NonNull
+            @Override
+            public Savepoint savepoint(@NonNls @NonNull final String name) {
+                throw new UnsupportedOperationException("savepoint");
+            }
+
+            @Override
+            public void execute(@NonNull final Statement statement) {
+                final SQLiteDatabase db = mHelper.getWritableDatabase();
+                db.beginTransaction();
+                try {
+                    statement.execute(db);
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+            }
+
+            @NonNull
+            @Override
+            public <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
+                Maybe<V> result = nothing();
+
+                final SQLiteDatabase db = mHelper.getWritableDatabase();
+                db.beginTransaction();
+                try {
+                    result = expression.execute(db);
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+
+                return result;
+            }
+        };
     }
 }

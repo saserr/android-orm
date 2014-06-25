@@ -21,6 +21,7 @@ import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.orm.dao.Direct;
 import android.orm.dao.direct.Notifier;
 import android.orm.database.IntegrityCheck;
 import android.orm.database.IntegrityChecks;
@@ -200,7 +201,7 @@ public class Database {
 
             try {
                 final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
-                mMigration.create(DAO.direct(database, notifier), mVersion);
+                mMigration.create(Direct.create(database, notifier), mVersion);
                 notifier.sendAll();
             } catch (final SQLException cause) {
                 @NonNls final String message = "There was a problem creating database " + mName + " at version " + mVersion;
@@ -222,7 +223,7 @@ public class Database {
 
                 try {
                     final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
-                    mMigration.upgrade(DAO.direct(database, notifier), oldVersion, newVersion);
+                    mMigration.upgrade(Direct.create(database, notifier), oldVersion, newVersion);
                     notifier.sendAll();
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem updating database " + mName +
@@ -246,7 +247,7 @@ public class Database {
 
                 try {
                     final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
-                    mMigration.downgrade(DAO.direct(database, notifier), oldVersion, newVersion);
+                    mMigration.downgrade(Direct.create(database, notifier), oldVersion, newVersion);
                     notifier.sendAll();
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem downgrading database " + mName +

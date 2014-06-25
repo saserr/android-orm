@@ -23,7 +23,6 @@ import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Route;
 import android.orm.dao.remote.Apply;
-import android.orm.dao.remote.Transaction;
 import android.orm.dao.remote.Watch;
 import android.orm.model.Mapper;
 import android.orm.model.Observer;
@@ -61,7 +60,7 @@ public class Remote extends Async implements DAO.Remote {
     private final Handler mHandler;
 
     @NonNull
-    private final Transaction.Executor mTransactionExecutor;
+    private final android.orm.dao.remote.Transaction.Executor mTransactionExecutor;
 
     public Remote(@NonNull final Context context, @NonNull final ExecutorService executor) {
         super(executor);
@@ -70,11 +69,11 @@ public class Remote extends Async implements DAO.Remote {
         mHandler = new Handler();
 
         final Apply apply = new Apply(mResolver);
-        mTransactionExecutor = new Transaction.Executor() {
+        mTransactionExecutor = new android.orm.dao.remote.Transaction.Executor() {
             @NonNull
             @Override
-            public Result<Transaction.Result> execute(@NonNull final String authority,
-                                                      @NonNull final Collection<Producer<ContentProviderOperation>> batch) {
+            public Result<Transaction.Remote.CommitResult> execute(@NonNull final String authority,
+                                                                   @NonNull final Collection<Producer<ContentProviderOperation>> batch) {
                 return android.orm.dao.Remote.this.execute(Pair.create(authority, batch), apply);
             }
         };
@@ -102,8 +101,8 @@ public class Remote extends Async implements DAO.Remote {
 
     @NonNull
     @Override
-    public final Transaction transaction() {
-        return new Transaction(mTransactionExecutor);
+    public final Transaction.Remote transaction() {
+        return new android.orm.dao.remote.Transaction(mTransactionExecutor);
     }
 
     @NonNull
