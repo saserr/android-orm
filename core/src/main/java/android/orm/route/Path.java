@@ -22,6 +22,7 @@ import android.orm.sql.Column;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Writable;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.SparseArray;
@@ -36,6 +37,8 @@ import java.util.List;
 
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
+import static android.orm.util.Maybes.nothing;
+import static android.orm.util.Maybes.something;
 import static java.lang.System.arraycopy;
 
 public class Path {
@@ -151,14 +154,23 @@ public class Path {
     }
 
     @NonNull
-    public final String createConcretePath(@NonNull final Readable input) {
-        final Collection<Object> arguments = new ArrayList<>(mArguments.size());
+    public final Maybe<String> createConcretePath(@NonNull final Readable input) {
+        Maybe<String> result = null;
 
-        for (int i = 0; i < mArguments.size(); i++) {
-            arguments.add(mArguments.valueAt(i).read(input));
+        final int size = mArguments.size();
+        final Collection<Object> arguments = new ArrayList<>(size);
+        for (int i = 0; (i < size) && (result == null); i++) {
+            final Object value = mArguments.valueAt(i).read(input).getOrElse(null);
+            if (value == null) {
+                result = nothing();
+            } else {
+                arguments.add(value);
+            }
         }
 
-        return createConcretePath(arguments.toArray(new Object[arguments.size()]));
+        return (result == null) ?
+                something(createConcretePath(arguments.toArray(new Object[arguments.size()]))) :
+                result;
     }
 
     @NonNull

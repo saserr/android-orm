@@ -21,6 +21,7 @@ import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
@@ -108,12 +109,8 @@ public interface Segment {
         }
 
         @NonNull
-        public final V read(@NonNull final Readable input) {
-            final V result = mColumn.read(input).getOrElse(null);
-            if (result == null) {
-                throw new IllegalArgumentException("Missing argument " + mName);
-            }
-            return result;
+        public final Maybe<V> read(@NonNull final Readable input) {
+            return mColumn.read(input);
         }
 
         public final void write(@NonNull final Value.Write.Operation operation,

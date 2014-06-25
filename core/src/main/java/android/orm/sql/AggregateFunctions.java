@@ -102,7 +102,7 @@ public final class AggregateFunctions {
             @NonNull
             @Override
             public final AggregateFunction<Long> as(@NonNls @NonNull final String name) {
-                return new BaseFunction(mFunction, mColumn, name);
+                return new OnNumber.BaseFunction(mFunction, mColumn, name);
             }
         }
 
@@ -185,7 +185,7 @@ public final class AggregateFunctions {
             @NonNull
             @Override
             public final AggregateFunction<Double> as(@NonNls @NonNull final String name) {
-                return new BaseFunction(mFunction, mColumn, name);
+                return new OnReal.BaseFunction(mFunction, mColumn, name);
             }
         }
 
@@ -261,7 +261,7 @@ public final class AggregateFunctions {
             @NonNull
             @Override
             public final AggregateFunction<BigDecimal> as(@NonNls @NonNull final String name) {
-                return new BaseFunction(mFunction, mColumn, name);
+                return new OnDecimal.BaseFunction(mFunction, mColumn, name);
             }
         }
 

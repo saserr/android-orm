@@ -27,6 +27,8 @@ import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
+import android.orm.util.Function;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringDef;
@@ -45,7 +47,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static android.orm.route.Paths.path;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
-public abstract class Route {
+public abstract class Route extends Value.Read.Base<Uri> {
 
     @NonNls
     private static final MessageFormat CONTENT_TYPE_FORMAT = new MessageFormat("vnd.android.cursor.{0}/{1}.{2}");
@@ -68,8 +70,19 @@ public abstract class Route {
     @NonNls
     @NonNull
     private final String mContentType;
+    @NonNls
+    @NonNull
+    private final String mName;
     @NonNull
     private final Select.Projection mProjection;
+
+    private final Function<String, Uri> mUriFormat = new Function<String, Uri>() {
+        @NonNull
+        @Override
+        public Uri invoke(@NonNull final String path) {
+            return Uri.parse(URI_FORMAT.format(new String[]{mAuthority, path}));
+        }
+    };
 
     private Route(@NonNull final Manager manager,
                   @Type @NonNls @NonNull final String type,
@@ -87,6 +100,7 @@ public abstract class Route {
 
         mAuthority = manager.getAuthority();
         mContentType = getContentType(type, manager.getContentTypePrefix(), table);
+        mName = URI_FORMAT.format(new String[]{mAuthority, path.toString()});
         mProjection = path.getProjection();
     }
 
@@ -119,19 +133,27 @@ public abstract class Route {
         return mPath;
     }
 
+    @NonNls
+    @NonNull
+    @Override
+    public final String getName() {
+        return mName;
+    }
+
     @NonNull
     public final Select.Projection getProjection() {
         return mProjection;
     }
 
     @NonNull
-    public final Uri createUri(@NonNull final Readable input) {
-        return Uri.parse(URI_FORMAT.format(new String[]{mAuthority, mPath.createConcretePath(input)}));
+    @Override
+    public final Maybe<Uri> read(@NonNull final Readable input) {
+        return mPath.createConcretePath(input).map(mUriFormat);
     }
 
     @NonNull
     public final Uri createUri(@NonNull final Object... arguments) {
-        return Uri.parse(URI_FORMAT.format(new String[]{mAuthority, mPath.createConcretePath(arguments)}));
+        return mUriFormat.invoke(mPath.createConcretePath(arguments));
     }
 
     @NonNull

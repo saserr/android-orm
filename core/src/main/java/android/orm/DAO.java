@@ -762,7 +762,8 @@ public final class DAO {
                 }
 
                 @NonNull
-                private <M> U update(@Nullable final M model, @NonNull final Plan.Write plan) {
+                protected final <M> U update(@Nullable final M model,
+                                             @NonNull final Plan.Write plan) {
                     return update(Select.Where.None, model, plan);
                 }
             }

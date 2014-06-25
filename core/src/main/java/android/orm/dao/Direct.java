@@ -246,9 +246,9 @@ public class Direct implements DAO.Direct {
             } else {
                 result = mDAO.execute(new android.orm.dao.direct.Insert(mItemRoute, plan, mOnInsert));
                 if (result.isSomething()) {
-                    afterCreate(model);
                     final Uri uri = result.get();
                     if (uri != null) {
+                        afterCreate(model);
                         mNotifier.notifyChange(uri);
                     }
                 }
@@ -269,9 +269,9 @@ public class Direct implements DAO.Direct {
             } else {
                 result = mDAO.execute(new android.orm.dao.direct.Update(mTable, mWhere.and(where), plan));
                 if (result.isSomething()) {
-                    afterUpdate(model);
                     final Integer updated = result.get();
                     if ((updated != null) && (updated > 0)) {
+                        afterUpdate(model);
                         mNotifier.notifyChange(mUri);
                     }
                 }

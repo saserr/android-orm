@@ -17,7 +17,7 @@
 package android.orm.dao.direct;
 
 import android.content.ContentValues;
-import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.orm.Route;
@@ -36,17 +36,12 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.sql.Readables.combine;
-import static android.orm.sql.Readables.readable;
-import static android.orm.sql.Select.select;
 import static android.orm.sql.Select.where;
 import static android.orm.sql.Table.ROW_ID;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
-import static android.orm.util.Legacy.getKeys;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
-import static android.util.Log.DEBUG;
 import static android.util.Log.INFO;
 
 public class Insert implements Expression<Uri> {
@@ -56,8 +51,6 @@ public class Insert implements Expression<Uri> {
 
     @NonNull
     private final Route.Item mItemRoute;
-    @NonNull
-    private final Table<?> mTable;
     @NonNls
     @NonNull
     private final String mTableName;
@@ -74,9 +67,9 @@ public class Insert implements Expression<Uri> {
         super();
 
         mItemRoute = route;
-        mTable = route.getTable();
-        mTableName = Helper.escape(mTable.getName());
-        mPrimaryKey = mTable.getPrimaryKey();
+        final Table<?> table = route.getTable();
+        mTableName = Helper.escape(table.getName());
+        mPrimaryKey = table.getPrimaryKey();
         mPlan = plan;
         mAdditional = additional;
     }
@@ -99,38 +92,11 @@ public class Insert implements Expression<Uri> {
             if ((mPrimaryKey != null) && mPrimaryKey.isAliasForRowId()) {
                 ((Value.Write<Long>) mPrimaryKey).write(Insert, something(id), output);
             }
-            @NonNls final Select.Projection projection = mItemRoute.getProjection().without(getKeys(values));
-            if (projection.isEmpty()) {
-                result = something(mItemRoute.createUri(readable(values)));
-            } else {
-                if (Log.isLoggable(TAG, INFO)) {
-                    Log.i(TAG, "Creation of item URI after insert requires a query!"); //NON-NLS
-                    if (Log.isLoggable(TAG, DEBUG)) {
-                        Log.d(TAG, "Missing arguments for item URI: " + projection); //NON-NLS
-                    }
-                }
 
-                final Select.Where where = WHERE_ROW_ID.isEqualTo(id);
-                final Cursor cursor = select(mTable)
-                        .with(where)
-                        .with(Select.Limit.Single)
-                        .build()
-                        .execute(projection, database);
-                if (cursor == null) {
-                    Log.e(TAG, "Couldn't create an item uri after insert. Querying table " + mTableName + " failed!"); //NON-NLS
-                    result = something(null);
-                } else {
-                    try {
-                        if (cursor.moveToFirst()) {
-                            result = something(mItemRoute.createUri(combine(readable(cursor), readable(values))));
-                        } else {
-                            Log.e(TAG, "Couldn't create an item uri after insert. Querying table " + mTableName + " for " + where.toSQL() + " returned no results!"); //NON-NLS
-                            result = something(null);
-                        }
-                    } finally {
-                        cursor.close();
-                    }
-                }
+            result = new ReadUri(mItemRoute, WHERE_ROW_ID.isEqualTo(id), mAdditional).execute(database);
+
+            if (result.isNothing()) {
+                throw new SQLException("Couldn't create item uri after insert");
             }
         } else {
             result = nothing();
