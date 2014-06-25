@@ -547,6 +547,84 @@ public final class Mapper {
                 );
             }
         }
+
+        class Builder<M> {
+
+            @NonNull
+            private final Read.Builder<M> mRead;
+            @NonNull
+            private final Write.Builder<M> mWrite;
+
+            public Builder(@NonNls @NonNull final String name,
+                           @NonNull final Producer<M> producer) {
+                super();
+
+                mRead = read(name, producer);
+                mWrite = write(name);
+            }
+
+            public Builder(@NonNull final Value.Read<M> value) {
+                super();
+
+                mRead = read(value);
+                mWrite = write(value.getName());
+            }
+
+            @NonNull
+            public final Builder<M> with(@NonNull final Writer writer) {
+                mWrite.with(writer);
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final Value.Read<V> value,
+                                             @NonNull final Lens.Write<M, V> lens) {
+                mRead.with(value, lens);
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final Value.Write<V> value,
+                                             @NonNull final Lens.Read<M, V> lens) {
+                mWrite.with(value, lens);
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final Value.ReadWrite<V> value,
+                                             @NonNull final Lens.ReadWrite<M, V> lens) {
+                mRead.with(value, lens);
+                mWrite.with(value, lens);
+                return this;
+            }
+
+            @NonNull
+            public final <N> Builder<M> with(@NonNull final Read<N> mapper,
+                                             @NonNull final Lens.ReadWrite<M, N> lens) {
+                mRead.with(mapper, lens);
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final Write<V> mapper,
+                                             @NonNull final Lens.Read<M, V> lens) {
+                mWrite.with(mapper, lens);
+                return this;
+            }
+
+            @NonNull
+            public final <V> Builder<M> with(@NonNull final ReadWrite<V> mapper,
+                                             @NonNull final Lens.ReadWrite<M, V> lens) {
+                mRead.with(mapper, lens);
+                mWrite.with(mapper, lens);
+                return this;
+            }
+
+            @NonNull
+            public final ReadWrite<M> build() {
+                return combine(mRead.build(), mWrite.build());
+            }
+        }
     }
 
     @NonNull
