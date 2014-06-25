@@ -17,7 +17,10 @@
 package android.orm.dao.direct;
 
 import android.content.ContentValues;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
+import android.orm.Route;
 import android.orm.model.Plan;
 import android.orm.sql.Expression;
 import android.orm.sql.Helper;
@@ -30,38 +33,105 @@ import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import org.jetbrains.annotations.NonNls;
+
+import static android.orm.util.Maybes.nothing;
 import static android.util.Log.INFO;
 
-public class Update implements Expression<Integer> {
+public final class Update {
 
     private static final String TAG = Update.class.getSimpleName();
 
-    @NonNull
-    private final Table<?> mTable;
-    @NonNull
-    private final Select.Where mWhere;
-    @NonNull
-    private final Plan.Write mPlan;
+    public static class Single implements Expression<Uri> {
 
-    public Update(@NonNull final Table<?> table,
-                  @NonNull final Select.Where where,
-                  @NonNull final Plan.Write plan) {
-        super();
+        @NonNull
+        private final Route.Item mRoute;
+        @NonNls
+        @NonNull
+        private final String mTable;
+        @NonNull
+        private final Select.Where mWhere;
+        @NonNull
+        private final Plan.Write mPlan;
+        @NonNull
+        private final ContentValues mAdditional;
 
-        mTable = table;
-        mWhere = where;
-        mPlan = plan;
+        public Single(@NonNull final Route.Item route,
+                      @NonNull final Select.Where where,
+                      @NonNull final Plan.Write plan,
+                      @NonNull final ContentValues additional) {
+            super();
+
+            mRoute = route;
+            mTable = Helper.escape(route.getTable().getName());
+            mWhere = where;
+            mPlan = plan;
+            mAdditional = additional;
+        }
+
+        @NonNull
+        @Override
+        public final Maybe<Uri> execute(@NonNull final SQLiteDatabase database) {
+            final ContentValues values = new ContentValues();
+            mPlan.write(Value.Write.Operation.Update, Writables.writable(values));
+            final int updated = update(database, mTable, mWhere, values);
+
+            final Maybe<Uri> result;
+
+            if (updated > 1) {
+                throw new SQLException("More than one row was updated");
+            }
+
+            if (updated > 0) {
+                values.putAll(mAdditional);
+                result = new ReadUri(mRoute, mWhere, mAdditional).execute(database);
+            } else {
+                result = nothing();
+            }
+
+            return result;
+        }
     }
 
-    @NonNull
-    @Override
-    public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
-        final ContentValues values = new ContentValues();
-        mPlan.write(Value.Write.Operation.Update, Writables.writable(values));
+    public static class Many implements Expression<Integer> {
+
+        @NonNls
+        @NonNull
+        private final String mTable;
+        @NonNls
+        @NonNull
+        private final Select.Where mWhere;
+        @NonNull
+        private final Plan.Write mPlan;
+
+        public Many(@NonNull final Table<?> table,
+                    @NonNull final Select.Where where,
+                    @NonNull final Plan.Write plan) {
+            super();
+
+            mTable = Helper.escape(table.getName());
+            mWhere = where;
+            mPlan = plan;
+        }
+
+        @NonNull
+        @Override
+        public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
+            final ContentValues values = new ContentValues();
+            mPlan.write(Value.Write.Operation.Update, Writables.writable(values));
+            final int updated = update(database, mTable, mWhere, values);
+            return (updated > 0) ? Maybes.something(updated) : Maybes.<Integer>nothing();
+        }
+    }
+
+    private static int update(@NonNull final SQLiteDatabase database,
+                              @NonNls @NonNull final String table,
+                              @NonNull final Select.Where where,
+                              @NonNull final ContentValues values) {
         final int updated;
 
         if (values.size() > 0) {
-            updated = database.update(Helper.escape(mTable.getName()), values, mWhere.toSQL(), null);
+            updated = database.update(table, values, where.toSQL(), null);
         } else {
             updated = 0;
             if (Log.isLoggable(TAG, INFO)) {
@@ -69,6 +139,10 @@ public class Update implements Expression<Integer> {
             }
         }
 
-        return (updated > 0) ? Maybes.something(updated) : Maybes.<Integer>nothing();
+        return updated;
+    }
+
+    private Update() {
+        super();
     }
 }

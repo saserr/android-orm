@@ -46,8 +46,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static android.orm.model.Observer.beforeCreate;
-import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.model.Plans.write;
 import static android.orm.util.Maybes.something;
 
@@ -203,21 +201,56 @@ public final class DAO {
         interface Insert extends DAO.Access.Insert<Maybe<Uri>> {
         }
 
-        interface Update extends DAO.Access.Update<Maybe<Integer>> {
+        interface Save {
+
+            @NonNull
+            <M extends Instance.Writable> Maybe<Uri> save(@NonNull final M model);
+
+            @NonNull
+            Maybe<Uri> save(@NonNull final Writer writer);
+
+            @NonNull
+            <M> Maybe<Uri> save(@Nullable final M model, @NonNull final Value.Write<M> value);
+
+            @NonNull
+            <M> Maybe<Uri> save(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
+        }
+
+        final class Update {
+
+            public interface Single extends DAO.Access.Update<Maybe<Uri>> {
+            }
+
+            public interface Many extends DAO.Access.Update<Maybe<Integer>> {
+            }
+
+            private Update() {
+                super();
+            }
         }
 
         interface Delete extends DAO.Access.Delete<Maybe<Integer>> {
         }
 
-        interface Write extends Insert, Update, Delete, DAO.Access.Write<Maybe<Uri>, Maybe<Integer>, Maybe<Integer>> {
+        final class Write {
+
+            public interface Single extends Insert, Save, Update.Single, Delete, DAO.Access.Write<Maybe<Uri>, Maybe<Uri>, Maybe<Integer>> {
+            }
+
+            public interface Many extends Insert, Update.Many, Delete, DAO.Access.Write<Maybe<Uri>, Maybe<Integer>, Maybe<Integer>> {
+            }
+
+            private Write() {
+                super();
+            }
         }
 
         final class Access {
 
-            public interface Some extends Exists, Write {
+            public interface Some extends Exists, Write.Many {
             }
 
-            public interface Single extends Read.Single, Some {
+            public interface Single extends Read.Single, Exists, Write.Single {
             }
 
             public interface Many extends Read.Many, Some {
@@ -667,7 +700,6 @@ public final class DAO {
                 @NonNull
                 @Override
                 public final <M extends Instance.Writable> I insert(@NonNull final M model) {
-                    beforeCreate(model);
                     return insert(model, write(model));
                 }
 
@@ -681,7 +713,6 @@ public final class DAO {
                 @Override
                 public final <M> I insert(@Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
-                    beforeCreate(model);
                     return insert(model, write(something(model), value));
                 }
 
@@ -689,14 +720,12 @@ public final class DAO {
                 @Override
                 public final <M> I insert(@NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
-                    beforeCreate(model);
                     return insert(model, mapper.prepareWrite(something(model)));
                 }
 
                 @NonNull
                 @Override
                 public final <M extends Instance.Writable> U update(@NonNull final M model) {
-                    beforeUpdate(model);
                     return update(model, write(model));
                 }
 
@@ -704,7 +733,6 @@ public final class DAO {
                 @Override
                 public final <M extends Instance.Writable> U update(@NonNull final Select.Where where,
                                                                     @NonNull final M model) {
-                    beforeUpdate(model);
                     return update(where, model, write(model));
                 }
 
@@ -725,7 +753,6 @@ public final class DAO {
                 @Override
                 public final <M> U update(@Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
-                    beforeUpdate(model);
                     return update(model, write(something(model), value));
                 }
 
@@ -734,7 +761,6 @@ public final class DAO {
                 public final <M> U update(@NonNull final Select.Where where,
                                           @Nullable final M model,
                                           @NonNull final Value.Write<M> value) {
-                    beforeUpdate(model);
                     return update(where, model, write(something(model), value));
                 }
 
@@ -742,7 +768,6 @@ public final class DAO {
                 @Override
                 public final <M> U update(@NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
-                    beforeUpdate(model);
                     return update(model, mapper.prepareWrite(something(model)));
                 }
 
@@ -751,7 +776,6 @@ public final class DAO {
                 public final <M> U update(@NonNull final Select.Where where,
                                           @NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
-                    beforeUpdate(model);
                     return update(where, model, mapper.prepareWrite(something(model)));
                 }
 

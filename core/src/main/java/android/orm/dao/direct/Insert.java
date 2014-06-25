@@ -50,10 +50,10 @@ public class Insert implements Expression<Uri> {
     private static final Select.Where.Part<Long> WHERE_ROW_ID = where(ROW_ID);
 
     @NonNull
-    private final Route.Item mItemRoute;
+    private final Route.Item mRoute;
     @NonNls
     @NonNull
-    private final String mTableName;
+    private final String mTable;
     @Nullable
     private final PrimaryKey<?> mPrimaryKey;
     @NonNull
@@ -66,9 +66,9 @@ public class Insert implements Expression<Uri> {
                   @NonNull final ContentValues additional) {
         super();
 
-        mItemRoute = route;
+        mRoute = route;
         final Table<?> table = route.getTable();
-        mTableName = Helper.escape(table.getName());
+        mTable = Helper.escape(table.getName());
         mPrimaryKey = table.getPrimaryKey();
         mPlan = plan;
         mAdditional = additional;
@@ -85,7 +85,7 @@ public class Insert implements Expression<Uri> {
             Log.i(TAG, "An empty row will be written"); //NON-NLS
         }
 
-        final long id = database.insertOrThrow(mTableName, null, values);
+        final long id = database.insertOrThrow(mTable, null, values);
         final Maybe<Uri> result;
 
         if (id > 0L) {
@@ -93,7 +93,7 @@ public class Insert implements Expression<Uri> {
                 ((Value.Write<Long>) mPrimaryKey).write(Insert, something(id), output);
             }
 
-            result = new ReadUri(mItemRoute, WHERE_ROW_ID.isEqualTo(id), mAdditional).execute(database);
+            result = new ReadUri(mRoute, WHERE_ROW_ID.isEqualTo(id), values).execute(database);
 
             if (result.isNothing()) {
                 throw new SQLException("Couldn't create item uri after insert");

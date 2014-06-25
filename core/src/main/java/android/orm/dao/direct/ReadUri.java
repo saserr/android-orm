@@ -44,7 +44,7 @@ public class ReadUri implements Expression<Uri> {
     private static final String TAG = ReadUri.class.getSimpleName();
 
     @NonNull
-    private final Route.Item mItemRoute;
+    private final Route.Item mRoute;
     @NonNull
     private final Table<?> mTable;
     @NonNls
@@ -62,7 +62,7 @@ public class ReadUri implements Expression<Uri> {
                    @NonNull final ContentValues additional) {
         super();
 
-        mItemRoute = route;
+        mRoute = route;
         mTable = route.getTable();
         mTableName = Helper.escape(mTable.getName());
         mProjection = route.getProjection().without(getKeys(additional));
@@ -76,7 +76,7 @@ public class ReadUri implements Expression<Uri> {
         final Maybe<Uri> result;
 
         if (mProjection.isEmpty()) {
-            result = mItemRoute.read(readable(mAdditional));
+            result = mRoute.read(readable(mAdditional));
         } else {
             if (Log.isLoggable(TAG, INFO)) {
                 Log.i(TAG, "Creation of item uri requires a query!"); //NON-NLS
@@ -96,7 +96,7 @@ public class ReadUri implements Expression<Uri> {
             } else {
                 try {
                     if (cursor.moveToFirst()) {
-                        result = mItemRoute.read(combine(readable(cursor), readable(mAdditional)));
+                        result = mRoute.read(combine(readable(cursor), readable(mAdditional)));
                     } else {
                         Log.e(TAG, "Couldn't create an item uri. Querying table " + mTableName + " for " + mWhere.toSQL() + " returned no results!"); //NON-NLS
                         result = nothing();

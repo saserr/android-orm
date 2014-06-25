@@ -23,6 +23,7 @@ import android.orm.DAO;
 import android.orm.Route;
 import android.orm.dao.direct.Notifier;
 import android.orm.dao.direct.Savepoint;
+import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
@@ -32,6 +33,7 @@ import android.orm.sql.Select;
 import android.orm.sql.Statement;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -46,10 +48,15 @@ import java.util.List;
 import static android.orm.dao.direct.Read.afterRead;
 import static android.orm.model.Observer.afterCreate;
 import static android.orm.model.Observer.afterUpdate;
+import static android.orm.model.Observer.beforeCreate;
 import static android.orm.model.Observer.beforeRead;
+import static android.orm.model.Observer.beforeUpdate;
+import static android.orm.model.Plans.write;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 import static android.orm.sql.Select.select;
+import static android.orm.util.Maybes.nothing;
+import static android.orm.util.Maybes.something;
 
 public class Direct implements DAO.Direct {
 
@@ -107,10 +114,12 @@ public class Direct implements DAO.Direct {
         return expression.execute(mDatabase);
     }
 
-    private static class SingleAccess extends SomeAccess implements DAO.Direct.Access.Single {
+    private static class SingleAccess extends BaseAccess<Uri> implements DAO.Direct.Access.Single {
 
         @NonNull
         private final Direct mDAO;
+        @NonNull
+        private final Notifier mNotifier;
         @NonNull
         private final Route.Item mRoute;
         @NonNull
@@ -123,6 +132,7 @@ public class Direct implements DAO.Direct {
             super(dao, notifier, route, arguments);
 
             mDAO = dao;
+            mNotifier = notifier;
             mRoute = route;
             mArguments = arguments;
         }
@@ -143,6 +153,70 @@ public class Direct implements DAO.Direct {
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Single<M> reading) {
             return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
+        }
+
+        @NonNull
+        @Override
+        public final <M extends Instance.Writable> Maybe<Uri> save(@NonNull final M model) {
+            return save(model, write(model));
+        }
+
+        @NonNull
+        @Override
+        public final Maybe<Uri> save(@NonNull final Writer writer) {
+            return save(null, write(writer));
+        }
+
+        @NonNull
+        @Override
+        public final <M> Maybe<Uri> save(@Nullable final M model,
+                                         @NonNull final Value.Write<M> value) {
+            return save(model, write(something(model), value));
+        }
+
+        @NonNull
+        @Override
+        public final <M> Maybe<Uri> save(@NonNull final M model,
+                                         @NonNull final Mapper.Write<M> mapper) {
+            return save(model, mapper.prepareWrite(something(model)));
+        }
+
+        @NonNull
+        @Override
+        protected final Maybe<Uri> update(@NonNull final Route.Item route,
+                                          @NonNull final Table<?> table,
+                                          @NonNull final Select.Where where,
+                                          @NonNull final Plan.Write plan,
+                                          @NonNull final ContentValues additional) {
+            final Maybe<Uri> result = mDAO.execute(new android.orm.dao.direct.Update.Single(route, where, plan, additional));
+
+            if (result.isSomething()) {
+                final Uri uri = result.get();
+                if (uri == null) {
+                    notifyChange();
+                } else {
+                    mNotifier.notifyChange(uri);
+                }
+            }
+
+            return result;
+        }
+
+        @NonNull
+        protected final <M> Maybe<Uri> save(@Nullable final M model,
+                                            @NonNull final Plan.Write plan) {
+            final Maybe<Uri> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Boolean exists = exists().getOrElse(null);
+                result = ((exists == null) || !exists) ?
+                        insert(model, plan) :
+                        update(model, plan);
+            }
+
+            return result;
         }
     }
 
@@ -191,7 +265,38 @@ public class Direct implements DAO.Direct {
         }
     }
 
-    private static class SomeAccess extends DAO.Access.Write.Base<Maybe<Uri>, Maybe<Integer>, Maybe<Integer>> implements DAO.Direct.Access.Some {
+    private static class SomeAccess extends BaseAccess<Integer> implements DAO.Direct.Access.Some {
+
+        @NonNull
+        private final Direct mDAO;
+
+        private SomeAccess(@NonNull final Direct dao,
+                           @NonNull final Notifier notifier,
+                           @NonNull final Route route,
+                           @NonNull final Object... arguments) {
+            super(dao, notifier, route, arguments);
+
+            mDAO = dao;
+        }
+
+        @NonNull
+        @Override
+        protected Maybe<Integer> update(@NonNull final Route.Item route,
+                                        @NonNull final Table<?> table,
+                                        @NonNull final Select.Where where,
+                                        @NonNull final Plan.Write plan,
+                                        @NonNull final ContentValues additional) {
+            final Maybe<Integer> updated = mDAO.execute(new android.orm.dao.direct.Update.Many(table, where, plan));
+
+            if (updated.getOrElse(null) != null) {
+                notifyChange();
+            }
+
+            return updated;
+        }
+    }
+
+    private abstract static class BaseAccess<U> extends DAO.Access.Write.Base<Maybe<Uri>, Maybe<U>, Maybe<Integer>> implements DAO.Direct.Exists {
 
         @NonNull
         private final Direct mDAO;
@@ -208,7 +313,7 @@ public class Direct implements DAO.Direct {
         @NonNull
         private final Select.Where mWhere;
 
-        private SomeAccess(@NonNull final Direct dao,
+        private BaseAccess(@NonNull final Direct dao,
                            @NonNull final Notifier notifier,
                            @NonNull final Route route,
                            @NonNull final Object... arguments) {
@@ -222,6 +327,13 @@ public class Direct implements DAO.Direct {
             mOnInsert = route.createValues(arguments);
             mWhere = route.getWhere(arguments);
         }
+
+        @NonNull
+        protected abstract Maybe<U> update(@NonNull final Route.Item route,
+                                           @NonNull final Table<?> table,
+                                           @NonNull final Select.Where where,
+                                           @NonNull final Plan.Write plan,
+                                           @NonNull final ContentValues additional);
 
         @NonNull
         @Override
@@ -242,8 +354,9 @@ public class Direct implements DAO.Direct {
             final Maybe<Uri> result;
 
             if (plan.isEmpty()) {
-                result = Maybes.nothing();
+                result = nothing();
             } else {
+                beforeCreate(model);
                 result = mDAO.execute(new android.orm.dao.direct.Insert(mItemRoute, plan, mOnInsert));
                 if (result.isSomething()) {
                     final Uri uri = result.get();
@@ -259,21 +372,18 @@ public class Direct implements DAO.Direct {
 
         @NonNull
         @Override
-        protected final <M> Maybe<Integer> update(@NonNull final Select.Where where,
-                                                  @Nullable final M model,
-                                                  @NonNull final Plan.Write plan) {
-            final Maybe<Integer> result;
+        protected final <M> Maybe<U> update(@NonNull final Select.Where where,
+                                            @Nullable final M model,
+                                            @NonNull final Plan.Write plan) {
+            final Maybe<U> result;
 
             if (plan.isEmpty()) {
-                result = Maybes.nothing();
+                result = nothing();
             } else {
-                result = mDAO.execute(new android.orm.dao.direct.Update(mTable, mWhere.and(where), plan));
-                if (result.isSomething()) {
-                    final Integer updated = result.get();
-                    if ((updated != null) && (updated > 0)) {
-                        afterUpdate(model);
-                        mNotifier.notifyChange(mUri);
-                    }
+                beforeUpdate(model);
+                result = update(mItemRoute, mTable, mWhere.and(where), plan, mOnInsert);
+                if (result.getOrElse(null) != null) {
+                    afterUpdate(model);
                 }
             }
 
@@ -288,11 +398,15 @@ public class Direct implements DAO.Direct {
             if (result.isSomething()) {
                 final Integer deleted = result.get();
                 if ((deleted != null) && (deleted > 0)) {
-                    mNotifier.notifyChange(mUri);
+                    notifyChange();
                 }
             }
 
             return result;
+        }
+
+        protected final void notifyChange() {
+            mNotifier.notifyChange(mUri);
         }
     }
 
@@ -370,7 +484,7 @@ public class Direct implements DAO.Direct {
             final Maybe<V> result;
 
             if (plan.isEmpty()) {
-                result = (mValue == null) ? Maybes.<V>nothing() : Maybes.something(mValue);
+                result = (mValue == null) ? Maybes.<V>nothing() : something(mValue);
             } else {
                 result = mDAO.execute(new android.orm.dao.direct.Read<>(plan, mSelect.build())).flatMap(mAfterRead);
             }

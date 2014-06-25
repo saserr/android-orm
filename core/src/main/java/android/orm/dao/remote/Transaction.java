@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
+import static android.orm.model.Observer.beforeCreate;
+import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.sql.Writables.writable;
@@ -105,6 +107,7 @@ public class Transaction {
         @Override
         protected final <M> Access insert(@Nullable final M model,
                                           @NonNull final Plan.Write plan) {
+            beforeCreate(model);
             // TODO invoke afterCreate somehow
             if (!plan.isEmpty()) {
                 mBatch.add(new Insert(mUri, plan));
@@ -117,6 +120,7 @@ public class Transaction {
         protected final <M> Access update(@NonNull final Select.Where where,
                                           @Nullable final M model,
                                           @NonNull final Plan.Write plan) {
+            beforeUpdate(model);
             // TODO invoke afterUpdate somehow
             if (!plan.isEmpty()) {
                 mBatch.add(new Update(mUri, plan, where));

@@ -47,7 +47,9 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static android.orm.dao.direct.Read.afterRead;
+import static android.orm.model.Observer.beforeCreate;
 import static android.orm.model.Observer.beforeRead;
+import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 
@@ -267,6 +269,7 @@ public class Remote extends Async implements DAO.Remote {
         @Override
         protected final <M> Result<Uri> insert(@Nullable final M model,
                                                @NonNull final Plan.Write plan) {
+            beforeCreate(model);
             return afterCreate(
                     plan.isEmpty() ? Result.<Uri>nothing() : mDAO.execute(plan, mInsert),
                     model
@@ -278,6 +281,7 @@ public class Remote extends Async implements DAO.Remote {
         protected final <M> Result<Integer> update(@NonNull final Select.Where where,
                                                    @Nullable final M model,
                                                    @NonNull final Plan.Write plan) {
+            beforeUpdate(model);
             return afterUpdate(
                     plan.isEmpty() ? Result.<Integer>nothing() : mDAO.execute(Pair.<Writer, Select.Where>create(plan, where), mUpdate),
                     model
