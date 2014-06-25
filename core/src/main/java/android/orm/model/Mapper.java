@@ -226,7 +226,7 @@ public final class Mapper {
 
             @NonNull
             public final Read<M> build() {
-                return build(mName, mReading);
+                return build(mName, new Reading.Item.Builder<>(mReading));
             }
 
             @NonNull
@@ -447,7 +447,7 @@ public final class Mapper {
 
             @NonNull
             public final Write<M> build() {
-                return build(mName, mWrite);
+                return build(mName, new Plan.Write.Builder<>(mWrite));
             }
 
             @NonNull

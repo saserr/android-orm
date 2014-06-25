@@ -402,7 +402,7 @@ public interface Reading<M> {
             @NonNull
             private Select.Projection mProducerOnlyProjection;
 
-            private final Collection<Function<M, Action>> mEntries = new ArrayList<>();
+            private final Collection<Function<M, Action>> mEntries;
 
             public Builder(@NonNull final Value.Read<M> producer) {
                 super();
@@ -410,6 +410,16 @@ public interface Reading<M> {
                 mProducer = producer;
                 mProducerOnlyProjection = producer.getProjection();
                 mCreateProjection = mProducerOnlyProjection;
+                mEntries = new ArrayList<>();
+            }
+
+            public Builder(@NonNull final Builder<M> builder) {
+                super();
+
+                mProducer = builder.mProducer;
+                mCreateProjection = builder.mCreateProjection;
+                mProducerOnlyProjection = builder.mProducerOnlyProjection;
+                mEntries = new ArrayList<>(builder.mEntries);
             }
 
             @NonNull

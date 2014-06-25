@@ -99,16 +99,19 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
             mReading = Reading.Item.builder(producer(name));
         }
 
+        @NonNull
         public final <V> Builder with(@NonNull final Value.Read<V> value) {
             return with(value.getName(), value);
         }
 
+        @NonNull
         public final <V> Builder with(@NonNls @NonNull final String name,
                                       @NonNull final Value.Read<V> value) {
             mReading.with(value, Serializer.<V>lens(mGson, name));
             return this;
         }
 
+        @NonNull
         public final <M> Builder with(@NonNls @NonNull final String name,
                                       @NonNull final Class<M> klass,
                                       @NonNull final Mapper.Read<M> mapper) {
@@ -116,10 +119,12 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
             return this;
         }
 
+        @NonNull
         public final Serializer<JsonObject> build() {
             return new Serializer<>(mName, mReading.build());
         }
 
+        @NonNull
         private static Value.Read<JsonObject> producer(@NonNls @NonNull final String name) {
             return new Base<JsonObject>() {
 
@@ -145,6 +150,7 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
         }
     }
 
+    @NonNull
     public static <V> Lens.Write<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
                                                             @NonNls @NonNull final String name) {
         return new Lens.Write<JsonObject, Maybe<V>>() {

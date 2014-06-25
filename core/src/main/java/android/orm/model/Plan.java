@@ -106,10 +106,18 @@ public final class Plan {
         public static class Builder<M> {
 
             @NonNull
-            private final Collection<Function<Maybe<M>, Write>> mEntries = new ArrayList<>();
+            private final Collection<Function<Maybe<M>, Write>> mEntries;
 
             public Builder() {
                 super();
+
+                mEntries = new ArrayList<>();
+            }
+
+            public Builder(@NonNull final Builder<M> builder) {
+                super();
+
+                mEntries = new ArrayList<>(builder.mEntries);
             }
 
             @NonNull

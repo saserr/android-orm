@@ -51,7 +51,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
     public Deserializer(@NonNull final Plan.Write.Builder<E> plan) {
         super();
 
-        mPlan = plan;
+        mPlan = new Plan.Write.Builder<>(plan);
     }
 
     @NonNls
@@ -92,22 +92,26 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
             mPlan = Plan.Write.builder();
         }
 
+        @NonNull
         public final Builder with(@NonNull final Writer writer) {
             mPlan.put(writer);
             return this;
         }
 
+        @NonNull
         public final <V> Builder with(@NonNull final Class<V> klass,
                                       @NonNull final Value.Write<V> value) {
             return with(klass, value.getName(), value);
         }
 
+        @NonNull
         public final <V> Builder with(@NonNull final Class<V> klass,
                                       @NonNls @NonNull final String name,
                                       @NonNull final Value.Write<V> value) {
             return with(klass, name, Mappers.write(value));
         }
 
+        @NonNull
         public final <M> Builder with(@NonNull final Class<M> klass,
                                       @NonNls @NonNull final String name,
                                       @NonNull final Mapper.Write<M> mapper) {
@@ -115,12 +119,14 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
             return this;
         }
 
+        @NonNull
         public final <V> Builder with(@NonNull final Class<V> klass,
                                       @NonNull final Value.Write<V> value,
                                       @NonNull final Validation<? super V> validation) {
             return with(klass, value.getName(), value, validation);
         }
 
+        @NonNull
         public final <V> Builder with(@NonNull final Class<V> klass,
                                       @NonNls @NonNull final String name,
                                       @NonNull final Value.Write<V> value,
@@ -128,6 +134,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
             return with(klass, name, Mappers.write(value), validation);
         }
 
+        @NonNull
         public final <M> Builder with(@NonNull final Class<M> klass,
                                       @NonNls @NonNull final String name,
                                       @NonNull final Mapper.Write<M> mapper,
@@ -136,21 +143,25 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
             return this;
         }
 
+        @NonNull
         public final Builder with(@NonNls @NonNull final String name,
                                   @NonNull final Value.Write<JsonObject> value) {
             return with(name, Mappers.write(value));
         }
 
+        @NonNull
         public final Builder with(@NonNls @NonNull final String name,
                                   @NonNull final Mapper.Write<JsonObject> mapper) {
             mPlan.put(mapper, lens(name));
             return this;
         }
 
+        @NonNull
         public final Deserializer<JsonObject> build() {
             return new Deserializer<>(mPlan);
         }
 
+        @NonNull
         private static Lens.Read<JsonObject, Maybe<JsonObject>> lens(@NonNls @NonNull final String name) {
             return new Lens.Read<JsonObject, Maybe<JsonObject>>() {
                 @Nullable
@@ -174,6 +185,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
         }
     }
 
+    @NonNull
     public static <V> Lens.Read<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
                                                            @NonNull final Class<V> klass,
                                                            @NonNls @NonNull final String name) {
@@ -188,6 +200,7 @@ public class Deserializer<E extends JsonElement> extends Value.Write.Base<E> {
         };
     }
 
+    @NonNull
     public static <V> Lens.Read<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
                                                            @NonNull final Class<V> klass,
                                                            @NonNls @NonNull final String qualifiedName,
