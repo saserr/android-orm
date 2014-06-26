@@ -102,7 +102,7 @@ public final class DAO {
 
         final class Query {
 
-            public interface Single extends DAO.Access.Read.Single<Maybe<Boolean>> {
+            public interface Single extends DAO.Access.Query.Single {
 
                 @NonNull
                 @Override
@@ -117,7 +117,7 @@ public final class DAO {
                 <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
             }
 
-            public interface Many extends DAO.Access.Read.Many<Maybe<Boolean>> {
+            public interface Many extends DAO.Access.Query.Many {
 
                 @NonNull
                 @Override
@@ -183,10 +183,10 @@ public final class DAO {
 
         final class Read {
 
-            public interface Single extends Exists, Query.Single {
+            public interface Single extends Exists, Query.Single, DAO.Access.Read.Single<Maybe<Boolean>> {
             }
 
-            public interface Many extends Exists, Query.Many {
+            public interface Many extends Exists, Query.Many, DAO.Access.Read.Many<Maybe<Boolean>> {
             }
 
             private Read() {
@@ -246,7 +246,7 @@ public final class DAO {
             public interface Some extends Exists, Write.Many {
             }
 
-            public interface Single extends Read.Single, Exists, Write.Single {
+            public interface Single extends Read.Single, Write.Single {
             }
 
             public interface Many extends Read.Many, Some {
@@ -428,7 +428,7 @@ public final class DAO {
 
         final class Query {
 
-            public interface Single extends DAO.Access.Read.Single<Result<Boolean>> {
+            public interface Single extends DAO.Access.Query.Single {
 
                 @NonNull
                 @Override
@@ -443,7 +443,7 @@ public final class DAO {
                 <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
             }
 
-            public interface Many extends DAO.Access.Read.Many<Result<Boolean>> {
+            public interface Many extends DAO.Access.Query.Many {
 
                 @NonNull
                 @Override
@@ -495,10 +495,10 @@ public final class DAO {
 
         final class Read {
 
-            public interface Single extends Exists, Query.Single {
+            public interface Single extends Exists, Query.Single, DAO.Access.Read.Single<Result<Boolean>> {
             }
 
-            public interface Many extends Exists, Query.Many {
+            public interface Many extends Exists, Query.Many, DAO.Access.Read.Many<Result<Boolean>> {
             }
 
             private Read() {
