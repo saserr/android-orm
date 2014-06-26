@@ -16,6 +16,7 @@
 
 package android.orm.dao;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -25,13 +26,13 @@ import android.orm.DAO;
 import android.orm.Database;
 import android.orm.Route;
 import android.orm.dao.direct.Notifier;
-import android.orm.dao.direct.Savepoint;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Expression;
+import android.orm.sql.Helper;
 import android.orm.sql.Select;
 import android.orm.sql.Statement;
 import android.orm.sql.Table;
@@ -43,10 +44,12 @@ import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.List;
+import java.util.UUID;
 
 import static android.orm.dao.direct.Read.afterRead;
 import static android.orm.model.Observer.afterCreate;
@@ -60,8 +63,11 @@ import static android.orm.model.Readings.single;
 import static android.orm.sql.Select.select;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
+import static android.util.Log.INFO;
 
-public abstract class Direct implements Transaction.Direct {
+public abstract class Direct implements DAO.Direct {
+
+    private static final String TAG = Direct.class.getSimpleName();
 
     @NonNull
     private final Notifier mNotifier;
@@ -196,6 +202,18 @@ public abstract class Direct implements Transaction.Direct {
 
             return result;
         }
+    }
+
+    @NonNull
+    public static Direct create(@NonNull final SQLiteDatabase database,
+                                @NonNull final Notifier notifier) {
+        return new InsideTransaction(database, notifier);
+    }
+
+    @NonNull
+    public static Direct create(@NonNull final Context context,
+                                @NonNull final Database database) {
+        return new OutsideTransaction(context, database);
     }
 
     private static class ManyAccess extends SomeAccess implements DAO.Direct.Access.Many {
@@ -471,78 +489,117 @@ public abstract class Direct implements Transaction.Direct {
         }
     }
 
-    @NonNull
-    public static Transaction.Direct create(@NonNull final SQLiteDatabase database,
-                                            @NonNull final Notifier notifier) {
-        return new Direct(notifier) {
+    private static class InsideTransaction extends Direct {
 
-            @NonNull
-            @Override
-            public Savepoint savepoint(@NonNls @NonNull final String name) {
-                return new Savepoint(name) {
-                    @Override
-                    public void rollback() {
-                        rollback(database);
-                    }
-                };
+        @NonNull
+        private final SQLiteDatabase mDatabase;
+
+        private InsideTransaction(@NonNull final SQLiteDatabase database,
+                                  @NonNull final Notifier notifier) {
+            super(notifier);
+
+            mDatabase = database;
+        }
+
+        @Override
+        public final void execute(@NonNull final Statement statement) {
+            Async.interruptIfNecessary();
+            statement.execute(mDatabase);
+        }
+
+        @NonNull
+        @Override
+        public final <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
+            Async.interruptIfNecessary();
+            return expression.execute(mDatabase);
+        }
+
+        @NonNull
+        @Override
+        public final <V> Maybe<V> execute(@NonNull final Transaction.Direct<V> transaction) {
+            Async.interruptIfNecessary();
+            Maybe<V> result = nothing();
+            @NonNls final String savepoint = Helper.escape(UUID.randomUUID().toString());
+            mDatabase.execSQL("savepoint " + savepoint + ';'); //NON-NLS
+
+            try {
+                result = transaction.run(this);
+            } catch (final Transaction.Rollback ignored) {
+                mDatabase.execSQL("rollback transaction to savepoint " + savepoint + ';'); //NON-NLS
+                if (Log.isLoggable(TAG, INFO)) {
+                    Log.i(TAG, "Subtransaction has been rolled back"); //NON-NLS
+                }
             }
 
-            @Override
-            public void execute(@NonNull final Statement statement) {
-                Async.interruptIfNecessary();
-                statement.execute(database);
-            }
-
-            @NonNull
-            @Override
-            public <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
-                Async.interruptIfNecessary();
-                return expression.execute(database);
-            }
-        };
+            return result;
+        }
     }
 
-    @NonNull
-    public static DAO.Direct create(@NonNull final Context context,
-                                    @NonNull final Database database) {
-        return new Direct(new Notifier.Immediate(context.getContentResolver())) {
+    private static class OutsideTransaction extends Direct {
 
-            private final SQLiteOpenHelper mHelper = database.getDatabaseHelper(context);
+        @NonNull
+        private final ContentResolver mResolver;
+        @NonNull
+        private final SQLiteOpenHelper mHelper;
 
-            @NonNull
-            @Override
-            public Savepoint savepoint(@NonNls @NonNull final String name) {
-                throw new UnsupportedOperationException("savepoint");
+        private OutsideTransaction(@NonNull final Context context,
+                                   @NonNull final Database database) {
+            super(new Notifier.Immediate(context.getContentResolver()));
+
+            mResolver = context.getContentResolver();
+            mHelper = database.getDatabaseHelper(context);
+        }
+
+        @Override
+        public final void execute(@NonNull final Statement statement) {
+            final SQLiteDatabase db = mHelper.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                statement.execute(db);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        }
+
+        @NonNull
+        @Override
+        public final <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
+            Maybe<V> result = nothing();
+
+            final SQLiteDatabase db = mHelper.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                result = expression.execute(db);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
             }
 
-            @Override
-            public void execute(@NonNull final Statement statement) {
-                final SQLiteDatabase db = mHelper.getWritableDatabase();
-                db.beginTransaction();
-                try {
-                    statement.execute(db);
-                    db.setTransactionSuccessful();
-                } finally {
-                    db.endTransaction();
+            return result;
+        }
+
+        @NonNull
+        @Override
+        public final <V> Maybe<V> execute(@NonNull final Transaction.Direct<V> transaction) {
+            Maybe<V> result = nothing();
+
+            final SQLiteDatabase db = mHelper.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
+                result = transaction.run(Direct.create(db, notifier));
+                notifier.sendAll();
+                db.setTransactionSuccessful();
+            } catch (final Transaction.Rollback ignored) {
+                if (Log.isLoggable(TAG, INFO)) {
+                    Log.i(TAG, "Transaction has been rolled back"); //NON-NLS
                 }
+            } finally {
+                db.endTransaction();
             }
 
-            @NonNull
-            @Override
-            public <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
-                Maybe<V> result = nothing();
-
-                final SQLiteDatabase db = mHelper.getWritableDatabase();
-                db.beginTransaction();
-                try {
-                    result = expression.execute(db);
-                    db.setTransactionSuccessful();
-                } finally {
-                    db.endTransaction();
-                }
-
-                return result;
-            }
-        };
+            return result;
+        }
     }
 }

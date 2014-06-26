@@ -94,6 +94,9 @@ public final class DAO {
         @NonNull
         <V> Maybe<V> execute(@NonNull final Expression<V> expression);
 
+        @NonNull
+        <V> Maybe<V> execute(@NonNull final Transaction.Direct<V> transaction);
+
         interface Exists extends DAO.Access.Exists<Maybe<Boolean>> {
         }
 
@@ -270,7 +273,7 @@ public final class DAO {
         <V> Result<V> execute(@NonNull final Expression<V> expression);
 
         @NonNull
-        <V> Result<V> execute(@NonNull final Transaction.Local<V> transaction);
+        <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction);
 
         final class Query {
 

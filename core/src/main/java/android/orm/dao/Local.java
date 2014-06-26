@@ -19,7 +19,6 @@ package android.orm.dao;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.DAO;
@@ -44,7 +43,6 @@ import android.orm.util.Producer;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -56,13 +54,11 @@ import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 import static android.orm.sql.Select.select;
-import static android.orm.util.Maybes.nothing;
-import static android.util.Log.INFO;
 
 public class Local extends Async implements DAO.Local {
 
-    private static final String TAG = Local.class.getSimpleName();
-
+    @NonNull
+    private final DAO.Direct mDirectDAO;
     @NonNull
     private final SQLiteOpenHelper mHelper;
     @NonNull
@@ -77,6 +73,7 @@ public class Local extends Async implements DAO.Local {
                  @NonNull final ExecutorService executor) {
         super(executor);
 
+        mDirectDAO = android.orm.dao.Direct.create(context, database);
         mHelper = database.getDatabaseHelper(context);
         mResolver = context.getContentResolver();
         mHandler = new Handler();
@@ -106,13 +103,13 @@ public class Local extends Async implements DAO.Local {
     @NonNull
     @Override
     public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
-        return execute(new Task<>(mResolver, mHelper, expression));
+        return execute(new Task<>(mDirectDAO, expression));
     }
 
     @NonNull
     @Override
-    public final <V> Result<V> execute(@NonNull final Transaction.Local<V> transaction) {
-        return execute(new Task<>(mResolver, mHelper, transaction));
+    public final <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction) {
+        return execute(new Task<>(mDirectDAO, transaction));
     }
 
     @NonNull
@@ -475,55 +472,33 @@ public class Local extends Async implements DAO.Local {
     private static class Task<V> implements Producer<Maybe<V>> {
 
         @NonNull
-        private final ContentResolver mResolver;
+        private final DAO.Direct mDAO;
         @NonNull
-        private final SQLiteOpenHelper mHelper;
-        @NonNull
-        private final Transaction.Local<V> mTransaction;
+        private final Transaction.Direct<V> mTransaction;
 
-        private Task(@NonNull final ContentResolver resolver,
-                     @NonNull final SQLiteOpenHelper helper,
+        private Task(@NonNull final DAO.Direct dao,
                      @NonNull final Expression<V> expression) {
-            this(resolver, helper, new Transaction.Local<V>() {
+            this(dao, new Transaction.Direct<V>() {
                 @NonNull
                 @Override
-                public Maybe<V> run(@NonNull final Transaction.Direct transaction) {
-                    return transaction.execute(expression);
+                public Maybe<V> run(@NonNull final DAO.Direct dao) {
+                    return dao.execute(expression);
                 }
             });
         }
 
-        private Task(@NonNull final ContentResolver resolver,
-                     @NonNull final SQLiteOpenHelper helper,
-                     @NonNull final Transaction.Local<V> transaction) {
+        private Task(@NonNull final DAO.Direct dao,
+                     @NonNull final Transaction.Direct<V> transaction) {
             super();
 
-            mResolver = resolver;
-            mHelper = helper;
+            mDAO = dao;
             mTransaction = transaction;
         }
 
         @NonNull
         @Override
         public final Maybe<V> produce() {
-            Maybe<V> result = nothing();
-
-            final SQLiteDatabase database = mHelper.getWritableDatabase();
-            database.beginTransaction();
-            try {
-                final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
-                result = mTransaction.run(Direct.create(database, notifier));
-                notifier.sendAll();
-                database.setTransactionSuccessful();
-            } catch (final Transaction.Rollback ignored) {
-                if (Log.isLoggable(TAG, INFO)) {
-                    Log.i(TAG, "Transaction has been rolled back"); //NON-NLS
-                }
-            } finally {
-                database.endTransaction();
-            }
-
-            return result;
+            return mDAO.execute(mTransaction);
         }
     }
 }

@@ -19,7 +19,6 @@ package android.orm.dao;
 import android.content.ContentProviderResult;
 import android.orm.DAO;
 import android.orm.Route;
-import android.orm.dao.direct.Savepoint;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
@@ -27,15 +26,10 @@ import org.jetbrains.annotations.NonNls;
 
 public final class Transaction {
 
-    public interface Direct extends DAO.Direct {
-        @NonNull
-        Savepoint savepoint(@NonNls @NonNull final String name);
-    }
-
-    public interface Local<V> {
+    public interface Direct<V> {
 
         @NonNull
-        Maybe<V> run(@NonNull final Direct transaction) throws Rollback;
+        Maybe<V> run(@NonNull final DAO.Direct dao) throws Rollback;
 
         Rollback Rollback = new Rollback("Rollback");
     }
