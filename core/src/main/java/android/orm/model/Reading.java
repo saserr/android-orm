@@ -47,7 +47,10 @@ public interface Reading<M> {
     Plan.Read<M> preparePlan(@NonNull final M m);
 
     @NonNull
-    <N> Reading<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
+    <N> Reading<N> map(@NonNull final Converter<M, N> converter);
+
+    @NonNull
+    <N> Reading<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
 
     interface Single<M> extends Reading<M> {
 
@@ -55,19 +58,29 @@ public interface Reading<M> {
         <N> Single<Pair<M, N>> and(@NonNull final Single<N> other);
 
         @NonNull
-        <N> Single<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
+        <N> Single<N> map(@NonNull final Converter<M, N> converter);
+
+        @NonNull
+        @Override
+        <N> Single<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
 
         abstract class Base<M> implements Single<M> {
 
             @NonNull
             @Override
             public final <N> Single<Pair<M, N>> and(@NonNull final Single<N> other) {
-                return Readings.convert(this, other);
+                return Readings.compose(this, other);
             }
 
             @NonNull
             @Override
-            public final <N> Single<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
+            public final <N> Single<N> map(@NonNull final Converter<M, N> converter) {
+                return Readings.convert(this, Maybes.lift(converter));
+            }
+
+            @NonNull
+            @Override
+            public final <N> Single<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
                 return Readings.convert(this, converter);
             }
         }
@@ -79,19 +92,29 @@ public interface Reading<M> {
         <N> Many<Pair<M, N>> and(@NonNull final Many<N> other);
 
         @NonNull
-        <N> Many<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
+        @Override
+        <N> Many<N> map(@NonNull final Converter<M, N> converter);
+
+        @NonNull
+        <N> Many<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
 
         abstract class Base<M> implements Many<M> {
 
             @NonNull
             @Override
             public final <N> Many<Pair<M, N>> and(@NonNull final Many<N> other) {
-                return Readings.convert(this, other);
+                return Readings.compose(this, other);
             }
 
             @NonNull
             @Override
-            public final <N> Many<N> map(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
+            public final <N> Many<N> map(@NonNull final Converter<M, N> converter) {
+                return Readings.convert(this, Maybes.lift(converter));
+            }
+
+            @NonNull
+            @Override
+            public final <N> Many<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
                 return Readings.convert(this, converter);
             }
         }

@@ -121,13 +121,13 @@ public final class Readings {
     }
 
     @NonNull
-    public static <V, T> Reading.Single<Pair<V, T>> convert(@NonNull final Reading.Single<V> first,
+    public static <V, T> Reading.Single<Pair<V, T>> compose(@NonNull final Reading.Single<V> first,
                                                             @NonNull final Reading.Single<T> second) {
         return new SingleComposition<>(first, second);
     }
 
     @NonNull
-    public static <V, T> Reading.Many<Pair<V, T>> convert(@NonNull final Reading.Many<V> first,
+    public static <V, T> Reading.Many<Pair<V, T>> compose(@NonNull final Reading.Many<V> first,
                                                           @NonNull final Reading.Many<T> second) {
         return new ManyComposition<>(first, second);
     }
