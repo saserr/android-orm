@@ -84,20 +84,16 @@ public class BaseContentProvider extends ContentProvider {
         final Cursor cursor;
 
         final SQLiteDatabase database = getDatabase(mHelper, false);
-        database.beginTransaction();
-        try {
-            cursor = match(uri).query(database, projection, selection, arguments, order);
-            if (cursor == null) {
-                Log.w(TAG, "Query at " + uri + " was unsuccessful."); //NON-NLS\
-            } else {
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Query at " + uri + " returned " + cursor.getCount() + " rows."); //NON-NLS
-                }
-                cursor.setNotificationUri(mContentResolver, uri);
+        if (database.inTransaction()) {
+            cursor = query(database, uri, projection, selection, arguments, order);
+        } else {
+            database.beginTransaction();
+            try {
+                cursor = query(database, uri, projection, selection, arguments, order);
                 database.setTransactionSuccessful();
+            } finally {
+                database.endTransaction();
             }
-        } finally {
-            database.endTransaction();
         }
 
         return cursor;
@@ -122,20 +118,16 @@ public class BaseContentProvider extends ContentProvider {
         final Uri result;
 
         final SQLiteDatabase database = getDatabase(mHelper, true);
-        database.beginTransaction();
-        try {
-            result = match(uri).insert(database, values);
-            if (result == null) {
-                Log.w(TAG, "Insert at " + uri + " was unsuccessful."); //NON-NLS
-            } else {
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Insert at " + uri + " was successful."); //NON-NLS
-                }
-                mContentResolver.notifyChange(result, null);
+        if (database.inTransaction()) {
+            result = insert(database, uri, values);
+        } else {
+            database.beginTransaction();
+            try {
+                result = insert(database, uri, values);
                 database.setTransactionSuccessful();
+            } finally {
+                database.endTransaction();
             }
-        } finally {
-            database.endTransaction();
         }
 
         return result;
@@ -149,22 +141,16 @@ public class BaseContentProvider extends ContentProvider {
         final int updated;
 
         final SQLiteDatabase database = getDatabase(mHelper, true);
-        database.beginTransaction();
-        try {
-            updated = match(uri).update(database, values, selection, arguments);
-            if (updated > 0) {
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Update at " + uri + " impacted " + updated + " rows."); //NON-NLS
-                }
-                mContentResolver.notifyChange(uri, null);
+        if (database.inTransaction()) {
+            updated = update(database, uri, values, selection, arguments);
+        } else {
+            database.beginTransaction();
+            try {
+                updated = update(database, uri, values, selection, arguments);
                 database.setTransactionSuccessful();
-            } else {
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Update at " + uri + " impacted no rows."); //NON-NLS
-                }
+            } finally {
+                database.endTransaction();
             }
-        } finally {
-            database.endTransaction();
         }
 
         return updated;
@@ -177,23 +163,16 @@ public class BaseContentProvider extends ContentProvider {
         final int deleted;
 
         final SQLiteDatabase database = getDatabase(mHelper, true);
-        database.beginTransaction();
-        try {
-            deleted = match(uri).delete(database, selection, arguments);
-
-            if (deleted > 0) {
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Delete at " + uri + " removed " + deleted + " rows."); //NON-NLS
-                }
-                mContentResolver.notifyChange(uri, null);
+        if (database.inTransaction()) {
+            deleted = delete(database, uri, selection, arguments);
+        } else {
+            database.beginTransaction();
+            try {
+                deleted = delete(database, uri, selection, arguments);
                 database.setTransactionSuccessful();
-            } else {
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Delete at " + uri + " removed no rows."); //NON-NLS
-                }
+            } finally {
+                database.endTransaction();
             }
-        } finally {
-            database.endTransaction();
         }
 
         return deleted;
@@ -234,6 +213,86 @@ public class BaseContentProvider extends ContentProvider {
             throw new SQLException("Unknown URI " + uri);
         }
         return match;
+    }
+
+    @Nullable
+    private Cursor query(@NonNull final SQLiteDatabase database,
+                         @NonNls @NonNull final Uri uri,
+                         @Nullable final String[] projection,
+                         @Nullable final String selection,
+                         @Nullable final String[] arguments,
+                         @Nullable final String order) {
+        final Cursor cursor = match(uri).query(database, projection, selection, arguments, order);
+
+        if (cursor == null) {
+            Log.w(TAG, "Query at " + uri + " was unsuccessful."); //NON-NLS\
+        } else {
+            if (Log.isLoggable(TAG, DEBUG)) {
+                Log.d(TAG, "Query at " + uri + " returned " + cursor.getCount() + " rows."); //NON-NLS
+            }
+            cursor.setNotificationUri(mContentResolver, uri);
+        }
+
+        return cursor;
+    }
+
+    @Nullable
+    private Uri insert(@NonNull final SQLiteDatabase database,
+                       @NonNls @NonNull final Uri uri,
+                       @NonNull final ContentValues values) {
+        final Uri result = match(uri).insert(database, values);
+
+        if (result == null) {
+            Log.w(TAG, "Insert at " + uri + " was unsuccessful."); //NON-NLS
+        } else {
+            if (Log.isLoggable(TAG, DEBUG)) {
+                Log.d(TAG, "Insert at " + uri + " was successful."); //NON-NLS
+            }
+            mContentResolver.notifyChange(result, null);
+        }
+
+        return result;
+    }
+
+    private int update(@NonNull final SQLiteDatabase database,
+                       @NonNls @NonNull final Uri uri,
+                       @NonNull final ContentValues values,
+                       @Nullable final String selection,
+                       @Nullable final String[] arguments) {
+        final int updated = match(uri).update(database, values, selection, arguments);
+
+        if (updated > 0) {
+            if (Log.isLoggable(TAG, DEBUG)) {
+                Log.d(TAG, "Update at " + uri + " impacted " + updated + " rows."); //NON-NLS
+            }
+            mContentResolver.notifyChange(uri, null);
+        } else {
+            if (Log.isLoggable(TAG, DEBUG)) {
+                Log.d(TAG, "Update at " + uri + " impacted no rows."); //NON-NLS
+            }
+        }
+
+        return updated;
+    }
+
+    private int delete(@NonNull final SQLiteDatabase database,
+                       @NonNls @NonNull final Uri uri,
+                       @Nullable final String selection,
+                       @Nullable final String[] arguments) {
+        final int deleted = match(uri).delete(database, selection, arguments);
+
+        if (deleted > 0) {
+            if (Log.isLoggable(TAG, DEBUG)) {
+                Log.d(TAG, "Delete at " + uri + " removed " + deleted + " rows."); //NON-NLS
+            }
+            mContentResolver.notifyChange(uri, null);
+        } else {
+            if (Log.isLoggable(TAG, DEBUG)) {
+                Log.d(TAG, "Delete at " + uri + " removed no rows."); //NON-NLS
+            }
+        }
+
+        return deleted;
     }
 
     @NonNull
