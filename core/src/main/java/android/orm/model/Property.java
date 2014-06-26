@@ -109,13 +109,13 @@ public class Property<V> implements Instance.ReadWrite, Observer.ReadWrite {
     @NonNls
     @NonNull
     @Override
-    public final String name() {
+    public final String getName() {
         return mName;
     }
 
     @NonNull
     @Override
-    public final Select.Projection projection() {
+    public final Select.Projection getProjection() {
         return mProjection;
     }
 

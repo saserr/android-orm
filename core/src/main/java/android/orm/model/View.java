@@ -90,13 +90,13 @@ public class View<V> implements Instance.Readable, Observer.Read {
     @NonNls
     @NonNull
     @Override
-    public final String name() {
+    public final String getName() {
         return mName;
     }
 
     @NonNull
     @Override
-    public final Select.Projection projection() {
+    public final Select.Projection getProjection() {
         return mProjection;
     }
 

@@ -630,6 +630,9 @@ public final class DAO {
         public interface Insert<R> {
 
             @NonNull
+            <M extends Model> R insert(@NonNull final M model);
+
+            @NonNull
             <M extends Instance.Writable> R insert(@NonNull final M model);
 
             @NonNull
@@ -643,6 +646,12 @@ public final class DAO {
         }
 
         public interface Update<R> {
+
+            @NonNull
+            <M extends Model> R update(@NonNull final M model);
+
+            @NonNull
+            <M extends Model> R update(@NonNull final Select.Where where, @NonNull final M model);
 
             @NonNull
             <M extends Instance.Writable> R update(@NonNull final M model);
@@ -698,6 +707,12 @@ public final class DAO {
 
                 @NonNull
                 @Override
+                public final <M extends Model> I insert(@NonNull final M model) {
+                    return insert(Model.toInstance(model));
+                }
+
+                @NonNull
+                @Override
                 public final <M extends Instance.Writable> I insert(@NonNull final M model) {
                     return insert(model, write(model));
                 }
@@ -720,6 +735,19 @@ public final class DAO {
                 public final <M> I insert(@NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
                     return insert(model, mapper.prepareWrite(something(model)));
+                }
+
+                @NonNull
+                @Override
+                public final <M extends Model> U update(@NonNull final M model) {
+                    return update(Model.toInstance(model));
+                }
+
+                @NonNull
+                @Override
+                public final <M extends Model> U update(@NonNull final Select.Where where,
+                                                        @NonNull final M model) {
+                    return update(where, Model.toInstance(model));
                 }
 
                 @NonNull

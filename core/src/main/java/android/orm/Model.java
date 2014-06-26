@@ -18,6 +18,7 @@ package android.orm;
 
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
+import android.orm.model.Mappers;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.model.Property;
@@ -27,6 +28,12 @@ import android.orm.model.View;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
+import android.orm.util.Converter;
+import android.orm.util.Converters;
+import android.orm.util.Function;
+import android.orm.util.Maybes;
+import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -37,7 +44,7 @@ import java.util.Collection;
 
 import static android.orm.model.Plans.compose;
 
-public abstract class Model implements Instance.ReadWrite, Observer.ReadWrite {
+public abstract class Model {
 
     private final Collection<Instance.Readable> mReadableInstances = new ArrayList<>();
     private final Collection<Instance.Writable> mWritableInstances = new ArrayList<>();
@@ -47,13 +54,15 @@ public abstract class Model implements Instance.ReadWrite, Observer.ReadWrite {
     private final String mName;
     @NonNull
     private final Observer.ReadWrite mObserver;
+    @NonNull
+    private final Instance.ReadWrite mInstance;
 
     protected Model() {
-        this(null, DUMMY);
+        this(null, Observer.ReadWrite.DUMMY);
     }
 
     protected Model(@NonNls @NonNull final String name) {
-        this(name, DUMMY);
+        this(name, Observer.ReadWrite.DUMMY);
     }
 
     protected Model(@NonNull final Observer.ReadWrite observer) {
@@ -66,13 +75,7 @@ public abstract class Model implements Instance.ReadWrite, Observer.ReadWrite {
 
         mName = (name == null) ? getClass().getSimpleName() : name;
         mObserver = observer;
-    }
-
-    @NonNls
-    @NonNull
-    @Override
-    public final String name() {
-        return mName;
+        mInstance = new ModelInstance<>(this);
     }
 
     protected final void with(@NonNull final Instance.Readable instance) {
@@ -182,119 +185,208 @@ public abstract class Model implements Instance.ReadWrite, Observer.ReadWrite {
         return property;
     }
 
+    @NonNls
     @NonNull
-    @Override
-    public final Select.Projection projection() {
-        if (mReadableInstances.isEmpty()) {
-            throw new IllegalStateException("Model has no registered bindings");
-        }
-
-        Select.Projection projection = Select.Projection.Nothing;
-        for (final Instance.Readable instance : mReadableInstances) {
-            projection = projection.and(instance.projection());
-        }
-        return projection;
+    private static String getName(@NonNull final Model model) {
+        return model.mName;
     }
 
     @NonNull
-    @Override
-    public final Reading.Item.Action prepareRead() {
-        final Collection<Reading.Item.Action> actions = new ArrayList<>(mReadableInstances.size());
-        for (final Instance.Readable instance : mReadableInstances) {
-            actions.add(instance.prepareRead());
-        }
-        return Reading.Item.compose(actions);
+    private static Observer.ReadWrite getObserver(@NonNull final Model model) {
+        return model.mObserver;
     }
 
     @NonNull
-    @Override
-    public final Plan.Write prepareWrite() {
-        final Collection<Plan.Write> plans = new ArrayList<>(mWritableInstances.size());
-
-        for (final Instance.Writable instance : mWritableInstances) {
-            plans.add(instance.prepareWrite());
-        }
-
-        return compose(plans);
+    private static Collection<Instance.Readable> getReadableInstances(@NonNull final Model model) {
+        return model.mReadableInstances;
     }
 
-    @Override
-    public final void beforeRead() {
-        for (final Instance.Readable instance : mReadableInstances) {
-            if (instance instanceof Observer.Read) {
-                ((Observer.Read) instance).beforeRead();
-            }
-        }
-        mObserver.beforeRead();
+    @NonNull
+    private static Collection<Instance.Writable> getWritableInstances(@NonNull final Model model) {
+        return model.mWritableInstances;
     }
 
-    @Override
-    public final void afterRead() {
-        for (final Instance.Readable instance : mReadableInstances) {
-            if (instance instanceof Observer.Read) {
-                ((Observer.Read) instance).afterRead();
-            }
-        }
-        mObserver.afterRead();
+    @NonNull
+    public static Instance.ReadWrite toInstance(@NonNull final Model model) {
+        return model.mInstance;
     }
 
-    @Override
-    public final void beforeCreate() {
-        for (final Instance.Writable instance : mWritableInstances) {
-            if (instance instanceof Observer.Write) {
-                ((Observer.Write) instance).beforeCreate();
-            }
+    private static class ModelInstance<M extends Model> implements Instance.ReadWrite, Observer.ReadWrite {
+
+        @NonNls
+        @NonNull
+        private final String mName;
+        @NonNull
+        private final M mModel;
+        @NonNull
+        private final Observer.ReadWrite mObserver;
+
+        private ModelInstance(@NonNull final M model) {
+            super();
+
+            mName = Model.getName(model);
+            mModel = model;
+            mObserver = getObserver(mModel);
         }
-        mObserver.beforeCreate();
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        public final M getModel() {
+            return mModel;
+        }
+
+        @NonNull
+        @Override
+        public final Select.Projection getProjection() {
+            final Collection<Instance.Readable> instances = getReadableInstances(mModel);
+            if (instances.isEmpty()) {
+                throw new IllegalStateException("Model has no views, properties and storages");
+            }
+
+            Select.Projection projection = Select.Projection.Nothing;
+
+            for (final Instance.Readable instance : instances) {
+                projection = projection.and(instance.getProjection());
+            }
+
+            return projection;
+        }
+
+        @NonNull
+        @Override
+        public final Reading.Item.Action prepareRead() {
+            final Collection<Instance.Readable> instances = getReadableInstances(mModel);
+            final Collection<Reading.Item.Action> actions = new ArrayList<>(instances.size());
+
+            for (final Instance.Readable instance : instances) {
+                actions.add(instance.prepareRead());
+            }
+
+            return Reading.Item.compose(actions);
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Write prepareWrite() {
+            final Collection<Instance.Writable> instances = getWritableInstances(mModel);
+            final Collection<Plan.Write> plans = new ArrayList<>(instances.size());
+
+            for (final Instance.Writable instance : instances) {
+                plans.add(instance.prepareWrite());
+            }
+
+            return compose(plans);
+        }
+
+        @Override
+        public final void beforeRead() {
+            for (final Instance.Readable instance : getReadableInstances(mModel)) {
+                if (instance instanceof Observer.Read) {
+                    ((Observer.Read) instance).beforeRead();
+                }
+            }
+            mObserver.beforeRead();
+        }
+
+        @Override
+        public final void afterRead() {
+            for (final Instance.Readable instance : getReadableInstances(mModel)) {
+                if (instance instanceof Observer.Read) {
+                    ((Observer.Read) instance).afterRead();
+                }
+            }
+            mObserver.afterRead();
+        }
+
+        @Override
+        public final void beforeCreate() {
+            for (final Instance.Writable instance : getWritableInstances(mModel)) {
+                if (instance instanceof Observer.Write) {
+                    ((Observer.Write) instance).beforeCreate();
+                }
+            }
+            mObserver.beforeCreate();
+        }
+
+        @Override
+        public final void afterCreate() {
+            for (final Instance.Writable instance : getWritableInstances(mModel)) {
+                if (instance instanceof Observer.Write) {
+                    ((Observer.Write) instance).afterCreate();
+                }
+            }
+            mObserver.afterCreate();
+        }
+
+        @Override
+        public final void beforeUpdate() {
+            for (final Instance.Writable instance : getWritableInstances(mModel)) {
+                if (instance instanceof Observer.Write) {
+                    ((Observer.Write) instance).beforeUpdate();
+                }
+            }
+            mObserver.beforeUpdate();
+        }
+
+        @Override
+        public final void afterUpdate() {
+            for (final Instance.Writable instance : getWritableInstances(mModel)) {
+                if (instance instanceof Observer.Write) {
+                    ((Observer.Write) instance).afterUpdate();
+                }
+            }
+            mObserver.afterUpdate();
+        }
+
+        @Override
+        public final void beforeSave() {
+            for (final Instance.Writable instance : getWritableInstances(mModel)) {
+                if (instance instanceof Observer.Write) {
+                    ((Observer.Write) instance).beforeSave();
+                }
+            }
+            mObserver.beforeSave();
+        }
+
+        @Override
+        public final void afterSave() {
+            for (final Instance.Writable instance : getWritableInstances(mModel)) {
+                if (instance instanceof Observer.Write) {
+                    ((Observer.Write) instance).afterSave();
+                }
+            }
+            mObserver.afterSave();
+        }
     }
 
-    @Override
-    public final void afterCreate() {
-        for (final Instance.Writable instance : mWritableInstances) {
-            if (instance instanceof Observer.Write) {
-                ((Observer.Write) instance).afterCreate();
-            }
-        }
-        mObserver.afterCreate();
-    }
+    private static final Converter<Model, Instance.ReadWrite> ModelInstanceConverter =
+            new Converter<Model, Instance.ReadWrite>() {
 
-    @Override
-    public final void beforeUpdate() {
-        for (final Instance.Writable instance : mWritableInstances) {
-            if (instance instanceof Observer.Write) {
-                ((Observer.Write) instance).beforeUpdate();
-            }
-        }
-        mObserver.beforeUpdate();
-    }
+                @NonNull
+                @Override
+                public Instance.ReadWrite from(@NonNull final Model model) {
+                    return toInstance(model);
+                }
 
-    @Override
-    public final void afterUpdate() {
-        for (final Instance.Writable instance : mWritableInstances) {
-            if (instance instanceof Observer.Write) {
-                ((Observer.Write) instance).afterUpdate();
-            }
-        }
-        mObserver.afterUpdate();
-    }
+                @NonNull
+                @Override
+                @SuppressWarnings("unchecked")
+                public Model to(@NonNull final Instance.ReadWrite instance) {
+                    return ((ModelInstance<Model>) instance).getModel();
+                }
+            };
+    private static final Function<Model, Instance.ReadWrite> ToInstance = Converters.from(ModelInstanceConverter);
 
-    @Override
-    public final void beforeSave() {
-        for (final Instance.Writable instance : mWritableInstances) {
-            if (instance instanceof Observer.Write) {
-                ((Observer.Write) instance).beforeSave();
-            }
-        }
-        mObserver.beforeSave();
-    }
-
-    @Override
-    public final void afterSave() {
-        for (final Instance.Writable instance : mWritableInstances) {
-            if (instance instanceof Observer.Write) {
-                ((Observer.Write) instance).afterSave();
-            }
-        }
-        mObserver.afterSave();
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public static <M extends Model> Mapper.ReadWrite<M> mapper(@NonNull final Producer<M> producer) {
+        final Object converter = ModelInstanceConverter;
+        return Mappers.mapper(Producers.convert(producer, ToInstance)).map(Maybes.lift((Converter<Instance.ReadWrite, M>) converter));
     }
 }

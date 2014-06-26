@@ -18,6 +18,7 @@ package android.orm.model;
 
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.util.Lazy;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -85,40 +86,65 @@ public final class Mappers {
 
     private static class InstanceRead<M extends Instance.Readable> extends Mapper.Read.Base<M> {
 
-        @NonNls
         @NonNull
-        private final String mName;
+        private final Producer<M> mProducer;
+
+        private final Lazy<M> mCreateBlueprint = new Lazy.Volatile<M>() {
+            @NonNull
+            @Override
+            protected M produce() {
+                return mProducer.produce();
+            }
+        };
+
+        private final Lazy<String> mName = new Lazy.Volatile<String>() {
+            @NonNull
+            @Override
+            protected String produce() {
+                return mCreateBlueprint.get().getName();
+            }
+        };
+
+        private final Lazy<Select.Projection> mCreateProjection = new Lazy.Volatile<Select.Projection>() {
+            @NonNull
+            @Override
+            protected Select.Projection produce() {
+                return mCreateBlueprint.get().getProjection();
+            }
+        };
+
         @NonNull
-        private final Select.Projection mProjection;
-        @NonNull
-        private final Reading.Item.Create<M> mCreate;
+        private final Lazy<Reading.Item.Create<M>> mCreateReading = new Lazy.Volatile<Reading.Item.Create<M>>() {
+            @NonNull
+            @Override
+            protected Reading.Item.Create<M> produce() {
+                return Reading.Item.Create.from(mCreateProjection.get(), mProducer);
+            }
+        };
 
         private InstanceRead(@NonNull final Producer<M> producer) {
             super();
 
-            final M model = producer.produce();
-            mName = model.name();
-            mProjection = model.projection();
-            mCreate = Reading.Item.Create.from(mProjection, producer);
+            mProducer = producer;
         }
 
         @NonNls
         @NonNull
         @Override
         public final String getName() {
-            return mName;
+            return mName.get();
         }
 
         @NonNull
         @Override
         public final Select.Projection getProjection() {
-            return mProjection;
+            return mCreateProjection.get();
         }
 
         @NonNull
         @Override
         public final Reading.Item.Create<M> prepareRead() {
-            return mCreate;
+            return mCreateReading.get();
         }
 
         @NonNull

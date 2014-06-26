@@ -37,10 +37,10 @@ public final class Instance {
 
         @NonNls
         @NonNull
-        String name();
+        String getName();
 
         @NonNull
-        Select.Projection projection();
+        Select.Projection getProjection();
 
         @NonNull
         Reading.Item.Action prepareRead();

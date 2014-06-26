@@ -329,7 +329,7 @@ public interface Reading<M> {
 
             @NonNull
             public static <M extends Instance.Readable> Update<M> from(@NonNull final M model) {
-                final Select.Projection projection = model.projection();
+                final Select.Projection projection = model.getProjection();
                 final Action action = model.prepareRead();
                 return projection.isEmpty() ?
                         Update.<M>empty() :

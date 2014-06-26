@@ -50,13 +50,13 @@ public class Show implements Instance.Readable {
 
     @NonNull
     @Override
-    public final String name() {
+    public final String getName() {
         return mName;
     }
 
     @NonNull
     @Override
-    public final Select.Projection projection() {
+    public final Select.Projection getProjection() {
         Select.Projection projection = Select.Projection.Nothing;
         for (final Entry entry : mEntries) {
             projection = projection.and(entry.getProjection());

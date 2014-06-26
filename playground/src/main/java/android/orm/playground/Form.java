@@ -82,13 +82,13 @@ public class Form implements Instance.ReadWrite {
 
     @NonNull
     @Override
-    public final String name() {
+    public final String getName() {
         return mName;
     }
 
     @NonNull
     @Override
-    public final Select.Projection projection() {
+    public final Select.Projection getProjection() {
         Select.Projection projection = Select.Projection.Nothing;
         for (final Entry.Read<?> entry : mReads) {
             projection = projection.and(entry.getProjection());
@@ -306,7 +306,7 @@ public class Form implements Instance.ReadWrite {
                     result = valid(mapper.prepareWrite(value.get()));
                     binding.setErrors(Collections.<String>emptyList());
                 } else {
-                    result = Validations.<Plan.Write>safeCast((Validation.Result.Invalid<Maybe<V>>) value);
+                    result = Validations.safeCast((Validation.Result.Invalid<Maybe<V>>) value);
                 }
 
                 return result;

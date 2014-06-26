@@ -18,7 +18,6 @@ package android.orm.tasks.model;
 
 import android.orm.Model;
 import android.orm.model.Mapper;
-import android.orm.model.Mappers;
 import android.orm.model.Property;
 import android.orm.model.View;
 import android.orm.sql.Column;
@@ -43,7 +42,7 @@ public class Task extends Model {
     public static final Value.Constant Open = Finished.write(false);
     public static final Value.Constant Close = Finished.write(true);
 
-    public static final Mapper.ReadWrite<Task> Mapper = Mappers.mapper(new Producer<Task>() {
+    public static final Mapper.ReadWrite<Task> Mapper = Model.mapper(new Producer<Task>() {
         @NonNull
         @Override
         public Task produce() {
