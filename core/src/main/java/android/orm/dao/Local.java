@@ -19,16 +19,14 @@ package android.orm.dao;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Database;
 import android.orm.Route;
-import android.orm.dao.async.Notify;
+import android.orm.dao.async.Observer;
 import android.orm.dao.direct.Notifier;
 import android.orm.dao.local.Watch;
 import android.orm.model.Mapper;
-import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
@@ -60,8 +58,6 @@ public class Local extends Async implements DAO.Local {
     @NonNull
     private final DAO.Direct mDirectDAO;
     @NonNull
-    private final SQLiteOpenHelper mHelper;
-    @NonNull
     private final ContentResolver mResolver;
     @NonNull
     private final Handler mHandler;
@@ -74,7 +70,6 @@ public class Local extends Async implements DAO.Local {
         super(executor);
 
         mDirectDAO = android.orm.dao.Direct.create(context, database);
-        mHelper = database.getDatabaseHelper(context);
         mResolver = context.getContentResolver();
         mHandler = new Handler();
         mNotifier = new Notifier.Immediate(mResolver);
@@ -116,7 +111,12 @@ public class Local extends Async implements DAO.Local {
     private Cancelable notify(@NonNull final Route.Manager manager,
                               @NonNull final Uri uri,
                               @NonNull final Runnable runnable) {
-        return watch(new Notify(manager, mHandler, mResolver, uri, runnable));
+        return register(new Observer(manager, mResolver, uri, new Runnable() {
+            @Override
+            public void run() {
+                mHandler.post(runnable);
+            }
+        }));
     }
 
     @NonNull
@@ -126,16 +126,11 @@ public class Local extends Async implements DAO.Local {
                                  @NonNull final Plan.Read<V> plan,
                                  @NonNull final Select select,
                                  @NonNull final Result.Callback<? super V> callback) {
-        return watch(new Watch<>(
-                mHelper,
+        return register(new Observer(
                 manager,
-                mHandler,
                 mResolver,
                 uri,
-                reading,
-                plan,
-                select,
-                callback
+                new Watch<>(mDirectDAO, mHandler, reading, plan, select, callback)
         ));
     }
 
@@ -333,12 +328,12 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
                                                     @Nullable final M model) {
-            return (model instanceof Observer.Write) ?
+            return (model instanceof android.orm.model.Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
-                            Observer.afterCreate(model);
+                            android.orm.model.Observer.afterCreate(model);
                             return value;
                         }
                     }) :
@@ -348,12 +343,12 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private static <M, V> Result<V> afterUpdate(@NonNull final Result<V> result,
                                                     @Nullable final M model) {
-            return (model instanceof Observer.Write) ?
+            return (model instanceof android.orm.model.Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
-                            Observer.afterUpdate(model);
+                            android.orm.model.Observer.afterUpdate(model);
                             return value;
                         }
                     }) :

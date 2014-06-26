@@ -18,7 +18,7 @@ package android.orm.dao;
 
 import android.database.SQLException;
 import android.orm.DAO;
-import android.orm.dao.async.Watch;
+import android.orm.dao.async.Observer;
 import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -59,7 +59,7 @@ public abstract class Async implements DAO.Async {
 
     private final AtomicReference<ErrorHandler> mErrorHandler = new AtomicReference<>();
     private final Semaphore mSemaphore = new Semaphore(1);
-    private final Collection<Watch> mWatches = new ArrayList<>();
+    private final Collection<Observer> mObservers = new ArrayList<>();
 
     @State
     private int mState = State.INITIALIZED;
@@ -83,8 +83,8 @@ public abstract class Async implements DAO.Async {
                 switch (mState) {
                     case State.INITIALIZED:
                     case State.PAUSED:
-                        for (final Watch watch : mWatches) {
-                            watch.start();
+                        for (final Observer observer : mObservers) {
+                            observer.start();
                         }
                         mState = State.STARTED;
                         break;
@@ -111,8 +111,8 @@ public abstract class Async implements DAO.Async {
             try {
                 switch (mState) {
                     case State.STARTED:
-                        for (final Watch watch : mWatches) {
-                            watch.stop();
+                        for (final Observer observer : mObservers) {
+                            observer.stop();
                         }
                         mState = State.PAUSED;
                         break;
@@ -140,13 +140,13 @@ public abstract class Async implements DAO.Async {
             try {
                 switch (mState) {
                     case State.STARTED:
-                        for (final Watch watch : mWatches) {
-                            watch.stop();
+                        for (final Observer observer : mObservers) {
+                            observer.stop();
                         }
                         //noinspection fallthrough
                     case State.INITIALIZED:
                     case State.PAUSED:
-                        mWatches.clear();
+                        mObservers.clear();
                         mState = State.STOPPED;
                         break;
                     case State.STOPPED:
@@ -185,17 +185,17 @@ public abstract class Async implements DAO.Async {
     }
 
     @NonNull
-    protected final Cancelable watch(@NonNull final Watch watch) {
+    protected final Cancelable register(@NonNull final Observer observer) {
         try {
             mSemaphore.acquire();
             try {
                 switch (mState) {
                     case State.STARTED:
-                        watch.start();
+                        observer.start();
                         //noinspection fallthrough
                     case State.INITIALIZED:
                     case State.PAUSED:
-                        mWatches.add(watch);
+                        mObservers.add(observer);
                         break;
                     case State.STOPPED:
                         throw new UnsupportedOperationException(DAO_STOPPED);
@@ -206,27 +206,27 @@ public abstract class Async implements DAO.Async {
                 mSemaphore.release();
             }
         } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while starting a watcher", ex); //NON-NLS
+            Log.e(TAG, "Thread interrupted while starting an observer", ex); //NON-NLS
         }
 
-        return cancelable(watch);
+        return cancelable(observer);
     }
 
     @NonNull
-    private Cancelable cancelable(@NonNull final Watch watch) {
+    private Cancelable cancelable(@NonNull final Observer observer) {
         return new Cancelable() {
             @Override
             public void cancel() {
                 try {
                     mSemaphore.acquire();
                     try {
-                        mWatches.remove(watch);
-                        watch.stop();
+                        mObservers.remove(observer);
+                        observer.stop();
                     } finally {
                         mSemaphore.release();
                     }
                 } catch (final InterruptedException ex) {
-                    Log.e(TAG, "Thread interrupted while stopping a watcher", ex); //NON-NLS
+                    Log.e(TAG, "Thread interrupted while stopping an observer", ex); //NON-NLS
                 }
             }
         };

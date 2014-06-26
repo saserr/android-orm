@@ -22,11 +22,10 @@ import android.content.Context;
 import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Route;
-import android.orm.dao.async.Notify;
+import android.orm.dao.async.Observer;
 import android.orm.dao.remote.Apply;
 import android.orm.dao.remote.Watch;
 import android.orm.model.Mapper;
-import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
@@ -116,7 +115,12 @@ public class Remote extends Async implements DAO.Remote {
     private Cancelable notify(@NonNull final Route.Manager manager,
                               @NonNull final Uri uri,
                               @NonNull final Runnable runnable) {
-        return watch(new Notify(manager, mHandler, mResolver, uri, runnable));
+        return register(new Observer(manager, mResolver, uri, new Runnable() {
+            @Override
+            public void run() {
+                mHandler.post(runnable);
+            }
+        }));
     }
 
     @NonNull
@@ -125,14 +129,17 @@ public class Remote extends Async implements DAO.Remote {
                                  @NonNull final Reading<V> reading,
                                  @NonNull final android.orm.dao.remote.Read.Arguments<V> arguments,
                                  @NonNull final Result.Callback<? super V> callback) {
-        return watch(new Watch<>(
+        return register(new Observer(
                 manager,
-                mHandler,
                 mResolver,
                 uri,
-                reading,
-                arguments,
-                callback
+                new Watch<>(
+                        mHandler,
+                        reading,
+                        new android.orm.dao.remote.Read<V>(mResolver, uri),
+                        arguments,
+                        callback
+                )
         ));
     }
 
@@ -315,12 +322,12 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         private static <M, V> Result<V> afterCreate(@NonNull final Result<V> result,
                                                     @Nullable final M model) {
-            return (model instanceof Observer.Write) ?
+            return (model instanceof android.orm.model.Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
-                            Observer.afterCreate(model);
+                            android.orm.model.Observer.afterCreate(model);
                             return value;
                         }
                     }) :
@@ -330,12 +337,12 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         private static <M, V> Result<V> afterUpdate(@NonNull final Result<V> result,
                                                     @Nullable final M model) {
-            return (model instanceof Observer.Write) ?
+            return (model instanceof android.orm.model.Observer.Write) ?
                     result.map(new Function<V, V>() {
                         @NonNull
                         @Override
                         public V invoke(@NonNull final V value) {
-                            Observer.afterUpdate(model);
+                            android.orm.model.Observer.afterUpdate(model);
                             return value;
                         }
                     }) :

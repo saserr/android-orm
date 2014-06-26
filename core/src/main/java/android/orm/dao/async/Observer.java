@@ -31,38 +31,33 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Notify implements Watch {
+public class Observer {
 
-    private final Notifying mNotifying;
+    private final Notifier mNotifier;
 
-    public Notify(@NonNull final Route.Manager manager,
-                  @NonNull final Handler handler,
-                  @NonNull final ContentResolver resolver,
-                  @NonNls @NonNull final Uri uri,
-                  @NonNull final Runnable runnable) {
+    public Observer(@NonNull final Route.Manager manager,
+                    @NonNull final ContentResolver resolver,
+                    @NonNls @NonNull final Uri uri,
+                    @NonNull final Runnable runnable) {
         super();
 
-        mNotifying = new Notifying(manager, handler, resolver, uri, runnable);
+        mNotifier = new Notifier(manager, resolver, uri, runnable);
     }
 
-    @Override
     public final void start() {
-        new Thread(mNotifying).start();
+        new Thread(mNotifier).start();
     }
 
-    @Override
     public final void stop() {
-        mNotifying.stop();
+        mNotifier.stop();
     }
 
-    private static class Notifying implements Runnable {
+    private static class Notifier implements Runnable {
 
-        private static final String TAG = Notifying.class.getSimpleName();
+        private static final String TAG = Notifier.class.getSimpleName();
 
         @NonNull
         private final Route.Manager mRouteManager;
-        @NonNull
-        private final Handler mHandler;
         @NonNull
         private final ContentResolver mResolver;
         @NonNls
@@ -79,7 +74,7 @@ public class Notify implements Watch {
 
             @Override
             public void onChange(final boolean selfChange) {
-                alert();
+                mRunnable.run();
             }
 
             @Override
@@ -91,21 +86,19 @@ public class Notify implements Watch {
                 }
 
                 if ((match == null) || mTable.equals(match.getTable())) {
-                    alert();
+                    mRunnable.run();
                 }
             }
         };
 
         @SuppressWarnings("unchecked")
-        private Notifying(@NonNull final Route.Manager manager,
-                          @NonNull final Handler handler,
-                          @NonNull final ContentResolver resolver,
-                          @NonNls @NonNull final Uri uri,
-                          @NonNull final Runnable runnable) {
+        private Notifier(@NonNull final Route.Manager manager,
+                         @NonNull final ContentResolver resolver,
+                         @NonNls @NonNull final Uri uri,
+                         @NonNull final Runnable runnable) {
             super();
 
             mRouteManager = manager;
-            mHandler = handler;
             mResolver = resolver;
             mUri = uri;
             mRunnable = runnable;
@@ -123,7 +116,7 @@ public class Notify implements Watch {
 
             final Looper current = Looper.myLooper();
             if (mLooper.compareAndSet(null, current)) {
-                alert();
+                mRunnable.run();
                 mResolver.registerContentObserver(mUri, true, mObserver);
                 try {
                     Looper.loop();
@@ -141,10 +134,6 @@ public class Notify implements Watch {
             if (current != null) {
                 current.quit();
             }
-        }
-
-        private void alert() {
-            mHandler.post(mRunnable);
         }
     }
 }
