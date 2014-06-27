@@ -25,13 +25,11 @@ import android.orm.model.Property;
 import android.orm.model.Reading;
 import android.orm.model.Storage;
 import android.orm.model.View;
-import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Converter;
 import android.orm.util.Converters;
 import android.orm.util.Function;
-import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.orm.util.Producers;
 import android.support.annotation.NonNull;
@@ -370,6 +368,6 @@ public abstract class Model {
     @SuppressWarnings("unchecked")
     public static <M extends Model> Mapper.ReadWrite<M> mapper(@NonNull final Producer<M> producer) {
         final Object converter = ModelInstanceConverter;
-        return Mappers.mapper(Producers.convert(producer, ToInstance)).map(Maybes.lift((Converter<Instance.ReadWrite, M>) converter));
+        return Mappers.mapper(Producers.convert(producer, ToInstance)).map((Converter<Instance.ReadWrite, M>) converter);
     }
 }
