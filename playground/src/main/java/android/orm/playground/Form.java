@@ -22,7 +22,6 @@ import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
-import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.util.Maybe;
 import android.orm.util.Validations;
@@ -84,16 +83,6 @@ public class Form implements Instance.ReadWrite {
     @Override
     public final String getName() {
         return mName;
-    }
-
-    @NonNull
-    @Override
-    public final Select.Projection getProjection() {
-        Select.Projection projection = Select.Projection.Nothing;
-        for (final Entry.Read<?> entry : mReads) {
-            projection = projection.and(entry.getProjection());
-        }
-        return projection;
     }
 
     @NonNull
@@ -204,9 +193,6 @@ public class Form implements Instance.ReadWrite {
         public interface Read<V> extends Instance.Setter<V> {
 
             @NonNull
-            Select.Projection getProjection();
-
-            @NonNull
             Reading.Item.Action prepareRead(@NonNull final Context context);
         }
 
@@ -242,12 +228,6 @@ public class Form implements Instance.ReadWrite {
 
             @NonNull
             @Override
-            public Select.Projection getProjection() {
-                return mapper.getProjection();
-            }
-
-            @NonNull
-            @Override
             public Reading.Item.Action prepareRead(@NonNull final Context context) {
                 final V value = binding.get().getOrElse(null);
                 return action(
@@ -273,12 +253,6 @@ public class Form implements Instance.ReadWrite {
     private static <V> Entry.ReadWrite<V> entry(@NonNull final Binding.Validated<V> binding,
                                                 @NonNull final Mapper.ReadWrite<V> mapper) {
         return new Entry.ReadWrite<V>() {
-
-            @NonNull
-            @Override
-            public Select.Projection getProjection() {
-                return mapper.getProjection();
-            }
 
             @NonNull
             @Override

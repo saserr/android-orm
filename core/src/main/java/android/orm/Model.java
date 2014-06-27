@@ -243,23 +243,6 @@ public abstract class Model {
 
         @NonNull
         @Override
-        public final Select.Projection getProjection() {
-            final Collection<Instance.Readable> instances = getReadableInstances(mModel);
-            if (instances.isEmpty()) {
-                throw new IllegalStateException("Model has no views, properties and storages");
-            }
-
-            Select.Projection projection = Select.Projection.Nothing;
-
-            for (final Instance.Readable instance : instances) {
-                projection = projection.and(instance.getProjection());
-            }
-
-            return projection;
-        }
-
-        @NonNull
-        @Override
         public final Reading.Item.Action prepareRead() {
             final Collection<Instance.Readable> instances = getReadableInstances(mModel);
             final Collection<Reading.Item.Action> actions = new ArrayList<>(instances.size());

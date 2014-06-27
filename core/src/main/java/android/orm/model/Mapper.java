@@ -44,9 +44,6 @@ public final class Mapper {
         String getName();
 
         @NonNull
-        Select.Projection getProjection();
-
-        @NonNull
         Reading.Item.Create<M> prepareRead();
 
         @NonNull
@@ -90,8 +87,6 @@ public final class Mapper {
                 @NonNls
                 @NonNull
                 private final String mName;
-                @NonNull
-                private final Select.Projection mProjection;
 
                 private Composition(@NonNull final Read<M> first, @NonNull final Value.Read<N> second) {
                     this(first, Mappers.read(second));
@@ -103,7 +98,6 @@ public final class Mapper {
                     mFirst = first;
                     mSecond = second;
                     mName = '(' + mFirst.getName() + ", " + mSecond.getName() + ')';
-                    mProjection = first.getProjection().and(second.getProjection());
                 }
 
                 @NonNls
@@ -111,12 +105,6 @@ public final class Mapper {
                 @Override
                 public final String getName() {
                     return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Select.Projection getProjection() {
-                    return mProjection;
                 }
 
                 @NonNull
@@ -149,8 +137,6 @@ public final class Mapper {
                 @NonNls
                 @NonNull
                 private final String mName;
-                @NonNull
-                private final Select.Projection mProjection;
 
                 private Converted(@NonNull final Read<M> read,
                                   @NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
@@ -160,7 +146,6 @@ public final class Mapper {
                     mConverter = converter;
                     mFrom = from(mConverter);
                     mName = read.getName();
-                    mProjection = mRead.getProjection();
                 }
 
                 @NonNls
@@ -168,12 +153,6 @@ public final class Mapper {
                 @Override
                 public final String getName() {
                     return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Select.Projection getProjection() {
-                    return mProjection;
                 }
 
                 @NonNull
@@ -235,19 +214,12 @@ public final class Mapper {
                 return new Base<M>() {
 
                     private final Reading.Item.Create<M> mCreate = reading.build();
-                    private final Select.Projection mProjection = mCreate.getProjection();
 
                     @NonNls
                     @NonNull
                     @Override
                     public String getName() {
                         return name;
-                    }
-
-                    @NonNull
-                    @Override
-                    public Select.Projection getProjection() {
-                        return mProjection;
                     }
 
                     @NonNull

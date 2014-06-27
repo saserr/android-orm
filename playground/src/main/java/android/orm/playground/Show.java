@@ -20,7 +20,6 @@ import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Reading;
-import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.support.annotation.NonNull;
 
@@ -52,16 +51,6 @@ public class Show implements Instance.Readable {
     @Override
     public final String getName() {
         return mName;
-    }
-
-    @NonNull
-    @Override
-    public final Select.Projection getProjection() {
-        Select.Projection projection = Select.Projection.Nothing;
-        for (final Entry entry : mEntries) {
-            projection = projection.and(entry.getProjection());
-        }
-        return projection;
     }
 
     @NonNull
@@ -128,10 +117,6 @@ public class Show implements Instance.Readable {
     }
 
     private interface Entry {
-
-        @NonNull
-        Select.Projection getProjection();
-
         @NonNull
         Reading.Item.Action prepareRead();
     }
@@ -140,13 +125,6 @@ public class Show implements Instance.Readable {
     private static <V> Entry entry(@NonNull final Binding.Writable<V> binding,
                                    @NonNull final Mapper.Read<V> mapper) {
         return new Entry() {
-
-            @NonNull
-            @Override
-            public Select.Projection getProjection() {
-                return mapper.getProjection();
-            }
-
             @NonNull
             @Override
             public Reading.Item.Action prepareRead() {
@@ -159,13 +137,6 @@ public class Show implements Instance.Readable {
     private static <V> Entry entry(@NonNull final Binding.ReadWrite<V> binding,
                                    @NonNull final Mapper.Read<V> mapper) {
         return new Entry() {
-
-            @NonNull
-            @Override
-            public Select.Projection getProjection() {
-                return mapper.getProjection();
-            }
-
             @NonNull
             @Override
             public Reading.Item.Action prepareRead() {

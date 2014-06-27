@@ -16,7 +16,6 @@
 
 package android.orm.model;
 
-import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -39,8 +38,6 @@ public class View<V> implements Instance.Readable, Observer.Read {
     @NonNls
     @NonNull
     private final String mName;
-    @NonNull
-    private final Select.Projection mProjection;
 
     private final Instance.Setter<V> mSetter = new Instance.Setter<V>() {
         @Override
@@ -66,7 +63,6 @@ public class View<V> implements Instance.Readable, Observer.Read {
         mMapper = mapper;
         mObserver = (observer == null) ? DUMMY : observer;
         mName = mapper.getName();
-        mProjection = mapper.getProjection();
     }
 
     public final boolean isSomething() {
@@ -92,12 +88,6 @@ public class View<V> implements Instance.Readable, Observer.Read {
     @Override
     public final String getName() {
         return mName;
-    }
-
-    @NonNull
-    @Override
-    public final Select.Projection getProjection() {
-        return mProjection;
     }
 
     @NonNull

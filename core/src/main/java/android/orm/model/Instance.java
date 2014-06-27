@@ -16,7 +16,6 @@
 
 package android.orm.model;
 
-import android.orm.sql.Select;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
@@ -38,9 +37,6 @@ public final class Instance {
         @NonNls
         @NonNull
         String getName();
-
-        @NonNull
-        Select.Projection getProjection();
 
         @NonNull
         Reading.Item.Action prepareRead();

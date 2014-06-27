@@ -150,6 +150,10 @@ public interface Reading<M> {
         }
 
         public interface Action {
+
+            @NonNull
+            Select.Projection getProjection();
+
             @NonNull
             Runnable read(@NonNull final Readable input);
         }
@@ -158,6 +162,13 @@ public interface Reading<M> {
         public static <V> Action action(@NonNull final Value.Read<V> value,
                                         @NonNull final Instance.Setter<V> setter) {
             return new Action() {
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return value.getProjection();
+                }
+
                 @NonNull
                 @Override
                 public Runnable read(@NonNull final Readable input) {
@@ -170,6 +181,15 @@ public interface Reading<M> {
         public static <V> Action action(@NonNull final Item<V> item,
                                         @NonNull final Instance.Setter<V> setter) {
             return new Action() {
+
+                private final Select.Projection mProjection = item.getProjection();
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return mProjection;
+                }
+
                 @NonNull
                 @Override
                 public Runnable read(@NonNull final Readable input) {
@@ -181,6 +201,24 @@ public interface Reading<M> {
         @NonNull
         public static Action compose(@NonNull final Collection<Action> actions) {
             return new Action() {
+
+                @NonNull
+                private final Select.Projection mProjection;
+
+                {
+                    Select.Projection projection = Select.Projection.Nothing;
+                    for (final Action action : actions) {
+                        projection = projection.and(action.getProjection());
+                    }
+                    mProjection = projection;
+                }
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return mProjection;
+                }
+
                 @NonNull
                 @Override
                 public Runnable read(@NonNull final Readable input) {
@@ -352,8 +390,8 @@ public interface Reading<M> {
 
             @NonNull
             public static <M extends Instance.Readable> Update<M> from(@NonNull final M model) {
-                final Select.Projection projection = model.getProjection();
                 final Action action = model.prepareRead();
+                final Select.Projection projection = action.getProjection();
                 return projection.isEmpty() ?
                         Update.<M>empty() :
                         new Update<M>(projection) {
@@ -422,8 +460,6 @@ public interface Reading<M> {
             private final Value.Read<M> mProducer;
             @NonNull
             private Select.Projection mCreateProjection;
-            @NonNull
-            private Select.Projection mProducerOnlyProjection;
 
             private final Collection<Function<M, Action>> mEntries;
 
@@ -431,8 +467,7 @@ public interface Reading<M> {
                 super();
 
                 mProducer = producer;
-                mProducerOnlyProjection = producer.getProjection();
-                mCreateProjection = mProducerOnlyProjection;
+                mCreateProjection = producer.getProjection();
                 mEntries = new ArrayList<>();
             }
 
@@ -441,7 +476,6 @@ public interface Reading<M> {
 
                 mProducer = builder.mProducer;
                 mCreateProjection = builder.mCreateProjection;
-                mProducerOnlyProjection = builder.mProducerOnlyProjection;
                 mEntries = new ArrayList<>(builder.mEntries);
             }
 
@@ -455,7 +489,7 @@ public interface Reading<M> {
             @NonNull
             public final <V> Builder<M> with(@NonNull final Mapper.Read<V> mapper,
                                              @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
-                add(mapper.getProjection(), entry(mapper, lens));
+                add(mapper.prepareRead().getProjection(), entry(mapper, lens));
                 return this;
             }
 
@@ -466,13 +500,12 @@ public interface Reading<M> {
 
             @NonNull
             public final Update<M> build(@NonNull final M model) {
-                return build(model, mProducer, mCreateProjection, mProducerOnlyProjection, mEntries);
+                return build(model, mProducer, mEntries);
             }
 
             protected final void add(@NonNull final Select.Projection projection,
                                      @NonNull final Function<M, Action> entry) {
                 mCreateProjection = mCreateProjection.and(projection);
-                mProducerOnlyProjection = mProducerOnlyProjection.without(projection);
                 mEntries.add(entry);
             }
 
@@ -494,14 +527,14 @@ public interface Reading<M> {
             @NonNull
             private static <M> Update<M> build(@NonNull final M model,
                                                @NonNull final Value.Read<M> producer,
-                                               @NonNull final Select.Projection projection,
-                                               @NonNull final Select.Projection producerOnly,
                                                @NonNull final Collection<Function<M, Action>> entries) {
                 final Collection<Action> actions = new ArrayList<>(entries.size());
                 for (final Function<M, Action> entry : entries) {
                     actions.add(entry.invoke(model));
                 }
                 final Action action = compose(actions);
+                final Select.Projection projection = action.getProjection();
+                final Select.Projection producerOnly = producer.getProjection().without(projection);
 
                 return projection.isEmpty() ?
                         Update.<M>empty() :
@@ -615,8 +648,7 @@ public interface Reading<M> {
         public static <V> Producer<Maybe<V>> eager(@NonNull final V value,
                                                    @NonNull final Runnable runnable) {
             runnable.run();
-            final Maybe<V> result = something(value);
-            return constant(result);
+            return constant(something(value));
         }
 
         @NonNull

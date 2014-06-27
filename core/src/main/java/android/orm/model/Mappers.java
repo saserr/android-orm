@@ -105,20 +105,13 @@ public final class Mappers {
             }
         };
 
-        private final Lazy<Select.Projection> mCreateProjection = new Lazy.Volatile<Select.Projection>() {
-            @NonNull
-            @Override
-            protected Select.Projection produce() {
-                return mCreateBlueprint.get().getProjection();
-            }
-        };
-
         @NonNull
         private final Lazy<Reading.Item.Create<M>> mCreateReading = new Lazy.Volatile<Reading.Item.Create<M>>() {
             @NonNull
             @Override
             protected Reading.Item.Create<M> produce() {
-                return Reading.Item.Create.from(mCreateProjection.get(), mProducer);
+                final Select.Projection projection = mCreateBlueprint.get().prepareRead().getProjection();
+                return Reading.Item.Create.from(projection, mProducer);
             }
         };
 
@@ -133,12 +126,6 @@ public final class Mappers {
         @Override
         public final String getName() {
             return mName.get();
-        }
-
-        @NonNull
-        @Override
-        public final Select.Projection getProjection() {
-            return mCreateProjection.get();
         }
 
         @NonNull
@@ -173,12 +160,6 @@ public final class Mappers {
         @Override
         public final String getName() {
             return mValue.getName();
-        }
-
-        @NonNull
-        @Override
-        public final Select.Projection getProjection() {
-            return mValue.getProjection();
         }
 
         @NonNull
@@ -266,12 +247,6 @@ public final class Mappers {
         @Override
         public final String getName() {
             return mRead.getName();
-        }
-
-        @NonNull
-        @Override
-        public final Select.Projection getProjection() {
-            return mRead.getProjection();
         }
 
         @NonNull
