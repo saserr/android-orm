@@ -261,22 +261,20 @@ public final class Validations {
         public static final Validation<Long> IsPositive = new Validation.Value<Long>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
-            public Result<Long> validate(@NonNull final Long value) {
+            public <T extends Long> Result<T> validate(@NonNull final T value) {
                 return (value.compareTo(ZERO) > 0) ?
                         valid(value) :
-                        Validations.<Long>safeCast(Errors.NOT_POSITIVE);
+                        Validations.<T>safeCast(Errors.NOT_POSITIVE);
             }
         };
 
         public static final Validation<Long> IsNegative = new Validation.Value<Long>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
-            public Result<Long> validate(@NonNull final Long value) {
+            public <T extends Long> Result<T> validate(@NonNull final T value) {
                 return (value.compareTo(ZERO) < 0) ?
                         valid(value) :
-                        Validations.<Long>safeCast(Errors.NOT_NEGATIVE);
+                        Validations.<T>safeCast(Errors.NOT_NEGATIVE);
             }
         };
 
@@ -292,22 +290,20 @@ public final class Validations {
         public static final Validation<Double> IsPositive = new Validation.Value<Double>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
-            public Result<Double> validate(@NonNull final Double value) {
+            public <T extends Double> Result<T> validate(@NonNull final T value) {
                 return (value.compareTo(ZERO) > 0) ?
                         valid(value) :
-                        Validations.<Double>safeCast(Errors.NOT_POSITIVE);
+                        Validations.<T>safeCast(Errors.NOT_POSITIVE);
             }
         };
 
         public static final Validation<Double> IsNegative = new Validation.Value<Double>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
-            public Result<Double> validate(@NonNull final Double value) {
+            public <T extends Double> Result<T> validate(@NonNull final T value) {
                 return (value.compareTo(ZERO) < 0) ?
                         valid(value) :
-                        Validations.<Double>safeCast(Errors.NOT_NEGATIVE);
+                        Validations.<T>safeCast(Errors.NOT_NEGATIVE);
             }
         };
 
@@ -321,22 +317,20 @@ public final class Validations {
         public static final Validation<BigDecimal> IsPositive = new Validation.Value<BigDecimal>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
-            public Result<BigDecimal> validate(@NonNull final BigDecimal value) {
+            public <T extends BigDecimal> Result<T> validate(@NonNull final T value) {
                 return (value.compareTo(ZERO) > 0) ?
                         valid(value) :
-                        Validations.<BigDecimal>safeCast(Errors.NOT_POSITIVE);
+                        Validations.<T>safeCast(Errors.NOT_POSITIVE);
             }
         };
 
         public static final Validation<BigDecimal> IsNegative = new Validation.Value<BigDecimal>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
-            public Result<BigDecimal> validate(@NonNull final BigDecimal value) {
+            public <T extends BigDecimal> Result<T> validate(@NonNull final T value) {
                 return (value.compareTo(ZERO) < 0) ?
                         valid(value) :
-                        Validations.<BigDecimal>safeCast(Errors.NOT_NEGATIVE);
+                        Validations.<T>safeCast(Errors.NOT_NEGATIVE);
             }
         };
 

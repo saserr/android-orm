@@ -217,7 +217,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         return mType.escape(value);
     }
 
-    private <C extends Constraint<V>> boolean contains(@NonNull final Class<C> klass) {
+    private <C extends Constraint<?>> boolean contains(@NonNull final Class<C> klass) {
         final List<Constraint<V>> constraints = mConstraints;
         final int size = constraints.size();
         boolean found = false;
