@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-apply plugin: 'android-library'
+apply plugin: 'com.android.library'
 
 dependencies {
     compile 'com.intellij:annotations:12.0'
-    compile 'com.android.support:support-annotations:19.1.0'
+    compile 'com.android.support:support-annotations:20.0.0'
 }
 
 android {

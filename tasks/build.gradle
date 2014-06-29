@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-apply plugin: 'android'
+apply plugin: 'com.android.application'
 
 dependencies {
     compile(project(':core'))
-    compile 'com.android.support:support-v4:19.1.0'
-    compile 'com.android.support:appcompat-v7:19.1.0'
+    compile 'com.android.support:support-v4:20.0.0'
+    compile 'com.android.support:appcompat-v7:20.0.0'
 }
 
 android {
