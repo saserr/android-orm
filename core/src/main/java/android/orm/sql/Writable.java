@@ -19,17 +19,17 @@ package android.orm.sql;
 import android.content.ContentValues;
 import android.support.annotation.NonNull;
 
+import org.jetbrains.annotations.NonNls;
+
 public interface Writable {
 
-    boolean contains(@NonNull final String key);
+    void putNull(@NonNls @NonNull final String key);
 
-    void putNull(@NonNull final String key);
+    void put(@NonNls @NonNull final String key, @NonNull final String value);
 
-    void put(@NonNull final String key, @NonNull final String value);
+    void put(@NonNls @NonNull final String key, @NonNull final Long value);
 
-    void put(@NonNull final String key, @NonNull final Long value);
-
-    void put(@NonNull final String key, @NonNull final Double value);
+    void put(@NonNls @NonNull final String key, @NonNull final Double value);
 
     void putAll(@NonNull final ContentValues values);
 }

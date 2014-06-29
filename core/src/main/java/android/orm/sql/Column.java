@@ -130,10 +130,10 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
             } else {
                 mType.write(output, mName, v);
             }
-        }
-
-        if ((operation == Insert) && mRequired && !output.contains(mName)) {
-            throw new SQLException("Required column " + mName + " is missing");
+        } else {
+            if ((operation == Insert) && mRequired) {
+                throw new SQLException("Required column " + mName + " is missing");
+            }
         }
     }
 

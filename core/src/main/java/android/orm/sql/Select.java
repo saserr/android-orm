@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
+import static android.orm.sql.Types.Text;
 import static android.util.Log.INFO;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -105,12 +106,23 @@ public class Select {
 
     @NonNull
     public static <V> Where.Part<V> where(@NonNull final Column<V> column) {
-        return new Where.Part<>(column);
+        return where(column.getName(), column.getType());
+    }
+
+    @NonNull
+    public static <V> Where.Part<V> where(@NonNls @NonNull final String name,
+                                          @NonNull final Type<V> type) {
+        return new Where.Part<>(name, type);
     }
 
     @NonNull
     public static Where.TextPart whereText(@NonNull final Column<String> column) {
-        return new Where.TextPart(column);
+        return whereText(column.getName());
+    }
+
+    @NonNull
+    public static Where.TextPart whereText(@NonNls @NonNull final String name) {
+        return new Where.TextPart(name);
     }
 
     @NonNull
@@ -496,37 +508,26 @@ public class Select {
 
         public static class Part<V> {
 
-            @NonNls
-            private static final String COLUMN_NOT_NULLABLE = "Column should be nullable";
-
             @NonNull
-            private final Column<V> mColumn;
+            private final Type<V> mType;
             @NonNls
             @NonNull
             private final String mEscapedName;
 
-            public Part(@NonNull final Column<V> column) {
+            public Part(@NonNls @NonNull final String name, @NonNull final Type<V> type) {
                 super();
 
-                mColumn = column;
-                mEscapedName = Helper.escape(column.getName());
+                mType = type;
+                mEscapedName = Helper.escape(name);
             }
 
             @NonNull
             public final Where isNull() {
-                if (!mColumn.isNullable()) {
-                    throw new IllegalArgumentException(COLUMN_NOT_NULLABLE);
-                }
-
                 return new Where(mEscapedName + " is null");
             }
 
             @NonNull
             public final Where isNotNull() {
-                if (!mColumn.isNullable()) {
-                    throw new IllegalArgumentException(COLUMN_NOT_NULLABLE);
-                }
-
                 return new Where(mEscapedName + " is not null");
             }
 
@@ -572,7 +573,7 @@ public class Select {
 
             @NonNull
             protected String escape(@NonNull final V value) {
-                return mColumn.escape(value);
+                return mType.escape(value);
             }
         }
 
@@ -582,10 +583,10 @@ public class Select {
             @NonNull
             private final String mEscapedName;
 
-            public TextPart(@NonNull final Column<String> column) {
-                super(column);
+            public TextPart(@NonNls @NonNull final String name) {
+                super(name, Text);
 
-                mEscapedName = escape(column.getName());
+                mEscapedName = escape(name);
             }
 
             @NonNull

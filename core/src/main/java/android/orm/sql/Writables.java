@@ -19,6 +19,8 @@ package android.orm.sql;
 import android.content.ContentValues;
 import android.support.annotation.NonNull;
 
+import org.jetbrains.annotations.NonNls;
+
 import static android.orm.sql.Helper.escape;
 
 public final class Writables {
@@ -40,27 +42,22 @@ public final class Writables {
         }
 
         @Override
-        public final boolean contains(@NonNull final String key) {
-            return mValues.containsKey(escape(key));
-        }
-
-        @Override
-        public final void putNull(@NonNull final String key) {
+        public final void putNull(@NonNls @NonNull final String key) {
             mValues.putNull(escape(key));
         }
 
         @Override
-        public final void put(@NonNull final String key, @NonNull final String value) {
+        public final void put(@NonNls @NonNull final String key, @NonNull final String value) {
             mValues.put(escape(key), value);
         }
 
         @Override
-        public final void put(@NonNull final String key, @NonNull final Long value) {
+        public final void put(@NonNls @NonNull final String key, @NonNull final Long value) {
             mValues.put(escape(key), value);
         }
 
         @Override
-        public final void put(@NonNull final String key, @NonNull final Double value) {
+        public final void put(@NonNls @NonNull final String key, @NonNull final Double value) {
             mValues.put(escape(key), value);
         }
 
