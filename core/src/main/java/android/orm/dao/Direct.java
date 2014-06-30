@@ -45,6 +45,7 @@ import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
@@ -61,6 +62,8 @@ import static android.orm.model.Plans.write;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 import static android.orm.sql.Select.select;
+import static android.orm.sql.Value.Write.Operation.Insert;
+import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
@@ -141,27 +144,27 @@ public abstract class Direct implements DAO.Direct {
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> Maybe<Uri> save(@NonNull final M model) {
+        public final <M extends Instance.Writable> Maybe<Pair<Value.Write.Operation, Uri>> save(@NonNull final M model) {
             return save(model, write(model));
         }
 
         @NonNull
         @Override
-        public final Maybe<Uri> save(@NonNull final Writer writer) {
+        public final Maybe<Pair<Value.Write.Operation, Uri>> save(@NonNull final Writer writer) {
             return save(null, write(writer));
         }
 
         @NonNull
         @Override
-        public final <M> Maybe<Uri> save(@Nullable final M model,
-                                         @NonNull final Value.Write<M> value) {
+        public final <M> Maybe<Pair<Value.Write.Operation, Uri>> save(@Nullable final M model,
+                                                                      @NonNull final Value.Write<M> value) {
             return save(model, write(something(model), value));
         }
 
         @NonNull
         @Override
-        public final <M> Maybe<Uri> save(@NonNull final M model,
-                                         @NonNull final Mapper.Write<M> mapper) {
+        public final <M> Maybe<Pair<Value.Write.Operation, Uri>> save(@NonNull final M model,
+                                                                      @NonNull final Mapper.Write<M> mapper) {
             return save(model, mapper.prepareWrite(model));
         }
 
@@ -187,17 +190,17 @@ public abstract class Direct implements DAO.Direct {
         }
 
         @NonNull
-        protected final <M> Maybe<Uri> save(@Nullable final M model,
-                                            @NonNull final Plan.Write plan) {
-            final Maybe<Uri> result;
+        protected final <M> Maybe<Pair<Value.Write.Operation, Uri>> save(@Nullable final M model,
+                                                                         @NonNull final Plan.Write plan) {
+            final Maybe<Pair<Value.Write.Operation, Uri>> result;
 
             if (plan.isEmpty()) {
                 result = nothing();
             } else {
                 final Boolean exists = exists().getOrElse(null);
                 result = ((exists == null) || !exists) ?
-                        insert(model, plan) :
-                        update(model, plan);
+                        something(Insert).and(insert(model, plan)) :
+                        something(Update).and(update(model, plan));
             }
 
             return result;

@@ -37,6 +37,7 @@ import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Pair;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -200,16 +201,18 @@ public final class DAO {
         interface Save {
 
             @NonNull
-            <M extends Instance.Writable> Maybe<Uri> save(@NonNull final M model);
+            <M extends Instance.Writable> Maybe<Pair<Value.Write.Operation, Uri>> save(@NonNull final M model);
 
             @NonNull
-            Maybe<Uri> save(@NonNull final Writer writer);
+            Maybe<Pair<Value.Write.Operation, Uri>> save(@NonNull final Writer writer);
 
             @NonNull
-            <M> Maybe<Uri> save(@Nullable final M model, @NonNull final Value.Write<M> value);
+            <M> Maybe<Pair<Value.Write.Operation, Uri>> save(@Nullable final M model,
+                                                             @NonNull final Value.Write<M> value);
 
             @NonNull
-            <M> Maybe<Uri> save(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
+            <M> Maybe<Pair<Value.Write.Operation, Uri>> save(@NonNull final M model,
+                                                             @NonNull final Mapper.Write<M> mapper);
         }
 
         final class Update {
