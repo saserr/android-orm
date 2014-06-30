@@ -29,7 +29,7 @@ import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Property<V> implements Instance.ReadWrite, Observer.ReadWrite {
+public class Property<V> extends Instance.ReadWrite.Base implements Observer.ReadWrite {
 
     // TODO logging
 

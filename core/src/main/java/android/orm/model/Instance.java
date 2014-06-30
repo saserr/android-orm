@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static android.orm.model.Instances.combine;
+import static android.orm.model.Instances.compose;
 import static android.orm.model.Plans.write;
 import static android.orm.model.Reading.Item.action;
 
@@ -55,6 +56,27 @@ public final class Instance {
 
         @NonNull
         Reading.Item.Action prepareRead();
+
+        @NonNull
+        Readable and(@NonNull final Readable other);
+
+        @NonNull
+        ReadWrite and(@NonNull final Writable other);
+
+        abstract class Base implements Readable {
+
+            @NonNull
+            @Override
+            public final Readable and(@NonNull final Readable other) {
+                return compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final Writable other) {
+                return combine(this, other);
+            }
+        }
 
         class Builder {
 
@@ -167,21 +189,24 @@ public final class Instance {
                 };
             }
 
-            private static class CompositeReadable extends Observer.Read.Delegate implements Readable {
+            private static class CompositeReadable extends Base implements Observer.Read {
 
                 @NonNls
                 @NonNull
                 private final String mName;
                 @NonNull
                 private final Collection<Producer<Reading.Item.Action>> mProducers;
+                @NonNull
+                private final Observer.Read mObserver;
 
                 private CompositeReadable(@NonNls @NonNull final String name,
                                           @NonNull final Collection<Producer<Reading.Item.Action>> producers,
                                           @NonNull final Collection<Observer.Read> observers) {
-                    super(observers);
+                    super();
 
                     mName = name;
                     mProducers = new ArrayList<>(producers);
+                    mObserver = Observer.read(new ArrayList<>(observers));
                 }
 
                 @NonNull
@@ -201,6 +226,16 @@ public final class Instance {
 
                     return Reading.Item.compose(actions);
                 }
+
+                @Override
+                public final void beforeRead() {
+                    mObserver.beforeRead();
+                }
+
+                @Override
+                public final void afterRead() {
+                    mObserver.afterRead();
+                }
             }
         }
     }
@@ -209,6 +244,27 @@ public final class Instance {
 
         @NonNull
         Plan.Write prepareWrite();
+
+        @NonNull
+        Writable and(@NonNull final Writable other);
+
+        @NonNull
+        ReadWrite and(@NonNull final Readable other);
+
+        abstract class Base implements Writable {
+
+            @NonNull
+            @Override
+            public final Writable and(@NonNull final Writable other) {
+                return compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final Readable other) {
+                return combine(other, this);
+            }
+        }
 
         class Builder {
 
@@ -307,16 +363,19 @@ public final class Instance {
                 };
             }
 
-            private static class CompositeWritable extends Observer.Write.Delegate implements Writable {
+            private static class CompositeWritable extends Base implements Observer.Write {
 
                 @NonNull
                 private final Collection<Producer<Plan.Write>> mProducers;
+                @NonNull
+                private final Observer.Write mObserver;
 
                 private CompositeWritable(@NonNull final Collection<Producer<Plan.Write>> producers,
                                           @NonNull final Collection<Observer.Write> observers) {
-                    super(observers);
+                    super();
 
                     mProducers = new ArrayList<>(producers);
+                    mObserver = Observer.write(new ArrayList<>(observers));
                 }
 
                 @NonNull
@@ -330,11 +389,65 @@ public final class Instance {
 
                     return Plans.compose(plans);
                 }
+
+                @Override
+                public final void beforeCreate() {
+                    mObserver.beforeCreate();
+                }
+
+                @Override
+                public final void afterCreate() {
+                    mObserver.afterCreate();
+                }
+
+                @Override
+                public final void beforeUpdate() {
+                    mObserver.beforeUpdate();
+                }
+
+                @Override
+                public final void afterUpdate() {
+                    mObserver.afterUpdate();
+                }
+
+                @Override
+                public final void beforeSave() {
+                    mObserver.beforeSave();
+                }
+
+                @Override
+                public final void afterSave() {
+                    mObserver.afterSave();
+                }
             }
         }
     }
 
     public interface ReadWrite extends Readable, Writable {
+
+        @NonNull
+        ReadWrite and(@NonNull final ReadWrite other);
+
+        abstract class Base implements ReadWrite {
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final Readable other) {
+                return combine(compose(this, other), this);
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final Writable other) {
+                return combine(this, compose(this, other));
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final ReadWrite other) {
+                return combine(compose(this, (Readable) other), compose(this, (Writable) other));
+            }
+        }
 
         class Builder {
 

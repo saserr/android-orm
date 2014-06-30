@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NonNls;
 import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 
-public class View<V> implements Instance.Readable, Observer.Read {
+public class View<V> extends Instance.Readable.Base implements Observer.Read {
 
     private static final String TAG = Property.class.getSimpleName();
 

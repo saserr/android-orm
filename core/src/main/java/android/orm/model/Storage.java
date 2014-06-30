@@ -29,7 +29,7 @@ import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Storage<V> implements Instance.Writable, Observer.Write {
+public class Storage<V> extends Instance.Writable.Base implements Observer.Write {
 
     // TODO logging
 
@@ -119,21 +119,21 @@ public class Storage<V> implements Instance.Writable, Observer.Write {
         mObserver.afterSave();
     }
 
-    public static class Constant implements Instance.Writable {
+    public static class Constant extends Instance.Writable.Base {
 
         @NonNull
-        private final Plan.Write mPlan;
+        private final Writer mWriter;
 
         public Constant(@NonNull final Writer writer) {
             super();
 
-            mPlan = Plans.write(writer);
+            mWriter = writer;
         }
 
         @NonNull
         @Override
         public final Plan.Write prepareWrite() {
-            return mPlan;
+            return Plans.write(mWriter);
         }
     }
 }

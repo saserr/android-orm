@@ -31,7 +31,7 @@ import java.util.List;
 
 import static android.orm.model.Reading.Item.action;
 
-public class Show implements Instance.Readable {
+public class Show extends Instance.Readable.Base {
 
     @NonNls
     @NonNull

@@ -41,7 +41,7 @@ import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.something;
 import static android.orm.util.Validations.valid;
 
-public class Form implements Instance.ReadWrite {
+public class Form extends Instance.ReadWrite.Base {
 
     private static final Validation.Result<Plan.Write> EMPTY = valid(EmptyWrite);
 

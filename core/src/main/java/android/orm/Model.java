@@ -190,7 +190,7 @@ public abstract class Model {
         return model.mInstance;
     }
 
-    private static class ModelInstance<M extends Model> implements Instance.ReadWrite, Observer.ReadWrite {
+    private static class ModelInstance<M extends Model> extends Instance.ReadWrite.Base implements Observer.ReadWrite {
 
         @NonNls
         @NonNull

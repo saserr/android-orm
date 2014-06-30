@@ -19,9 +19,7 @@ package android.orm.model;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
 public final class Observer {
 
@@ -42,38 +40,6 @@ public final class Observer {
 
             @Override
             public void afterRead() {/* do nothing */}
-        }
-
-        class Delegate implements Read {
-
-            @NonNull
-            private final Collection<Read> mObservers;
-
-            public Delegate(@NonNull final Read... observers) {
-                super();
-
-                mObservers = Arrays.asList(observers);
-            }
-
-            public Delegate(@NonNull final Collection<Read> observers) {
-                super();
-
-                mObservers = new ArrayList<>(observers);
-            }
-
-            @Override
-            public final void beforeRead() {
-                for (final Read observer : mObservers) {
-                    observer.beforeRead();
-                }
-            }
-
-            @Override
-            public final void afterRead() {
-                for (final Read observer : mObservers) {
-                    observer.afterRead();
-                }
-            }
         }
     }
 
@@ -115,66 +81,6 @@ public final class Observer {
             @Override
             public void afterSave() {/* do nothing */}
         }
-
-        class Delegate implements Write {
-
-            @NonNull
-            private final Collection<Write> mObservers;
-
-            public Delegate(@NonNull final Write... observers) {
-                super();
-
-                mObservers = Arrays.asList(observers);
-            }
-
-            public Delegate(@NonNull final Collection<Write> observers) {
-                super();
-
-                mObservers = new ArrayList<>(observers);
-            }
-
-            @Override
-            public final void beforeCreate() {
-                for (final Write observer : mObservers) {
-                    observer.beforeCreate();
-                }
-            }
-
-            @Override
-            public final void afterCreate() {
-                for (final Write observer : mObservers) {
-                    observer.afterCreate();
-                }
-            }
-
-            @Override
-            public final void beforeUpdate() {
-                for (final Write observer : mObservers) {
-                    observer.beforeUpdate();
-                }
-            }
-
-            @Override
-            public final void afterUpdate() {
-                for (final Write observer : mObservers) {
-                    observer.afterUpdate();
-                }
-            }
-
-            @Override
-            public final void beforeSave() {
-                for (final Write observer : mObservers) {
-                    observer.beforeSave();
-                }
-            }
-
-            @Override
-            public final void afterSave() {
-                for (final Write observer : mObservers) {
-                    observer.afterSave();
-                }
-            }
-        }
     }
 
     public interface ReadWrite extends Read, Write {
@@ -208,62 +114,6 @@ public final class Observer {
 
             @Override
             public void afterSave() {/* do nothing */}
-        }
-
-        abstract class Composition implements ReadWrite {
-
-            @NonNull
-            private final Read mRead;
-            @NonNull
-            private final Write mWrite;
-
-            protected Composition(@NonNull final Read read,
-                                  @NonNull final Write write) {
-                super();
-
-                mRead = read;
-                mWrite = write;
-            }
-
-            @Override
-            public final void beforeRead() {
-                mRead.beforeRead();
-            }
-
-            @Override
-            public final void afterRead() {
-                mRead.afterRead();
-            }
-
-            @Override
-            public final void beforeCreate() {
-                mWrite.beforeCreate();
-            }
-
-            @Override
-            public final void afterCreate() {
-                mWrite.afterCreate();
-            }
-
-            @Override
-            public final void beforeUpdate() {
-                mWrite.beforeUpdate();
-            }
-
-            @Override
-            public final void afterUpdate() {
-                mWrite.afterUpdate();
-            }
-
-            @Override
-            public final void beforeSave() {
-                mWrite.beforeSave();
-            }
-
-            @Override
-            public final void afterSave() {
-                mWrite.afterSave();
-            }
         }
     }
 
@@ -305,6 +155,130 @@ public final class Observer {
             ((Write) model).afterSave();
             ((Write) model).afterUpdate();
         }
+    }
+
+    @NonNull
+    public static Read read(@NonNull final Read... observers) {
+        return read(Arrays.asList(observers));
+    }
+
+    @NonNull
+    public static Read read(@NonNull final Iterable<Read> observers) {
+        return new Read() {
+
+            @Override
+            public void beforeRead() {
+                for (final Read observer : observers) {
+                    observer.beforeRead();
+                }
+            }
+
+            @Override
+            public void afterRead() {
+                for (final Read observer : observers) {
+                    observer.afterRead();
+                }
+            }
+        };
+    }
+
+    @NonNull
+    public static Write write(@NonNull final Write... observers) {
+        return write(Arrays.asList(observers));
+    }
+
+    @NonNull
+    public static Write write(@NonNull final Iterable<Write> observers) {
+        return new Write() {
+
+            @Override
+            public void beforeCreate() {
+                for (final Write observer : observers) {
+                    observer.beforeCreate();
+                }
+            }
+
+            @Override
+            public void afterCreate() {
+                for (final Write observer : observers) {
+                    observer.afterCreate();
+                }
+            }
+
+            @Override
+            public void beforeUpdate() {
+                for (final Write observer : observers) {
+                    observer.beforeUpdate();
+                }
+            }
+
+            @Override
+            public void afterUpdate() {
+                for (final Write observer : observers) {
+                    observer.afterUpdate();
+                }
+            }
+
+            @Override
+            public void beforeSave() {
+                for (final Write observer : observers) {
+                    observer.beforeSave();
+                }
+            }
+
+            @Override
+            public void afterSave() {
+                for (final Write observer : observers) {
+                    observer.afterSave();
+                }
+            }
+        };
+    }
+
+    @NonNull
+    public static ReadWrite combine(@NonNull final Read read, @NonNull final Write write) {
+        return new ReadWrite() {
+
+            @Override
+            public void beforeRead() {
+                read.beforeRead();
+            }
+
+            @Override
+            public void afterRead() {
+                read.afterRead();
+            }
+
+            @Override
+            public void beforeCreate() {
+                write.beforeCreate();
+            }
+
+            @Override
+            public void afterCreate() {
+                write.afterCreate();
+            }
+
+            @Override
+            public void beforeUpdate() {
+                write.beforeUpdate();
+            }
+
+            @Override
+            public void afterUpdate() {
+                write.afterUpdate();
+            }
+
+            @Override
+            public void beforeSave() {
+                write.beforeSave();
+            }
+
+            @Override
+            public void afterSave() {
+                write.afterSave();
+            }
+        };
     }
 
     private Observer() {
