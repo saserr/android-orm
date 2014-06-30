@@ -238,7 +238,8 @@ public final class Plans {
     @NonNull
     public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
                                        @NonNull final Instance.Getter<V> getter) {
-        return mapper.prepareWrite(something(getter.get()));
+        final V v = getter.get();
+        return (v == null) ? EmptyWrite : mapper.prepareWrite(v);
     }
 
     @NonNull
@@ -285,14 +286,16 @@ public final class Plans {
     }
 
     @NonNull
-    public static Plan.Write compose(@NonNull final Iterable<Plan.Write> plans) {
-        boolean isEmpty = true;
+    public static Plan.Write compose(@NonNull final Collection<Plan.Write> plans) {
+        final Collection<Plan.Write> nonEmpty = new ArrayList<>(plans.size());
 
         for (final Plan.Write plan : plans) {
-            isEmpty = isEmpty && plan.isEmpty();
+            if (!plan.isEmpty()) {
+                nonEmpty.add(plan);
+            }
         }
 
-        return isEmpty ? EmptyWrite : new WriteComposition(plans);
+        return nonEmpty.isEmpty() ? EmptyWrite : new WriteComposition(plans);
     }
 
     @NonNull

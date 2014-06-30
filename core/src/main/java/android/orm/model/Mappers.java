@@ -19,13 +19,14 @@ package android.orm.model;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.util.Lazy;
-import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.model.Plans.EmptyWrite;
+import static android.orm.util.Maybes.something;
 
 public final class Mappers {
 
@@ -196,8 +197,7 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
-            final M model = value.getOrElse(null);
+        public final Plan.Write prepareWrite(@Nullable final M model) {
             return (model == null) ? EmptyWrite : model.prepareWrite();
         }
     }
@@ -222,8 +222,8 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<V> model) {
-            return Plans.write(model, mValue);
+        public final Plan.Write prepareWrite(@Nullable final V model) {
+            return Plans.write(something(model), mValue);
         }
     }
 
@@ -263,8 +263,8 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
-            return mWrite.prepareWrite(value);
+        public final Plan.Write prepareWrite(@NonNull final M model) {
+            return mWrite.prepareWrite(model);
         }
     }
 

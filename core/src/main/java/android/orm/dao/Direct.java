@@ -162,7 +162,7 @@ public abstract class Direct implements DAO.Direct {
         @Override
         public final <M> Maybe<Uri> save(@NonNull final M model,
                                          @NonNull final Mapper.Write<M> mapper) {
-            return save(model, mapper.prepareWrite(something(model)));
+            return save(model, mapper.prepareWrite(model));
         }
 
         @NonNull

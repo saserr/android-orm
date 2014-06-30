@@ -30,6 +30,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Pair;
 
+import org.jetbrains.annotations.NonNls;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -490,6 +492,34 @@ public interface Reading<M> {
                     return Producers.convert(mUpdate.read(input), mConverter);
                 }
             }
+        }
+
+        @NonNull
+        public static <M> Builder<M> builder(@NonNls @NonNull final String name,
+                                             @NonNull final Producer<M> producer) {
+            return new Builder<>(new Value.Read.Base<M>() {
+
+                private final Producer<Maybe<M>> mProducer = Maybes.lift(producer);
+
+                @NonNls
+                @NonNull
+                @Override
+                public String getName() {
+                    return name;
+                }
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return Select.Projection.Nothing;
+                }
+
+                @NonNull
+                @Override
+                public Maybe<M> read(@NonNull final android.orm.sql.Readable input) {
+                    return mProducer.produce();
+                }
+            });
         }
 
         @NonNull

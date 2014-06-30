@@ -17,10 +17,11 @@
 package android.orm.gson;
 
 import android.orm.model.Mapper;
-import android.orm.model.Mappers;
 import android.orm.model.Plan;
 import android.orm.sql.Value;
+import android.orm.util.Function;
 import android.orm.util.Lens;
+import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Validation;
 import android.support.annotation.NonNull;
@@ -28,6 +29,12 @@ import android.support.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import org.jetbrains.annotations.NonNls;
+
+import static android.orm.util.Lenses.convert;
+import static android.orm.util.Maybes.something;
 
 public final class Deserializers {
 
@@ -35,22 +42,14 @@ public final class Deserializers {
     public static <V> Deserializer<JsonElement> from(@NonNull final Gson gson,
                                                      @NonNull final Class<V> klass,
                                                      @NonNull final Value.Write<V> value) {
-        return from(gson, klass, Mappers.write(value));
+        return new Deserializer<>(Plan.Write.<JsonElement>builder().put(value, lens(gson, klass)));
     }
 
     @NonNull
     public static <M> Deserializer<JsonElement> from(@NonNull final Gson gson,
                                                      @NonNull final Class<M> klass,
                                                      @NonNull final Mapper.Write<M> mapper) {
-        return new Deserializer<>(Plan.Write.<JsonElement>builder()
-                .put(mapper, Maybes.lift(new Lens.Read<JsonElement, M>() {
-                    @Nullable
-                    @Override
-                    public M get(@NonNull final JsonElement json) {
-                        return gson.fromJson(json, klass);
-                    }
-                }))
-        );
+        return new Deserializer<>(Plan.Write.<JsonElement>builder().put(mapper, lens(gson, klass)));
     }
 
     @NonNull
@@ -58,7 +57,9 @@ public final class Deserializers {
                                                      @NonNull final Class<V> klass,
                                                      @NonNull final Value.Write<V> value,
                                                      @NonNull final Validation<? super V> validation) {
-        return from(gson, klass, Mappers.write(value), validation);
+
+        return new Deserializer<>(Plan.Write.<JsonElement>builder()
+                .put(value, lens(gson, klass, value.getName(), validation)));
     }
 
     @NonNull
@@ -67,17 +68,69 @@ public final class Deserializers {
                                                      @NonNull final Mapper.Write<M> mapper,
                                                      @NonNull final Validation<? super M> validation) {
         return new Deserializer<>(Plan.Write.<JsonElement>builder()
-                .put(mapper, Maybes.lift(new Lens.Read<JsonElement, M>() {
+                .put(mapper, lens(gson, klass, mapper.getName(), validation)));
+    }
 
-                    private final Validation<? super M> mValidation = validation.name(mapper.getName());
+    @NonNull
+    public static <V> Lens.Read<JsonElement, Maybe<V>> lens(@NonNull final Gson gson,
+                                                            @NonNull final Class<V> klass) {
+        return Maybes.lift(new Lens.Read<JsonElement, V>() {
+            @Nullable
+            @Override
+            public V get(@NonNull final JsonElement json) {
+                return gson.fromJson(json, klass);
+            }
+        });
+    }
 
-                    @Nullable
-                    @Override
-                    public M get(@NonNull final JsonElement json) {
-                        return mValidation.validate(gson.fromJson(json, klass)).get();
-                    }
-                }))
-        );
+    @NonNull
+    public static <V> Lens.Read<JsonElement, Maybe<V>> lens(@NonNull final Gson gson,
+                                                            @NonNull final Class<V> klass,
+                                                            @NonNls @NonNull final String name,
+                                                            @NonNull final Validation<? super V> validation) {
+        return Maybes.lift(new Lens.Read<JsonElement, V>() {
+
+            private final Validation<? super V> mValidation = validation.name(name);
+
+            @Nullable
+            @Override
+            public V get(@NonNull final JsonElement json) {
+                return mValidation.validate(gson.fromJson(json, klass)).get();
+            }
+        });
+    }
+
+    @NonNull
+    public static <V> Lens.Read<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
+                                                           @NonNull final Class<V> klass,
+                                                           @NonNls @NonNull final String name) {
+        return new Lens.Read<JsonObject, Maybe<V>>() {
+            @Nullable
+            @Override
+            public Maybe<V> get(@NonNull final JsonObject json) {
+                return json.has(name) ?
+                        something(gson.fromJson(json.get(name), klass)) :
+                        Maybes.<V>nothing();
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Lens.Read<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
+                                                           @NonNull final Class<V> klass,
+                                                           @NonNls @NonNull final String qualifiedName,
+                                                           @NonNls @NonNull final String elementName,
+                                                           @NonNull final Validation<? super V> validation) {
+        return convert(lens(gson, klass, elementName), new Function<Maybe<V>, Maybe<V>>() {
+
+            private final Validation<? super V> mValidation = validation.name(qualifiedName);
+
+            @NonNull
+            @Override
+            public Maybe<V> invoke(@NonNull final Maybe<V> value) {
+                return mValidation.validate(value).get();
+            }
+        });
     }
 
     private Deserializers() {

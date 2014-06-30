@@ -18,41 +18,35 @@ package android.orm.gson;
 
 import android.orm.model.Mapper;
 import android.orm.model.Reading;
-import android.orm.sql.Readable;
-import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.util.Lens;
-import android.orm.util.Maybe;
+import android.orm.util.Producer;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.util.Lenses.combine;
-import static android.orm.util.Maybes.something;
 
-public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
+public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
 
     @NonNls
     @NonNull
     private final String mName;
     @NonNull
-    private final Reading.Item.Create<E> mReading;
+    private final Reading.Item.Builder<E> mReading;
     @NonNull
-    private final Select.Projection mProjection;
+    private final Reading.Item.Create<E> mCreate;
 
     public Serializer(@NonNls @NonNull final String name,
-                      @NonNull final Reading.Item.Create<E> reading) {
+                      @NonNull final Reading.Item.Builder<E> reading) {
         super();
 
         mName = name;
         mReading = reading;
-        mProjection = mReading.getProjection();
+        mCreate = reading.build();
     }
 
     @NonNls
@@ -64,14 +58,14 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
 
     @NonNull
     @Override
-    public final Select.Projection getProjection() {
-        return mProjection;
+    public final Reading.Item.Create<E> prepareRead() {
+        return mCreate;
     }
 
     @NonNull
     @Override
-    public final Maybe<E> read(@NonNull final Readable input) {
-        return mReading.read(input).produce();
+    public final Reading.Item<E> prepareRead(@NonNull final E element) {
+        return mReading.build(element);
     }
 
     @NonNull
@@ -81,6 +75,14 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
     }
 
     public static class Builder {
+
+        private static final Producer<JsonObject> PRODUCER = new Producer<JsonObject>() {
+            @NonNull
+            @Override
+            public JsonObject produce() {
+                return new JsonObject();
+            }
+        };
 
         @NonNls
         @NonNull
@@ -96,7 +98,7 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
 
             mName = name;
             mGson = gson;
-            mReading = Reading.Item.builder(producer(name));
+            mReading = Reading.Item.builder(name, PRODUCER);
         }
 
         @NonNull
@@ -107,7 +109,7 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
         @NonNull
         public final <V> Builder with(@NonNls @NonNull final String name,
                                       @NonNull final Value.Read<V> value) {
-            mReading.with(value, Serializer.<V>lens(mGson, name));
+            mReading.with(value, Serializers.<V>lens(mGson, name));
             return this;
         }
 
@@ -115,53 +117,13 @@ public class Serializer<E extends JsonElement> extends Value.Read.Base<E> {
         public final <M> Builder with(@NonNls @NonNull final String name,
                                       @NonNull final Class<M> klass,
                                       @NonNull final Mapper.Read<M> mapper) {
-            mReading.with(mapper, combine(Deserializer.lens(mGson, klass, name), Serializer.<M>lens(mGson, name)));
+            mReading.with(mapper, combine(Deserializers.lens(mGson, klass, name), Serializers.<M>lens(mGson, name)));
             return this;
         }
 
         @NonNull
         public final Serializer<JsonObject> build() {
-            return new Serializer<>(mName, mReading.build());
+            return new Serializer<>(mName, mReading);
         }
-
-        @NonNull
-        private static Value.Read<JsonObject> producer(@NonNls @NonNull final String name) {
-            return new Base<JsonObject>() {
-
-                @NonNls
-                @NonNull
-                @Override
-                public String getName() {
-                    return name;
-                }
-
-                @NonNull
-                @Override
-                public Select.Projection getProjection() {
-                    return Select.Projection.Nothing;
-                }
-
-                @NonNull
-                @Override
-                public Maybe<JsonObject> read(@NonNull final Readable input) {
-                    return something(new JsonObject());
-                }
-            };
-        }
-    }
-
-    @NonNull
-    public static <V> Lens.Write<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
-                                                            @NonNls @NonNull final String name) {
-        return new Lens.Write<JsonObject, Maybe<V>>() {
-            @Override
-            public void set(@NonNull final JsonObject json, @Nullable final Maybe<V> value) {
-                if (value == null) {
-                    json.add(name, JsonNull.INSTANCE);
-                } else if (value.isSomething()) {
-                    json.add(name, gson.toJsonTree(value.get()));
-                }
-            }
-        };
     }
 }

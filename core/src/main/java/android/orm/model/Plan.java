@@ -19,6 +19,7 @@ package android.orm.model;
 import android.orm.sql.Reader;
 import android.orm.sql.Readers;
 import android.orm.sql.Select;
+import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Function;
 import android.orm.util.Lens;
@@ -30,7 +31,7 @@ import android.util.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static android.orm.util.Maybes.nothing;
+import static android.orm.model.Plans.EmptyWrite;
 import static java.util.Arrays.asList;
 
 public final class Plan {
@@ -106,7 +107,7 @@ public final class Plan {
         public static class Builder<M> {
 
             @NonNull
-            private final Collection<Function<Maybe<M>, Write>> mEntries;
+            private final Collection<Function<M, Write>> mEntries;
 
             public Builder() {
                 super();
@@ -126,66 +127,81 @@ public final class Plan {
             }
 
             @NonNull
+            public final <V> Builder<M> put(@NonNull final Value.Write<V> value,
+                                            @NonNull final Lens.Read<M, Maybe<V>> lens) {
+                return put(entry(value, lens));
+            }
+
+            @NonNull
             public final <V> Builder<M> put(@NonNull final Mapper.Write<V> mapper,
                                             @NonNull final Lens.Read<M, Maybe<V>> lens) {
                 return put(entry(mapper, lens));
             }
 
             @NonNull
-            public final Write build(@NonNull final Maybe<M> result) {
-                return build(result, mEntries);
+            public final Write build(@NonNull final M model) {
+                return build(model, mEntries);
             }
 
             @NonNull
-            private Builder<M> put(@NonNull final Function<Maybe<M>, Write> entry) {
+            private Builder<M> put(@NonNull final Function<M, Write> entry) {
                 mEntries.add(entry);
                 return this;
             }
 
             @NonNull
-            private static <M> Function<Maybe<M>, Write> entry(@NonNull final Writer writer) {
-                return new Function<Maybe<M>, Write>() {
+            private static <M> Function<M, Write> entry(@NonNull final Writer writer) {
+                return new Function<M, Write>() {
                     @NonNull
                     @Override
-                    public Write invoke(@NonNull final Maybe<M> ignored) {
+                    public Write invoke(@NonNull final M ignored) {
                         return Plans.write(writer);
                     }
                 };
             }
 
             @NonNull
-            private static <M, V> Function<Maybe<M>, Write> entry(@NonNull final Mapper.Write<V> mapper,
-                                                                  @NonNull final Lens.Read<M, Maybe<V>> lens) {
-                return new Function<Maybe<M>, Write>() {
+            private static <M, V> Function<M, Write> entry(@NonNull final Value.Write<V> value,
+                                                           @NonNull final Lens.Read<M, Maybe<V>> lens) {
+                return new Function<M, Write>() {
                     @NonNull
                     @Override
-                    public Write invoke(@NonNull final Maybe<M> value) {
-                        final Maybe<V> result;
-
-                        if (value.isSomething()) {
-                            final M model = value.get();
-                            result = (model == null) ? Maybes.<V>something(null) : lens.get(model);
-                        } else {
-                            result = nothing();
-                        }
-
-                        return mapper.prepareWrite(
-                                (result == null) ? Maybes.<V>something(null) : result
-                        );
+                    public Write invoke(@NonNull final M model) {
+                        final Maybe<V> v = lens.get(model);
+                        return Plans.write((v == null) ? Maybes.<V>something(null) : v, value);
                     }
                 };
             }
 
             @NonNull
-            private static <M> Write build(@NonNull final Maybe<M> result,
-                                           @NonNull final Collection<Function<Maybe<M>, Write>> entries) {
+            private static <M, V> Function<M, Write> entry(@NonNull final Mapper.Write<V> mapper,
+                                                           @NonNull final Lens.Read<M, Maybe<V>> lens) {
+                return new Function<M, Write>() {
+                    @NonNull
+                    @Override
+                    public Write invoke(@NonNull final M model) {
+                        final Write plan;
+
+                        final Maybe<V> value = lens.get(model);
+                        if ((value != null) && value.isSomething()) {
+                            final V v = value.get();
+                            plan = (v == null) ? EmptyWrite : mapper.prepareWrite(v);
+                        } else {
+                            plan = EmptyWrite;
+                        }
+
+                        return plan;
+                    }
+                };
+            }
+
+            @NonNull
+            private static <M> Write build(@NonNull final M model,
+                                           @NonNull final Collection<Function<M, Write>> entries) {
                 final Collection<Write> plans = new ArrayList<>(entries.size());
 
-                for (final Function<Maybe<M>, Write> entry : entries) {
-                    final Write plan = entry.invoke(result);
-                    if (!plan.isEmpty()) {
-                        plans.add(plan);
-                    }
+                for (final Function<M, Write> entry : entries) {
+                    plans.add(entry.invoke(model));
                 }
 
                 return Plans.compose(plans);

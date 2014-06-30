@@ -279,10 +279,11 @@ public class Form extends Instance.ReadWrite.Base {
                 final Validation.Result<Plan.Write> result;
 
                 if (value.isValid()) {
-                    result = valid(mapper.prepareWrite(value.get()));
+                    final V v = value.get().getOrElse(null);
+                    result = valid((v == null) ? EmptyWrite : mapper.prepareWrite(v));
                     binding.setErrors(Collections.<String>emptyList());
                 } else {
-                    result = Validations.safeCast((Validation.Result.Invalid<Maybe<V>>) value);
+                    result = Validations.<Plan.Write>safeCast((Validation.Result.Invalid<Maybe<V>>) value);
                 }
 
                 return result;

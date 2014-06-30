@@ -37,6 +37,10 @@ public class Result<V> implements Cancelable {
 
     private static final String TAG = Result.class.getSimpleName();
     private static final Result<Object> Nothing = constant(Maybes.nothing());
+    private static final Cancelable Finished = new Cancelable() {
+        @Override
+        public void cancel() {/* do nothing */}
+    };
 
     @NonNull
     private final Future<Maybe<V>> mFuture;
@@ -193,7 +197,7 @@ public class Result<V> implements Cancelable {
 
     @NonNull
     public static <V> Result<V> constant(@NonNull final Maybe<? extends V> result) {
-        return new Result<>(Futures.success(Maybes.safeCast(result)), null);
+        return new Result<>(Futures.success(Maybes.safeCast(result)), Finished, null);
     }
 
     public interface Observer<V> {

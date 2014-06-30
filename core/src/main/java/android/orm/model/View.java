@@ -27,17 +27,13 @@ import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class View<V> extends Instance.Readable.Base implements Observer.Read {
+public abstract class View<V> extends Instance.Readable.Base implements Observer.Read {
 
-    private static final String TAG = Property.class.getSimpleName();
-
-    @NonNull
-    private final Mapper.Read<V> mMapper;
-    @NonNull
-    private final Observer.Read mObserver;
     @NonNls
     @NonNull
     private final String mName;
+    @NonNull
+    private final Observer.Read mObserver;
 
     private final Instance.Setter<V> mSetter = new Instance.Setter<V>() {
         @Override
@@ -49,17 +45,16 @@ public class View<V> extends Instance.Readable.Base implements Observer.Read {
     @NonNull
     private Maybe<V> mValue = nothing();
 
-    public View(@NonNull final Value.Read<V> value, @Nullable final Observer.Read observer) {
-        this(Mappers.read(value), observer);
-    }
-
-    public View(@NonNull final Mapper.Read<V> mapper, @Nullable final Observer.Read observer) {
+    protected View(@NonNls @NonNull final String name,
+                   @Nullable final Observer.Read observer) {
         super();
 
-        mMapper = mapper;
+        mName = name;
         mObserver = (observer == null) ? DUMMY : observer;
-        mName = mapper.getName();
     }
+
+    @NonNull
+    protected abstract Reading.Item<V> prepareRead(@NonNull final Maybe<V> v);
 
     public final boolean isSomething() {
         return mValue.isSomething();
@@ -89,10 +84,7 @@ public class View<V> extends Instance.Readable.Base implements Observer.Read {
     @NonNull
     @Override
     public final Reading.Item.Action prepareRead() {
-        final V value = mValue.getOrElse(null);
-        return action((value == null) ?
-                mMapper.prepareRead() :
-                mMapper.prepareRead(value), mSetter);
+        return action(prepareRead(mValue), mSetter);
     }
 
     @Override
@@ -103,5 +95,30 @@ public class View<V> extends Instance.Readable.Base implements Observer.Read {
     @Override
     public final void afterRead() {
         mObserver.afterRead();
+    }
+
+    @NonNull
+    public static <V> View<V> create(@NonNull final Value.Read<V> value,
+                                     @Nullable final Observer.Read observer) {
+        return new View<V>(value.getName(), observer) {
+            @NonNull
+            @Override
+            protected Reading.Item<V> prepareRead(@NonNull final Maybe<V> ignored) {
+                return Reading.Item.Create.from(value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <M> View<M> create(@NonNull final Mapper.Read<M> mapper,
+                                     @Nullable final Observer.Read observer) {
+        return new View<M>(mapper.getName(), observer) {
+            @NonNull
+            @Override
+            protected Reading.Item<M> prepareRead(@NonNull final Maybe<M> value) {
+                final M model = value.getOrElse(null);
+                return (model == null) ? mapper.prepareRead() : mapper.prepareRead(model);
+            }
+        };
     }
 }

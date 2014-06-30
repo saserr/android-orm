@@ -61,9 +61,9 @@ public final class ByExample {
     }
 
     @NonNull
-    public static <M> Select.Where where(@Nullable final M model,
+    public static <M> Select.Where where(@NonNull final M model,
                                          @NonNull final Mapper.Write<M> mapper) {
-        return where(mapper.prepareWrite(something(model)));
+        return where(mapper.prepareWrite(model));
     }
 
     @NonNull

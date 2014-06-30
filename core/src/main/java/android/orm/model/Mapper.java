@@ -16,7 +16,6 @@
 
 package android.orm.model;
 
-import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Converter;
@@ -33,7 +32,6 @@ import org.jetbrains.annotations.NonNls;
 import static android.orm.model.Mappers.combine;
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
-import static android.orm.util.Maybes.something;
 
 public final class Mapper {
 
@@ -58,9 +56,6 @@ public final class Mapper {
         @NonNull
         <N> Read<N> map(@NonNull final Converter<M, N> converter);
 
-        @NonNull
-        <N> Read<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
-
         abstract class Base<M> implements Read<M> {
 
             @NonNull
@@ -78,12 +73,6 @@ public final class Mapper {
             @NonNull
             @Override
             public final <N> Read<N> map(@NonNull final Converter<M, N> converter) {
-                return new Converted<>(this, Maybes.lift(converter));
-            }
-
-            @NonNull
-            @Override
-            public final <N> Read<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
                 return new Converted<>(this, converter);
             }
 
@@ -140,7 +129,7 @@ public final class Mapper {
                 @NonNull
                 private final Read<M> mRead;
                 @NonNull
-                private final Converter<Maybe<M>, Maybe<N>> mConverter;
+                private final Converter<M, N> mConverter;
                 @NonNull
                 private final Function<Maybe<M>, Maybe<N>> mFrom;
                 @NonNls
@@ -148,12 +137,12 @@ public final class Mapper {
                 private final String mName;
 
                 private Converted(@NonNull final Read<M> read,
-                                  @NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
+                                  @NonNull final Converter<M, N> converter) {
                     super();
 
                     mRead = read;
                     mConverter = converter;
-                    mFrom = from(mConverter);
+                    mFrom = Maybes.map(from(converter));
                     mName = read.getName();
                 }
 
@@ -173,8 +162,7 @@ public final class Mapper {
                 @NonNull
                 @Override
                 public final Reading.Item<N> prepareRead(@NonNull final N model) {
-                    final M value = mConverter.to(something(model)).getOrElse(null);
-                    return ((value == null) ? mRead.prepareRead() : mRead.prepareRead(value)).convert(mFrom);
+                    return mRead.prepareRead(mConverter.to(model)).convert(mFrom);
                 }
             }
         }
@@ -188,7 +176,10 @@ public final class Mapper {
 
             public Builder(@NonNls @NonNull final String name,
                            @NonNull final Producer<M> producer) {
-                this(value(name, producer));
+                super();
+
+                mName = name;
+                mReading = Reading.Item.builder(name, producer);
             }
 
             public Builder(@NonNull final Value.Read<M> value) {
@@ -244,34 +235,6 @@ public final class Mapper {
                     }
                 };
             }
-
-            @NonNull
-            private static <M> Value.Read<M> value(@NonNls @NonNull final String name,
-                                                   @NonNull final Producer<M> producer) {
-                return new Value.Read.Base<M>() {
-
-                    private final Producer<Maybe<M>> mProducer = Maybes.lift(producer);
-
-                    @NonNls
-                    @NonNull
-                    @Override
-                    public String getName() {
-                        return name;
-                    }
-
-                    @NonNull
-                    @Override
-                    public Select.Projection getProjection() {
-                        return Select.Projection.Nothing;
-                    }
-
-                    @NonNull
-                    @Override
-                    public Maybe<M> read(@NonNull final android.orm.sql.Readable input) {
-                        return mProducer.produce();
-                    }
-                };
-            }
         }
     }
 
@@ -282,7 +245,7 @@ public final class Mapper {
         String getName();
 
         @NonNull
-        Plan.Write prepareWrite(@NonNull final Maybe<M> m);
+        Plan.Write prepareWrite(@NonNull final M m);
 
         @NonNull
         <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other);
@@ -291,13 +254,7 @@ public final class Mapper {
         <N> Write<Pair<M, N>> and(@NonNull final Write<N> other);
 
         @NonNull
-        <N> Write<N> mapFrom(@NonNull final Function<N, M> converter);
-
-        @NonNull
-        <N> Write<N> flatMapFrom(@NonNull final Function<N, Maybe<M>> converter);
-
-        @NonNull
-        <N> Write<N> convertFrom(@NonNull final Function<Maybe<N>, Maybe<M>> converter);
+        <N> Write<N> mapFrom(@NonNull final Function<? super N, ? extends M> converter);
 
         abstract class Base<M> implements Write<M> {
 
@@ -315,19 +272,7 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <N> Write<N> mapFrom(@NonNull final Function<N, M> converter) {
-                return new Converted<>(this, Maybes.map(converter));
-            }
-
-            @NonNull
-            @Override
-            public final <N> Write<N> flatMapFrom(@NonNull final Function<N, Maybe<M>> converter) {
-                return new Converted<>(this, Maybes.flatMap(converter));
-            }
-
-            @NonNull
-            @Override
-            public final <N> Write<N> convertFrom(@NonNull final Function<Maybe<N>, Maybe<M>> converter) {
+            public final <N> Write<N> mapFrom(@NonNull final Function<? super N, ? extends M> converter) {
                 return new Converted<>(this, converter);
             }
 
@@ -362,19 +307,8 @@ public final class Mapper {
 
                 @NonNull
                 @Override
-                public final Plan.Write prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
-                    final Plan.Write plan;
-
-                    if (value.isSomething()) {
-                        final Pair<M, N> pair = value.get();
-                        plan = mFirst.prepareWrite(something((pair == null) ? null : pair.first))
-                                .and(mSecond.prepareWrite(something((pair == null) ? null : pair.second)));
-                    } else {
-                        plan = mFirst.prepareWrite(Maybes.<M>nothing())
-                                .and(mSecond.prepareWrite(Maybes.<N>nothing()));
-                    }
-
-                    return plan;
+                public final Plan.Write prepareWrite(@NonNull final Pair<M, N> pair) {
+                    return mFirst.prepareWrite(pair.first).and(mSecond.prepareWrite(pair.second));
                 }
             }
 
@@ -383,13 +317,13 @@ public final class Mapper {
                 @NonNull
                 private final Write<M> mWrite;
                 @NonNull
-                private final Function<Maybe<N>, Maybe<M>> mConverter;
+                private final Function<? super N, ? extends M> mConverter;
                 @NonNls
                 @NonNull
                 private final String mName;
 
                 private Converted(@NonNull final Write<M> write,
-                                  @NonNull final Function<Maybe<N>, Maybe<M>> converter) {
+                                  @NonNull final Function<? super N, ? extends M> converter) {
                     super();
 
                     mWrite = write;
@@ -406,7 +340,7 @@ public final class Mapper {
 
                 @NonNull
                 @Override
-                public final Plan.Write prepareWrite(@NonNull final Maybe<N> value) {
+                public final Plan.Write prepareWrite(@NonNull final N value) {
                     return mWrite.prepareWrite(mConverter.invoke(value));
                 }
             }
@@ -434,7 +368,8 @@ public final class Mapper {
             @NonNull
             public final <V> Builder<M> with(@NonNull final Value.Write<V> value,
                                              @NonNull final Lens.Read<M, V> lens) {
-                return with(Mappers.write(value), lens);
+                mWrite.put(value, Maybes.lift(lens));
+                return this;
             }
 
             @NonNull
@@ -463,7 +398,7 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+                    public Plan.Write prepareWrite(@NonNull final M value) {
                         return write.build(value);
                     }
                 };
@@ -482,10 +417,6 @@ public final class Mapper {
         @NonNull
         @Override
         <N> ReadWrite<N> map(@NonNull final Converter<M, N> converter);
-
-        @NonNull
-        @Override
-        <N> ReadWrite<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
 
         abstract class Base<M> implements ReadWrite<M> {
 
@@ -537,35 +468,13 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <N> Write<N> mapFrom(@NonNull final Function<N, M> converter) {
-                return new Write.Base.Converted<>(this, Maybes.map(converter));
-            }
-
-            @NonNull
-            @Override
-            public final <N> Write<N> flatMapFrom(@NonNull final Function<N, Maybe<M>> converter) {
-                return new Write.Base.Converted<>(this, Maybes.flatMap(converter));
-            }
-
-            @NonNull
-            @Override
-            public final <N> Write<N> convertFrom(@NonNull final Function<Maybe<N>, Maybe<M>> converter) {
+            public final <N> Write<N> mapFrom(@NonNull final Function<? super N, ? extends M> converter) {
                 return new Write.Base.Converted<>(this, converter);
             }
 
             @NonNull
             @Override
             public final <N> ReadWrite<N> map(@NonNull final Converter<M, N> converter) {
-                final Converter<Maybe<M>, Maybe<N>> lifted = Maybes.lift(converter);
-                return combine(
-                        new Read.Base.Converted<>(this, lifted),
-                        new Write.Base.Converted<>(this, to(lifted))
-                );
-            }
-
-            @NonNull
-            @Override
-            public final <N> ReadWrite<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter) {
                 return combine(
                         new Read.Base.Converted<>(this, converter),
                         new Write.Base.Converted<>(this, to(converter))

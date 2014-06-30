@@ -83,14 +83,14 @@ public abstract class Model {
 
     @NonNull
     protected final <V> View<V> view(@NonNull final Value.Read<V> value) {
-        final View<V> view = new View<>(value, null);
+        final View<V> view = View.create(value, null);
         with(view);
         return view;
     }
 
     @NonNull
     protected final <V> View<V> view(@NonNull final Mapper.Read<V> mapper) {
-        final View<V> view = new View<>(mapper, null);
+        final View<V> view = View.create(mapper, null);
         with(view);
         return view;
     }
@@ -98,7 +98,7 @@ public abstract class Model {
     @NonNull
     protected final <V> View<V> view(@NonNull final Value.Read<V> value,
                                      @NonNull final Observer.Read observer) {
-        final View<V> view = new View<>(value, observer);
+        final View<V> view = View.create(value, observer);
         with(view);
         return view;
     }
@@ -106,7 +106,7 @@ public abstract class Model {
     @NonNull
     protected final <V> View<V> view(@NonNull final Mapper.Read<V> mapper,
                                      @NonNull final Observer.Read observer) {
-        final View<V> view = new View<>(mapper, observer);
+        final View<V> view = View.create(mapper, observer);
         with(view);
         return view;
     }
@@ -117,14 +117,14 @@ public abstract class Model {
 
     @NonNull
     protected final <V> Storage<V> storage(@NonNull final Value.Write<V> value) {
-        final Storage<V> storage = new Storage<>(value, null);
+        final Storage<V> storage = Storage.create(value, null);
         with(storage);
         return storage;
     }
 
     @NonNull
     protected final <V> Storage<V> storage(@NonNull final Mapper.Write<V> mapper) {
-        final Storage<V> storage = new Storage<>(mapper, null);
+        final Storage<V> storage = Storage.create(mapper, null);
         with(storage);
         return storage;
     }
@@ -132,7 +132,7 @@ public abstract class Model {
     @NonNull
     protected final <V> Storage<V> storage(@NonNull final Value.Write<V> value,
                                            @NonNull final Observer.Write observer) {
-        final Storage<V> storage = new Storage<>(value, observer);
+        final Storage<V> storage = Storage.create(value, observer);
         with(storage);
         return storage;
     }
@@ -140,21 +140,21 @@ public abstract class Model {
     @NonNull
     protected final <V> Storage<V> storage(@NonNull final Mapper.Write<V> mapper,
                                            @NonNull final Observer.Write observer) {
-        final Storage<V> storage = new Storage<>(mapper, observer);
+        final Storage<V> storage = Storage.create(mapper, observer);
         with(storage);
         return storage;
     }
 
     @NonNull
     protected final <V> Property<V> property(@NonNull final Value.ReadWrite<V> value) {
-        final Property<V> property = new Property<>(value, null);
+        final Property<V> property = Property.create(value, null);
         with(property);
         return property;
     }
 
     @NonNull
     protected final <V> Property<V> property(@NonNull final Mapper.ReadWrite<V> mapper) {
-        final Property<V> property = new Property<>(mapper, null);
+        final Property<V> property = Property.create(mapper, null);
         with(property);
         return property;
     }
@@ -162,7 +162,7 @@ public abstract class Model {
     @NonNull
     protected final <V> Property<V> property(@NonNull final Value.ReadWrite<V> value,
                                              @NonNull final Observer.ReadWrite observer) {
-        final Property<V> property = new Property<>(value, observer);
+        final Property<V> property = Property.create(value, observer);
         with(property);
         return property;
     }
@@ -170,7 +170,7 @@ public abstract class Model {
     @NonNull
     protected final <V> Property<V> property(@NonNull final Mapper.ReadWrite<V> mapper,
                                              @NonNull final Observer.ReadWrite observer) {
-        final Property<V> property = new Property<>(mapper, observer);
+        final Property<V> property = Property.create(mapper, observer);
         with(property);
         return property;
     }

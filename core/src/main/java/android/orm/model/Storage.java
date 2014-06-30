@@ -29,19 +29,17 @@ import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Storage<V> extends Instance.Writable.Base implements Observer.Write {
+public abstract class Storage<V> extends Instance.Writable.Base implements Observer.Write {
 
     // TODO logging
 
     private static final String TAG = Storage.class.getSimpleName();
 
-    @NonNull
-    private final Mapper.Write<V> mMapper;
-    @NonNull
-    private final Observer.Write mObserver;
     @NonNls
     @NonNull
     private final String mName;
+    @NonNull
+    private final Observer.Write mObserver;
 
     @NonNull
     private Maybe<V> mValue = nothing();
@@ -50,22 +48,19 @@ public class Storage<V> extends Instance.Writable.Base implements Observer.Write
     @Nullable
     private Maybe<V> mSaved;
 
-    public Storage(@NonNull final Value.Write<V> value, @Nullable final Observer.Write observer) {
-        this(Mappers.write(value), observer);
-    }
-
-    public Storage(@NonNull final Mapper.Write<V> mapper,
-                   @Nullable final Observer.Write observer) {
+    protected Storage(@NonNls @NonNull final String name, @Nullable final Observer.Write observer) {
         super();
 
-        mMapper = mapper;
+        mName = name;
         mObserver = (observer == null) ? DUMMY : observer;
-        mName = mapper.getName();
     }
 
     public final void set(@Nullable final V value) {
         mValue = something(value);
     }
+
+    @NonNull
+    protected abstract Plan.Write prepareWrite(@NonNull final Maybe<V> v);
 
     @NonNull
     @Override
@@ -77,7 +72,7 @@ public class Storage<V> extends Instance.Writable.Base implements Observer.Write
         } else {
             if (mSaving == null) {
                 mSaving = mValue;
-                plan = mMapper.prepareWrite(mValue);
+                plan = prepareWrite(mValue);
             } else {
                 Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
                 plan = EmptyWrite;
@@ -117,6 +112,31 @@ public class Storage<V> extends Instance.Writable.Base implements Observer.Write
         mSaved = mSaving;
         mSaving = null;
         mObserver.afterSave();
+    }
+
+    @NonNull
+    public static <V> Storage<V> create(@NonNull final Value.Write<V> value,
+                                        @Nullable final Observer.Write observer) {
+        return new Storage<V>(value.getName(), observer) {
+            @NonNull
+            @Override
+            protected Plan.Write prepareWrite(@NonNull final Maybe<V> model) {
+                return Plans.write(model, value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <M> Storage<M> create(@NonNull final Mapper.Write<M> mapper,
+                                        @Nullable final Observer.Write observer) {
+        return new Storage<M>(mapper.getName(), observer) {
+            @NonNull
+            @Override
+            protected Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+                final M m = value.getOrElse(null);
+                return (m == null) ? EmptyWrite : mapper.prepareWrite(m);
+            }
+        };
     }
 
     public static class Constant extends Instance.Writable.Base {

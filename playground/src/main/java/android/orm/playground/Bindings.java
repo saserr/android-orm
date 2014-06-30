@@ -43,6 +43,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.List;
 
+import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.nothing;
@@ -269,7 +270,8 @@ public final class Bindings {
     @NonNull
     public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
                                        @NonNull final Binding.Readable<V> binding) {
-        return mapper.prepareWrite(binding.get());
+        final V value = binding.get().getOrElse(null);
+        return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
     }
 
     @NonNull

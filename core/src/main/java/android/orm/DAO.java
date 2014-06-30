@@ -734,7 +734,7 @@ public final class DAO {
                 @Override
                 public final <M> I insert(@NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
-                    return insert(model, mapper.prepareWrite(something(model)));
+                    return insert(model, mapper.prepareWrite(model));
                 }
 
                 @NonNull
@@ -795,7 +795,7 @@ public final class DAO {
                 @Override
                 public final <M> U update(@NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
-                    return update(model, mapper.prepareWrite(something(model)));
+                    return update(model, mapper.prepareWrite(model));
                 }
 
                 @NonNull
@@ -803,7 +803,7 @@ public final class DAO {
                 public final <M> U update(@NonNull final Select.Where where,
                                           @NonNull final M model,
                                           @NonNull final Mapper.Write<M> mapper) {
-                    return update(where, model, mapper.prepareWrite(something(model)));
+                    return update(where, model, mapper.prepareWrite(model));
                 }
 
                 @NonNull

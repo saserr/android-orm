@@ -16,19 +16,21 @@
 
 package android.orm.gson;
 
-import android.orm.model.Mapper;
 import android.orm.model.Reading;
 import android.orm.sql.Value;
 import android.orm.util.Function;
+import android.orm.util.Lens;
 import android.orm.util.Maybe;
-import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 
-import static android.orm.util.Maybes.something;
+import org.jetbrains.annotations.NonNls;
 
 public final class Serializers {
 
@@ -47,24 +49,33 @@ public final class Serializers {
     };
 
     @NonNull
-    public static <V> Serializer<JsonElement> serializer(@NonNull final Gson gson,
-                                                         @NonNull final Value.Read<V> value) {
-        return new Serializer<>(value.getName(), Reading.Item.Create.from(value).convert(new ToJson<V>(gson)));
-    }
-
-    @NonNull
-    public static <M> Serializer<JsonElement> serializer(@NonNull final Gson gson,
-                                                         @NonNull final Mapper.Read<M> mapper) {
-        return new Serializer<>(mapper.getName(), mapper.prepareRead().convert(new ToJson<M>(gson)));
-    }
-
-    @NonNull
     @SuppressWarnings("unchecked")
     public static <E extends JsonElement, C extends Iterable<E>> Function<C, JsonArray> toArray() {
         return (Function<C, JsonArray>) TO_ARRAY;
     }
 
-    private static class ToJson<V> implements Function<Maybe<V>, Maybe<JsonElement>> {
+    @NonNull
+    public static <V> Serializer<JsonElement> from(@NonNull final Gson gson,
+                                                   @NonNull final Value.Read<V> value) {
+        return new Serializer<>(value.getName(), Reading.Item.builder(value.mapTo(new ToJson<V>(gson))));
+    }
+
+    @NonNull
+    public static <V> Lens.Write<JsonObject, Maybe<V>> lens(@NonNull final Gson gson,
+                                                            @NonNls @NonNull final String name) {
+        return new Lens.Write<JsonObject, Maybe<V>>() {
+            @Override
+            public void set(@NonNull final JsonObject json, @Nullable final Maybe<V> value) {
+                if (value == null) {
+                    json.add(name, JsonNull.INSTANCE);
+                } else if (value.isSomething()) {
+                    json.add(name, gson.toJsonTree(value.get()));
+                }
+            }
+        };
+    }
+
+    private static class ToJson<V> implements Function<V, JsonElement> {
 
         @NonNull
         private final Gson mGson;
@@ -77,10 +88,8 @@ public final class Serializers {
 
         @NonNull
         @Override
-        public final Maybe<JsonElement> invoke(@NonNull final Maybe<V> result) {
-            return result.isSomething() ?
-                    something(mGson.toJsonTree(result.get())) :
-                    Maybes.<JsonElement>nothing();
+        public final JsonElement invoke(@NonNull final V value) {
+            return mGson.toJsonTree(value);
         }
     }
 

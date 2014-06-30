@@ -29,29 +29,28 @@ import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Property<V> extends Instance.ReadWrite.Base implements Observer.ReadWrite {
+public abstract class Property<V> extends Instance.ReadWrite.Base implements Observer.ReadWrite {
 
     // TODO logging
 
     private static final String TAG = Property.class.getSimpleName();
 
-    @NonNull
-    private final Mapper.ReadWrite<V> mMapper;
-    @NonNull
-    private final Observer.ReadWrite mObserver;
     @NonNls
     @NonNull
     private final String mName;
+    @NonNull
+    private final Observer.ReadWrite mObserver;
 
     private final Instance.Setter<V> mSetter = new Instance.Setter<V>() {
         @Override
-        public void set(@Nullable final V value) {
+        public void set(@Nullable final V v) {
+            final Maybe<V> value = something(v);
             if (((mSaved == null) && mValue.isNothing()) || mValue.equals(mSaved)) {
-                mValue = something(value);
+                mValue = value;
             } else {
                 Log.w(TAG, mName + " is dirty and will not be overwritten"); //NON-NLS
             }
-            mSaved = something(value);
+            mSaved = value;
         }
     };
 
@@ -62,19 +61,19 @@ public class Property<V> extends Instance.ReadWrite.Base implements Observer.Rea
     @Nullable
     private Maybe<V> mSaving;
 
-    public Property(@NonNull final Value.ReadWrite<V> value,
-                    @Nullable final Observer.ReadWrite observer) {
-        this(Mappers.mapper(value), observer);
-    }
-
-    public Property(@NonNull final Mapper.ReadWrite<V> mapper,
-                    @Nullable final Observer.ReadWrite observer) {
+    protected Property(@NonNls @NonNull final String name,
+                       @Nullable final Observer.ReadWrite observer) {
         super();
 
-        mMapper = mapper;
+        mName = name;
         mObserver = (observer == null) ? DUMMY : observer;
-        mName = mapper.getName();
     }
+
+    @NonNull
+    protected abstract Reading.Item<V> prepareRead(@NonNull final Maybe<V> v);
+
+    @NonNull
+    protected abstract Plan.Write prepareWrite(@NonNull final Maybe<V> v);
 
     public final boolean isSomething() {
         return mValue.isSomething();
@@ -108,10 +107,7 @@ public class Property<V> extends Instance.ReadWrite.Base implements Observer.Rea
     @NonNull
     @Override
     public final Reading.Item.Action prepareRead() {
-        final V value = (mSaved == null) ? null : mSaved.getOrElse(null);
-        return action((value == null) ?
-                mMapper.prepareRead() :
-                mMapper.prepareRead(value), mSetter);
+        return action(prepareRead(mValue), mSetter);
     }
 
     @NonNull
@@ -124,7 +120,7 @@ public class Property<V> extends Instance.ReadWrite.Base implements Observer.Rea
         } else {
             if (mSaving == null) {
                 mSaving = mValue;
-                plan = mMapper.prepareWrite(mValue);
+                plan = prepareWrite(mValue);
             } else {
                 Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
                 plan = EmptyWrite;
@@ -173,5 +169,45 @@ public class Property<V> extends Instance.ReadWrite.Base implements Observer.Rea
     public final void afterSave() {
         mSaved = mSaving;
         mObserver.afterSave();
+    }
+
+    @NonNull
+    public static <V> Property<V> create(@NonNull final Value.ReadWrite<V> value,
+                                         @Nullable final Observer.ReadWrite observer) {
+        return new Property<V>(value.getName(), observer) {
+
+            @NonNull
+            @Override
+            protected Reading.Item<V> prepareRead(@NonNull final Maybe<V> ignored) {
+                return Reading.Item.Create.from(value);
+            }
+
+            @NonNull
+            @Override
+            protected Plan.Write prepareWrite(@NonNull final Maybe<V> model) {
+                return Plans.write(model, value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <M> Property<M> create(@NonNull final Mapper.ReadWrite<M> mapper,
+                                         @Nullable final Observer.ReadWrite observer) {
+        return new Property<M>(mapper.getName(), observer) {
+
+            @NonNull
+            @Override
+            protected Reading.Item<M> prepareRead(@NonNull final Maybe<M> value) {
+                final M model = value.getOrElse(null);
+                return (model == null) ? mapper.prepareRead() : mapper.prepareRead(model);
+            }
+
+            @NonNull
+            @Override
+            protected Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+                final M m = value.getOrElse(null);
+                return (m == null) ? EmptyWrite : mapper.prepareWrite(m);
+            }
+        };
     }
 }
