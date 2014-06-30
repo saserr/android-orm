@@ -27,13 +27,13 @@ import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.orm.util.Producers;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static android.orm.model.Instances.setter;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.orm.util.Producers.constant;
@@ -201,7 +201,7 @@ public interface Reading<M> {
         @NonNull
         public static <M> Action action(@NonNull final Mapper.Read<M> mapper,
                                         @NonNull final Instance.Access<M> access) {
-            final M value = access.get().getOrElse(null);
+            final M value = access.get();
             return (value == null) ?
                     action(mapper, (Instance.Setter<M>) access) :
                     new Action() {
@@ -525,15 +525,13 @@ public interface Reading<M> {
             @NonNull
             public final <V> Builder<M> with(@NonNull final Value.Read<V> value,
                                              @NonNull final Lens.Write<M, Maybe<V>> lens) {
-                add(value.getProjection(), entry(value, lens));
-                return this;
+                return add(value.getProjection(), entry(value, lens));
             }
 
             @NonNull
             public final <V> Builder<M> with(@NonNull final Mapper.Read<V> mapper,
                                              @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
-                add(mapper.prepareRead().getProjection(), entry(mapper, lens));
-                return this;
+                return add(mapper.prepareRead().getProjection(), entry(mapper, lens));
             }
 
             @NonNull
@@ -546,10 +544,11 @@ public interface Reading<M> {
                 return build(model, mProducer, mEntries);
             }
 
-            protected final void add(@NonNull final Select.Projection projection,
-                                     @NonNull final Function<M, Action> entry) {
+            private Builder<M> add(@NonNull final Select.Projection projection,
+                                   @NonNull final Function<M, Action> entry) {
                 mCreateProjection = mCreateProjection.and(projection);
                 mEntries.add(entry);
+                return this;
             }
 
             @NonNull
@@ -599,7 +598,12 @@ public interface Reading<M> {
                     @NonNull
                     @Override
                     public Action invoke(@NonNull final M model) {
-                        return action(value, setter(model, lens));
+                        return action(value, new Instance.Setter<V>() {
+                            @Override
+                            public void set(@Nullable final V value) {
+                                lens.set(model, something(value));
+                            }
+                        });
                     }
                 };
             }
@@ -611,26 +615,34 @@ public interface Reading<M> {
                     @NonNull
                     @Override
                     public Action invoke(@NonNull final M model) {
-                        final Maybe<V> result = lens.get(model);
-                        final V value = (result == null) ? null : result.getOrElse(null);
-                        return action(
-                                (value == null) ?
-                                        mapper.prepareRead() :
-                                        mapper.prepareRead(value),
-                                setter(model, lens)
-                        );
+                        return action(mapper, new Instance.Access<V>() {
+
+                            @Nullable
+                            @Override
+                            public V get() {
+                                final Maybe<V> value = lens.get(model);
+                                return (value == null) ? null : value.getOrElse(null);
+                            }
+
+                            @Override
+                            public void set(@Nullable final V value) {
+                                lens.set(model, something(value));
+                            }
+                        });
                     }
                 };
             }
         }
 
         @NonNull
-        private static <V> Runnable set(@NonNull final Maybe<V> result,
+        private static <V> Runnable set(@NonNull final Maybe<V> value,
                                         @NonNull final Instance.Setter<V> setter) {
             return new Runnable() {
                 @Override
                 public void run() {
-                    setter.set(result);
+                    if (value.isSomething()) {
+                        setter.set(value.get());
+                    }
                 }
             };
         }
@@ -641,7 +653,10 @@ public interface Reading<M> {
             return new Runnable() {
                 @Override
                 public void run() {
-                    setter.set(producer.produce());
+                    final Maybe<V> value = producer.produce();
+                    if (value.isSomething()) {
+                        setter.set(value.get());
+                    }
                 }
             };
         }

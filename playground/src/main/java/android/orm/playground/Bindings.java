@@ -20,6 +20,10 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.orm.model.Mapper;
+import android.orm.model.Plan;
+import android.orm.model.Reading;
+import android.orm.sql.Select;
 import android.orm.util.Consumer;
 import android.orm.util.Converter;
 import android.orm.util.Function;
@@ -117,9 +121,7 @@ public final class Bindings {
             @Override
             public Maybe<String> get() {
                 final CharSequence chars = text.getText();
-                return isEmpty(chars) ?
-                        Maybes.<String>nothing() :
-                        something(chars.toString());
+                return isEmpty(chars) ? Maybes.<String>nothing() : something(chars.toString());
             }
 
             @Override
@@ -243,6 +245,42 @@ public final class Bindings {
     public static <V> Binding.ReadWrite<V> combine(@NonNull final Binding.Readable<V> read,
                                                    @NonNull final Binding.Writable<V> write) {
         return new Combine<>(read, write);
+    }
+
+    @NonNull
+    public static <V> Reading.Item.Action action(@NonNull final Reading.Item<V> reading,
+                                                 @NonNull final Binding.Writable<V> binding) {
+        return new Reading.Item.Action() {
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return reading.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(reading.read(input), binding);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
+                                       @NonNull final Binding.Readable<V> binding) {
+        return mapper.prepareWrite(binding.get());
+    }
+
+    @NonNull
+    private static <V> Runnable set(@NonNull final Producer<Maybe<V>> producer,
+                                    @NonNull final Binding.Writable<V> binding) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                binding.set(producer.produce());
+            }
+        };
     }
 
     private abstract static class Named<V> extends Binding.Validated.Base<V> {

@@ -17,40 +17,34 @@
 package android.orm.model;
 
 import android.orm.util.Lens;
-import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.Arrays;
 
-import static android.orm.util.Maybes.something;
-
 public final class Instances {
 
     @NonNull
     public static <M, V> Instance.Getter<V> getter(@NonNull final M model,
-                                                   @NonNull final Lens.Read<M, Maybe<V>> lens) {
+                                                   @NonNull final Lens.Read<M, V> lens) {
         return new Instance.Getter<V>() {
-            @NonNull
+            @Nullable
             @Override
-            public Maybe<V> get() {
-                Maybe<V> result = lens.get(model);
-                if (result == null) {
-                    result = something(null);
-                }
-                return result;
+            public V get() {
+                return lens.get(model);
             }
         };
     }
 
     @NonNull
     public static <M, V> Instance.Setter<V> setter(@NonNull final M model,
-                                                   @NonNull final Lens.Write<M, Maybe<V>> lens) {
+                                                   @NonNull final Lens.Write<M, V> lens) {
         return new Instance.Setter<V>() {
             @Override
-            public void set(@NonNull final Maybe<V> result) {
-                lens.set(model, result);
+            public void set(@Nullable final V value) {
+                lens.set(model, value);
             }
         };
     }
@@ -60,14 +54,14 @@ public final class Instances {
                                                 @NonNull final Instance.Setter<V> setter) {
         return new Instance.Access<V>() {
 
-            @NonNull
+            @Nullable
             @Override
-            public Maybe<V> get() {
+            public V get() {
                 return getter.get();
             }
 
             @Override
-            public void set(@NonNull final Maybe<V> value) {
+            public void set(@Nullable final V value) {
                 setter.set(value);
             }
         };
@@ -75,7 +69,7 @@ public final class Instances {
 
     @NonNull
     public static <M, V> Instance.Access<V> access(@NonNull final M model,
-                                                   @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
+                                                   @NonNull final Lens.ReadWrite<M, V> lens) {
         return access(getter(model, lens), setter(model, lens));
     }
 

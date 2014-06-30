@@ -20,12 +20,12 @@ import android.orm.sql.Value;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
+import static android.orm.util.Maybes.something;
 
 public class View<V> extends Instance.Readable.Base implements Observer.Read {
 
@@ -41,12 +41,8 @@ public class View<V> extends Instance.Readable.Base implements Observer.Read {
 
     private final Instance.Setter<V> mSetter = new Instance.Setter<V>() {
         @Override
-        public void set(@NonNull final Maybe<V> value) {
-            if (value.isSomething()) {
-                mValue = value;
-            } else {
-                Log.w(TAG, mName + " is missing"); //NON-NLS
-            }
+        public void set(@Nullable final V value) {
+            mValue = something(value);
         }
     };
 

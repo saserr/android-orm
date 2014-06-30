@@ -36,8 +36,8 @@ import java.util.List;
 
 import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.model.Plans.compose;
-import static android.orm.model.Plans.write;
-import static android.orm.model.Reading.Item.action;
+import static android.orm.playground.Bindings.action;
+import static android.orm.playground.Bindings.write;
 import static android.orm.util.Maybes.something;
 import static android.orm.util.Validations.valid;
 
@@ -75,7 +75,7 @@ public class Form extends Instance.ReadWrite.Base {
     public final void clear() {
         final Maybe<Object> value = something(null);
         for (final Entry.Read<?> entry : mReads) {
-            ((Instance.Setter<Object>) entry).set(value);
+            ((Entry.Read<Object>) entry).set(value);
         }
     }
 
@@ -190,7 +190,9 @@ public class Form extends Instance.ReadWrite.Base {
 
     private static final class Entry {
 
-        public interface Read<V> extends Instance.Setter<V> {
+        public interface Read<V> {
+
+            void set(@NonNull final Maybe<V> v);
 
             @NonNull
             Reading.Item.Action prepareRead(@NonNull final Context context);

@@ -17,7 +17,6 @@
 package android.orm.playground;
 
 import android.content.Context;
-import android.orm.model.Instance;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -31,7 +30,10 @@ import static android.orm.util.Maybes.something;
 
 public final class Binding {
 
-    public interface Readable<V> extends Instance.Getter<V> {
+    public interface Readable<V> {
+
+        @NonNull
+        Maybe<V> get();
 
         @NonNull
         <T> Readable<T> mapTo(@NonNull final Function<? super V, ? extends T> converter);
@@ -64,9 +66,11 @@ public final class Binding {
         }
     }
 
-    public interface Writable<V> extends Instance.Setter<V> {
+    public interface Writable<V> {
 
         void set(@Nullable final V v);
+
+        void set(@NonNull final Maybe<V> v);
 
         @NonNull
         Writable<V> withDefault(@Nullable final V v);
@@ -118,8 +122,7 @@ public final class Binding {
                 @NonNull
                 private final Maybe<V> mDefault;
 
-                private WithDefault(@NonNull final Writable<V> binding,
-                                    @Nullable final V value) {
+                private WithDefault(@NonNull final Writable<V> binding, @Nullable final V value) {
                     super();
 
                     mBinding = binding;
@@ -214,15 +217,13 @@ public final class Binding {
         @NonNull
         Validation.Result<Maybe<V>> get(@NonNull final Context context);
 
-        void set(@Nullable final V v);
-
         @NonNull
         String getName(@NonNull final Context context);
 
         void setErrors(@NonNull final List<String> errors);
 
         @NonNull
-        <T> Validated<T> map(@NonNull final Converter<V, T> converter);
+        <T> Validated<T> convert(@NonNull final Converter<V, T> converter);
 
         @NonNull
         Validated<V> checkThat(@NonNull final Validation.Localized<? super V> validation);
@@ -270,7 +271,7 @@ public final class Binding {
 
             @NonNull
             @Override
-            public final <T> Validated<T> map(@NonNull final Converter<V, T> converter) {
+            public final <T> Validated<T> convert(@NonNull final Converter<V, T> converter) {
                 return Bindings.convert(this, converter);
             }
 
@@ -343,8 +344,7 @@ public final class Binding {
                 @NonNull
                 private final Maybe<V> mDefault;
 
-                private WithDefault(@NonNull final Validated<V> binding,
-                                    @Nullable final V value) {
+                private WithDefault(@NonNull final Validated<V> binding, @Nullable final V value) {
                     super();
 
                     mBinding = binding;

@@ -122,20 +122,24 @@ public final class Plan {
 
             @NonNull
             public final Builder<M> put(@NonNull final Writer writer) {
-                mEntries.add(Builder.<M>entry(writer));
-                return this;
+                return put(Builder.<M>entry(writer));
             }
 
             @NonNull
             public final <V> Builder<M> put(@NonNull final Mapper.Write<V> mapper,
                                             @NonNull final Lens.Read<M, Maybe<V>> lens) {
-                mEntries.add(entry(mapper, lens));
-                return this;
+                return put(entry(mapper, lens));
             }
 
             @NonNull
             public final Write build(@NonNull final Maybe<M> result) {
                 return build(result, mEntries);
+            }
+
+            @NonNull
+            private Builder<M> put(@NonNull final Function<Maybe<M>, Write> entry) {
+                mEntries.add(entry);
+                return this;
             }
 
             @NonNull

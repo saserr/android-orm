@@ -19,7 +19,6 @@ package android.orm.model;
 import android.orm.Model;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -37,12 +36,12 @@ import static android.orm.model.Reading.Item.action;
 public final class Instance {
 
     public interface Getter<V> {
-        @NonNull
-        Maybe<V> get();
+        @Nullable
+        V get();
     }
 
     public interface Setter<V> {
-        void set(@NonNull final Maybe<V> v);
+        void set(@Nullable final V v);
     }
 
     public interface Access<V> extends Getter<V>, Setter<V> {

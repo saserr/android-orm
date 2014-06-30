@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static android.orm.model.Reading.Item.action;
+import static android.orm.playground.Bindings.action;
 
 public class Show extends Instance.Readable.Base {
 
@@ -110,7 +110,7 @@ public class Show extends Instance.Readable.Base {
             return new Show(mName, mEntries);
         }
 
-        private <V> Builder with(@NonNull final Entry entry) {
+        private Builder with(@NonNull final Entry entry) {
             mEntries.add(entry);
             return this;
         }

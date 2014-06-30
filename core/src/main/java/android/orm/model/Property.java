@@ -45,17 +45,13 @@ public class Property<V> extends Instance.ReadWrite.Base implements Observer.Rea
 
     private final Instance.Setter<V> mSetter = new Instance.Setter<V>() {
         @Override
-        public void set(@NonNull final Maybe<V> value) {
-            if (value.isSomething()) {
-                if (((mSaved == null) && mValue.isNothing()) || mValue.equals(mSaved)) {
-                    mValue = value;
-                } else {
-                    Log.w(TAG, mName + " is dirty and will not be overwritten"); //NON-NLS
-                }
-                mSaved = value;
+        public void set(@Nullable final V value) {
+            if (((mSaved == null) && mValue.isNothing()) || mValue.equals(mSaved)) {
+                mValue = something(value);
             } else {
-                Log.w(TAG, mName + " is missing"); //NON-NLS
+                Log.w(TAG, mName + " is dirty and will not be overwritten"); //NON-NLS
             }
+            mSaved = something(value);
         }
     };
 

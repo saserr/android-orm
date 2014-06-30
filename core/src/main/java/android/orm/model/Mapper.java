@@ -463,8 +463,8 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Plan.Write prepareWrite(@NonNull final Maybe<M> result) {
-                        return write.build(result);
+                    public Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+                        return write.build(value);
                     }
                 };
             }

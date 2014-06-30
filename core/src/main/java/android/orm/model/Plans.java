@@ -232,13 +232,13 @@ public final class Plans {
     @NonNull
     public static <V> Plan.Write write(@NonNull final Value.Write<V> value,
                                        @NonNull final Instance.Getter<V> getter) {
-        return write(getter.get(), value);
+        return write(something(getter.get()), value);
     }
 
     @NonNull
     public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
                                        @NonNull final Instance.Getter<V> getter) {
-        return mapper.prepareWrite(getter.get());
+        return mapper.prepareWrite(something(getter.get()));
     }
 
     @NonNull
