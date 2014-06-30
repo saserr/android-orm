@@ -49,13 +49,13 @@ public final class Serializers {
     @NonNull
     public static <V> Serializer<JsonElement> serializer(@NonNull final Gson gson,
                                                          @NonNull final Value.Read<V> value) {
-        return new Serializer<>(value.getName(), Reading.Item.Create.from(value).map(new ToJson<V>(gson)));
+        return new Serializer<>(value.getName(), Reading.Item.Create.from(value).convert(new ToJson<V>(gson)));
     }
 
     @NonNull
     public static <M> Serializer<JsonElement> serializer(@NonNull final Gson gson,
                                                          @NonNull final Mapper.Read<M> mapper) {
-        return new Serializer<>(mapper.getName(), mapper.prepareRead().map(new ToJson<M>(gson)));
+        return new Serializer<>(mapper.getName(), mapper.prepareRead().convert(new ToJson<M>(gson)));
     }
 
     @NonNull

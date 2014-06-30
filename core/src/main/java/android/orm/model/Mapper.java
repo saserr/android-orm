@@ -167,14 +167,14 @@ public final class Mapper {
                 @NonNull
                 @Override
                 public final Reading.Item.Create<N> prepareRead() {
-                    return mRead.prepareRead().map(mFrom);
+                    return mRead.prepareRead().convert(mFrom);
                 }
 
                 @NonNull
                 @Override
                 public final Reading.Item<N> prepareRead(@NonNull final N model) {
                     final M value = mConverter.to(something(model)).getOrElse(null);
-                    return ((value == null) ? mRead.prepareRead() : mRead.prepareRead(value)).map(mFrom);
+                    return ((value == null) ? mRead.prepareRead() : mRead.prepareRead(value)).convert(mFrom);
                 }
             }
         }

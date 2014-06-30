@@ -135,7 +135,7 @@ public interface Reading<M> {
         public abstract <N> Item<Pair<M, N>> and(@NonNull final Item<N> other);
 
         @NonNull
-        public abstract <N> Item<N> map(@NonNull final Function<Maybe<M>, Maybe<N>> converter);
+        public abstract <N> Item<N> convert(@NonNull final Function<Maybe<M>, Maybe<N>> converter);
 
         @NonNull
         public abstract Producer<Maybe<M>> read(@NonNull final Readable input);
@@ -178,16 +178,59 @@ public interface Reading<M> {
         }
 
         @NonNull
-        public static <V> Action action(@NonNull final Item<V> item,
-                                        @NonNull final Instance.Setter<V> setter) {
+        public static <M> Action action(@NonNull final Mapper.Read<M> mapper,
+                                        @NonNull final Instance.Setter<M> setter) {
             return new Action() {
 
-                private final Select.Projection mProjection = item.getProjection();
+                private final Create<M> mCreate = mapper.prepareRead();
 
                 @NonNull
                 @Override
                 public Select.Projection getProjection() {
-                    return mProjection;
+                    return mCreate.getProjection();
+                }
+
+                @NonNull
+                @Override
+                public Runnable read(@NonNull final Readable input) {
+                    return set(mCreate.read(input), setter);
+                }
+            };
+        }
+
+        @NonNull
+        public static <M> Action action(@NonNull final Mapper.Read<M> mapper,
+                                        @NonNull final Instance.Access<M> access) {
+            final M value = access.get().getOrElse(null);
+            return (value == null) ?
+                    action(mapper, (Instance.Setter<M>) access) :
+                    new Action() {
+
+                        private final Item<M> mUpdate = mapper.prepareRead(value);
+
+                        @NonNull
+                        @Override
+                        public Select.Projection getProjection() {
+                            return mUpdate.getProjection();
+                        }
+
+                        @NonNull
+                        @Override
+                        public Runnable read(@NonNull final Readable input) {
+                            return set(mUpdate.read(input), access);
+                        }
+                    };
+        }
+
+        @NonNull
+        public static <V> Action action(@NonNull final Item<V> item,
+                                        @NonNull final Instance.Setter<V> setter) {
+            return new Action() {
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return item.getProjection();
                 }
 
                 @NonNull
@@ -266,7 +309,7 @@ public interface Reading<M> {
 
             @NonNull
             @Override
-            public final <N> Create<N> map(@NonNull final Function<Maybe<M>, Maybe<N>> converter) {
+            public final <N> Create<N> convert(@NonNull final Function<Maybe<M>, Maybe<N>> converter) {
                 return isEmpty() ? Create.<N>empty() : new Converted<>(this, converter);
             }
 
@@ -378,7 +421,7 @@ public interface Reading<M> {
 
             @NonNull
             @Override
-            public final <N> Update<N> map(@NonNull final Function<Maybe<M>, Maybe<N>> converter) {
+            public final <N> Update<N> convert(@NonNull final Function<Maybe<M>, Maybe<N>> converter) {
                 return isEmpty() ? Update.<N>empty() : new Converted<>(this, converter);
             }
 

@@ -21,6 +21,7 @@ import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
+import android.orm.model.Plans;
 import android.orm.model.Property;
 import android.orm.model.Reading;
 import android.orm.model.Storage;
@@ -40,18 +41,11 @@ import org.jetbrains.annotations.NonNls;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static android.orm.model.Plans.compose;
-
 public abstract class Model {
 
     private final Collection<Instance.Readable> mReadableInstances = new ArrayList<>();
     private final Collection<Instance.Writable> mWritableInstances = new ArrayList<>();
 
-    @NonNls
-    @NonNull
-    private final String mName;
-    @NonNull
-    private final Observer.ReadWrite mObserver;
     @NonNull
     private final Instance.ReadWrite mInstance;
 
@@ -71,9 +65,7 @@ public abstract class Model {
                     @NonNull final Observer.ReadWrite observer) {
         super();
 
-        mName = (name == null) ? getClass().getSimpleName() : name;
-        mObserver = observer;
-        mInstance = new ModelInstance<>(this);
+        mInstance = new ModelInstance<>(name, this, observer);
     }
 
     protected final void with(@NonNull final Instance.Readable instance) {
@@ -183,17 +175,6 @@ public abstract class Model {
         return property;
     }
 
-    @NonNls
-    @NonNull
-    private static String getName(@NonNull final Model model) {
-        return model.mName;
-    }
-
-    @NonNull
-    private static Observer.ReadWrite getObserver(@NonNull final Model model) {
-        return model.mObserver;
-    }
-
     @NonNull
     private static Collection<Instance.Readable> getReadableInstances(@NonNull final Model model) {
         return model.mReadableInstances;
@@ -219,12 +200,14 @@ public abstract class Model {
         @NonNull
         private final Observer.ReadWrite mObserver;
 
-        private ModelInstance(@NonNull final M model) {
+        private ModelInstance(@NonNls @Nullable final String name,
+                              @NonNull final M model,
+                              @NonNull final Observer.ReadWrite observer) {
             super();
 
-            mName = Model.getName(model);
+            mName = (name == null) ? model.getClass().getSimpleName() : name;
             mModel = model;
-            mObserver = getObserver(mModel);
+            mObserver = observer;
         }
 
         @NonNls
@@ -262,7 +245,7 @@ public abstract class Model {
                 plans.add(instance.prepareWrite());
             }
 
-            return compose(plans);
+            return Plans.compose(plans);
         }
 
         @Override
@@ -346,28 +329,29 @@ public abstract class Model {
         }
     }
 
-    private static final Converter<Model, Instance.ReadWrite> ModelInstanceConverter =
-            new Converter<Model, Instance.ReadWrite>() {
+    private static final Converter<ModelInstance<Model>, Model> ModelInstanceConverter =
+            new Converter<ModelInstance<Model>, Model>() {
 
                 @NonNull
                 @Override
-                public Instance.ReadWrite from(@NonNull final Model model) {
-                    return toInstance(model);
+                public Model from(@NonNull final ModelInstance<Model> instance) {
+                    return instance.getModel();
                 }
 
                 @NonNull
                 @Override
                 @SuppressWarnings("unchecked")
-                public Model to(@NonNull final Instance.ReadWrite instance) {
-                    return ((ModelInstance<Model>) instance).getModel();
+                public ModelInstance<Model> to(@NonNull final Model model) {
+                    return (ModelInstance<Model>) toInstance(model);
                 }
             };
-    private static final Function<Model, Instance.ReadWrite> ToInstance = Converters.from(ModelInstanceConverter);
+    private static final Function<Model, ModelInstance<Model>> ToInstance = Converters.to(ModelInstanceConverter);
 
     @NonNull
     @SuppressWarnings("unchecked")
     public static <M extends Model> Mapper.ReadWrite<M> mapper(@NonNull final Producer<M> producer) {
-        final Object converter = ModelInstanceConverter;
-        return Mappers.mapper(Producers.convert(producer, ToInstance)).map((Converter<Instance.ReadWrite, M>) converter);
+        final Function<M, ModelInstance<M>> toInstance = (Function<M, ModelInstance<M>>) (Object) ToInstance;
+        final Converter<ModelInstance<M>, M> converter = (Converter<ModelInstance<M>, M>) (Object) ModelInstanceConverter;
+        return Mappers.mapper(Producers.convert(producer, toInstance)).map(converter);
     }
 }

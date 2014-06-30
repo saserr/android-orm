@@ -51,6 +51,73 @@ public final class Instances {
         };
     }
 
+    @NonNull
+    public static <V> Instance.Access<V> access(@NonNull final Instance.Getter<V> getter,
+                                                @NonNull final Instance.Setter<V> setter) {
+        return new Instance.Access<V>() {
+
+            @NonNull
+            @Override
+            public Maybe<V> get() {
+                return getter.get();
+            }
+
+            @Override
+            public void set(@NonNull final Maybe<V> value) {
+                setter.set(value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <M, V> Instance.Access<V> access(@NonNull final M model,
+                                                   @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
+        return access(getter(model, lens), setter(model, lens));
+    }
+
+    @NonNull
+    public static Instance.ReadWrite combine(@NonNull final Instance.Readable read,
+                                             @NonNull final Instance.Writable write) {
+        return new Combine(read, write);
+    }
+
+    private static class Combine extends Observer.ReadWrite.Composition implements Instance.ReadWrite {
+
+        @NonNull
+        private final Instance.Readable mRead;
+        @NonNull
+        private final Instance.Writable mWrite;
+
+        private Combine(@NonNull final Instance.Readable read,
+                        @NonNull final Instance.Writable write) {
+            super(
+                    (read instanceof Observer.Read) ? (Observer.Read) read : Observer.Read.DUMMY,
+                    (write instanceof Observer.Write) ? (Observer.Write) write : Observer.Write.DUMMY
+            );
+
+            mRead = read;
+            mWrite = write;
+        }
+
+        @NonNull
+        @Override
+        public final String getName() {
+            return mRead.getName();
+        }
+
+        @NonNull
+        @Override
+        public final Reading.Item.Action prepareRead() {
+            return mRead.prepareRead();
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Write prepareWrite() {
+            return mWrite.prepareWrite();
+        }
+    }
+
     private Instances() {
         super();
     }

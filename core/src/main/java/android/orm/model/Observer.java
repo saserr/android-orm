@@ -16,7 +16,12 @@
 
 package android.orm.model;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 public final class Observer {
 
@@ -25,6 +30,10 @@ public final class Observer {
         void beforeRead();
 
         void afterRead();
+
+        Read DUMMY = new Base() {
+            /* ignore everything */
+        };
 
         abstract class Base implements Read {
 
@@ -35,9 +44,37 @@ public final class Observer {
             public void afterRead() {/* do nothing */}
         }
 
-        Read DUMMY = new Base() {
-            /* ignore everything */
-        };
+        class Delegate implements Read {
+
+            @NonNull
+            private final Collection<Read> mObservers;
+
+            public Delegate(@NonNull final Read... observers) {
+                super();
+
+                mObservers = Arrays.asList(observers);
+            }
+
+            public Delegate(@NonNull final Collection<Read> observers) {
+                super();
+
+                mObservers = new ArrayList<>(observers);
+            }
+
+            @Override
+            public final void beforeRead() {
+                for (final Read observer : mObservers) {
+                    observer.beforeRead();
+                }
+            }
+
+            @Override
+            public final void afterRead() {
+                for (final Read observer : mObservers) {
+                    observer.afterRead();
+                }
+            }
+        }
     }
 
     public interface Write {
@@ -53,6 +90,10 @@ public final class Observer {
         void beforeSave();
 
         void afterSave();
+
+        Write DUMMY = new Base() {
+            /* ignore everything */
+        };
 
         abstract class Base implements Write {
 
@@ -75,12 +116,72 @@ public final class Observer {
             public void afterSave() {/* do nothing */}
         }
 
-        Write DUMMY = new Base() {
-            /* ignore everything */
-        };
+        class Delegate implements Write {
+
+            @NonNull
+            private final Collection<Write> mObservers;
+
+            public Delegate(@NonNull final Write... observers) {
+                super();
+
+                mObservers = Arrays.asList(observers);
+            }
+
+            public Delegate(@NonNull final Collection<Write> observers) {
+                super();
+
+                mObservers = new ArrayList<>(observers);
+            }
+
+            @Override
+            public final void beforeCreate() {
+                for (final Write observer : mObservers) {
+                    observer.beforeCreate();
+                }
+            }
+
+            @Override
+            public final void afterCreate() {
+                for (final Write observer : mObservers) {
+                    observer.afterCreate();
+                }
+            }
+
+            @Override
+            public final void beforeUpdate() {
+                for (final Write observer : mObservers) {
+                    observer.beforeUpdate();
+                }
+            }
+
+            @Override
+            public final void afterUpdate() {
+                for (final Write observer : mObservers) {
+                    observer.afterUpdate();
+                }
+            }
+
+            @Override
+            public final void beforeSave() {
+                for (final Write observer : mObservers) {
+                    observer.beforeSave();
+                }
+            }
+
+            @Override
+            public final void afterSave() {
+                for (final Write observer : mObservers) {
+                    observer.afterSave();
+                }
+            }
+        }
     }
 
     public interface ReadWrite extends Read, Write {
+
+        ReadWrite DUMMY = new Base() {
+            /* ignore everything */
+        };
 
         abstract class Base implements ReadWrite {
 
@@ -109,9 +210,61 @@ public final class Observer {
             public void afterSave() {/* do nothing */}
         }
 
-        ReadWrite DUMMY = new Base() {
-            /* ignore everything */
-        };
+        abstract class Composition implements ReadWrite {
+
+            @NonNull
+            private final Read mRead;
+            @NonNull
+            private final Write mWrite;
+
+            protected Composition(@NonNull final Read read,
+                                  @NonNull final Write write) {
+                super();
+
+                mRead = read;
+                mWrite = write;
+            }
+
+            @Override
+            public final void beforeRead() {
+                mRead.beforeRead();
+            }
+
+            @Override
+            public final void afterRead() {
+                mRead.afterRead();
+            }
+
+            @Override
+            public final void beforeCreate() {
+                mWrite.beforeCreate();
+            }
+
+            @Override
+            public final void afterCreate() {
+                mWrite.afterCreate();
+            }
+
+            @Override
+            public final void beforeUpdate() {
+                mWrite.beforeUpdate();
+            }
+
+            @Override
+            public final void afterUpdate() {
+                mWrite.afterUpdate();
+            }
+
+            @Override
+            public final void beforeSave() {
+                mWrite.beforeSave();
+            }
+
+            @Override
+            public final void afterSave() {
+                mWrite.afterSave();
+            }
+        }
     }
 
     public static <M> void beforeRead(@Nullable final M model) {
