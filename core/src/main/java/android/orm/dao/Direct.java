@@ -24,6 +24,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Database;
+import android.orm.Model;
 import android.orm.Route;
 import android.orm.dao.direct.Notifier;
 import android.orm.model.Instance;
@@ -39,6 +40,7 @@ import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Function;
+import android.orm.util.Functions;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
@@ -58,10 +60,10 @@ import static android.orm.model.Observer.afterUpdate;
 import static android.orm.model.Observer.beforeCreate;
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Observer.beforeUpdate;
+import static android.orm.model.Plans.single;
 import static android.orm.model.Plans.write;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
-import static android.orm.sql.Select.select;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.util.Maybes.nothing;
@@ -108,9 +110,7 @@ public abstract class Direct implements DAO.Direct {
         @NonNull
         private final Notifier mNotifier;
         @NonNull
-        private final Route.Item mRoute;
-        @NonNull
-        private final Object[] mArguments;
+        private final Select mSelect;
 
         private SingleAccess(@NonNull final Direct dao,
                              @NonNull final Notifier notifier,
@@ -120,8 +120,22 @@ public abstract class Direct implements DAO.Direct {
 
             mDAO = dao;
             mNotifier = notifier;
-            mRoute = route;
-            mArguments = arguments;
+
+            mSelect = select().with(Select.Limit.Single).build();
+        }
+
+        @NonNull
+        @Override
+        public final <M extends Model> Maybe<M> query(@NonNull final M model) {
+            return query(Model.toInstance(model)).map(Functions.constant(model));
+        }
+
+        @NonNull
+        @Override
+        public final <M extends Instance.Readable> Maybe<M> query(@NonNull final M model) {
+            beforeRead(model);
+            final Plan.Read<M> plan = single(model.getName(), Reading.Item.Update.from(model));
+            return read(model, plan, mSelect);
         }
 
         @NonNull
@@ -139,7 +153,7 @@ public abstract class Direct implements DAO.Direct {
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Single<M> reading) {
-            return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
+            return query(reading, Select.Limit.Single);
         }
 
         @NonNull
@@ -221,28 +235,17 @@ public abstract class Direct implements DAO.Direct {
 
     private static class ManyAccess extends SomeAccess implements DAO.Direct.Access.Many {
 
-        @NonNull
-        private final Direct mDAO;
-        @NonNull
-        private final Route.Dir mRoute;
-        @NonNull
-        private final Object[] mArguments;
-
         private ManyAccess(@NonNull final Direct dao,
                            @NonNull final Notifier notifier,
                            @NonNull final Route.Dir route,
                            @NonNull final Object... arguments) {
             super(dao, notifier, route, arguments);
-
-            mDAO = dao;
-            mRoute = route;
-            mArguments = arguments;
         }
 
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final AggregateFunction<M> function) {
-            return new QueryBuilder<>(mDAO, single(function), mRoute, mArguments);
+            return query(single(function), null);
         }
 
         @NonNull
@@ -260,7 +263,7 @@ public abstract class Direct implements DAO.Direct {
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Many<M> reading) {
-            return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
+            return query(reading, null);
         }
     }
 
@@ -404,6 +407,33 @@ public abstract class Direct implements DAO.Direct {
             return result;
         }
 
+        @NonNull
+        protected final Select.Builder select() {
+            return Select.select(mTable).with(mWhere);
+        }
+
+        @NonNull
+        protected final <V> QueryBuilder<V> query(@NonNull final Reading<V> reading,
+                                                  @Nullable final Select.Limit limit) {
+            return new QueryBuilder<>(this, reading, mWhere, limit);
+        }
+
+        @NonNull
+        protected final <V> Maybe<V> read(@Nullable final V model,
+                                          @NonNull final Plan.Read<V> plan,
+                                          @NonNull final Select select) {
+            final Maybe<V> result;
+
+            if (plan.isEmpty()) {
+                result = (model == null) ? Maybes.<V>nothing() : something(model);
+            } else {
+                final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
+                result = mDAO.execute(new android.orm.dao.direct.Read<>(plan, select)).flatMap(afterRead);
+            }
+
+            return result;
+        }
+
         protected final void notifyChange() {
             mNotifier.notifyChange(mUri);
         }
@@ -412,30 +442,28 @@ public abstract class Direct implements DAO.Direct {
     private static class QueryBuilder<V> implements DAO.Direct.Query.Builder.Refreshable<V> {
 
         @NonNull
-        private final Direct mDAO;
+        private final BaseAccess<?> mAccess;
         @NonNull
         private final Reading<V> mReading;
         @NonNull
         private final Select.Where mDefault;
-
-        private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = afterRead();
 
         @NonNull
         private Select.Builder mSelect;
         @Nullable
         private V mValue;
 
-        private QueryBuilder(@NonNull final Direct dao,
+        private QueryBuilder(@NonNull final BaseAccess<?> access,
                              @NonNull final Reading<V> reading,
-                             @NonNull final Route route,
-                             @NonNull final Object... arguments) {
+                             @NonNull final Select.Where where,
+                             @Nullable final Select.Limit limit) {
             super();
 
-            mDAO = dao;
+            mAccess = access;
             mReading = reading;
-            mDefault = route.getWhere(arguments);
+            mDefault = where;
 
-            mSelect = select(route.getTable());
+            mSelect = mAccess.select().with(limit);
         }
 
         @NonNull
@@ -480,15 +508,7 @@ public abstract class Direct implements DAO.Direct {
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
-            final Maybe<V> result;
-
-            if (plan.isEmpty()) {
-                result = (mValue == null) ? Maybes.<V>nothing() : something(mValue);
-            } else {
-                result = mDAO.execute(new android.orm.dao.direct.Read<>(plan, mSelect.build())).flatMap(mAfterRead);
-            }
-
-            return result;
+            return mAccess.read(mValue, plan, mSelect.build());
         }
     }
 

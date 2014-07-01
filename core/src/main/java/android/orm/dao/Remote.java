@@ -21,10 +21,12 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
 import android.orm.DAO;
+import android.orm.Model;
 import android.orm.Route;
 import android.orm.dao.async.Observer;
 import android.orm.dao.remote.Apply;
 import android.orm.dao.remote.Watch;
+import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
@@ -34,6 +36,7 @@ import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Cancelable;
 import android.orm.util.Function;
+import android.orm.util.Functions;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.os.Handler;
@@ -49,6 +52,7 @@ import static android.orm.dao.direct.Read.afterRead;
 import static android.orm.model.Observer.beforeCreate;
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Observer.beforeUpdate;
+import static android.orm.model.Plans.single;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 
@@ -151,25 +155,25 @@ public class Remote extends Async implements DAO.Remote {
 
     private static class SingleAccess extends SomeAccess implements DAO.Remote.Access.Single {
 
-        @NonNull
-        private final android.orm.dao.Remote mDAO;
-        @NonNull
-        private final ContentResolver mResolver;
-        @NonNull
-        private final Route.Item mRoute;
-        @NonNull
-        private final Object[] mArguments;
-
-        private SingleAccess(@NonNull final android.orm.dao.Remote dao,
+        private SingleAccess(@NonNull final Remote dao,
                              @NonNull final ContentResolver resolver,
                              @NonNull final Route.Item route,
                              @NonNull final Object... arguments) {
             super(dao, resolver, route, arguments);
+        }
 
-            mDAO = dao;
-            mResolver = resolver;
-            mRoute = route;
-            mArguments = arguments;
+        @NonNull
+        @Override
+        public final <M extends Model> Result<M> query(@NonNull final M model) {
+            return query(Model.toInstance(model)).map(Functions.constant(model));
+        }
+
+        @NonNull
+        @Override
+        public final <M extends Instance.Readable> Result<M> query(@NonNull final M model) {
+            beforeRead(model);
+            final Plan.Read<M> plan = single(model.getName(), Reading.Item.Update.from(model));
+            return read(model, plan);
         }
 
         @NonNull
@@ -187,37 +191,23 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Single<M> reading) {
-            return new QueryBuilder<>(mDAO, mResolver, reading, mRoute, mArguments);
+            return super.query(reading);
         }
     }
 
     private static class ManyAccess extends SomeAccess implements DAO.Remote.Access.Many {
 
-        @NonNull
-        private final android.orm.dao.Remote mDAO;
-        @NonNull
-        private final ContentResolver mResolver;
-        @NonNull
-        private final Route.Dir mRoute;
-        @NonNull
-        private final Object[] mArguments;
-
-        private ManyAccess(@NonNull final android.orm.dao.Remote dao,
+        private ManyAccess(@NonNull final Remote dao,
                            @NonNull final ContentResolver resolver,
                            @NonNull final Route.Dir route,
                            @NonNull final Object... arguments) {
             super(dao, resolver, route, arguments);
-
-            mDAO = dao;
-            mResolver = resolver;
-            mRoute = route;
-            mArguments = arguments;
         }
 
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final AggregateFunction<M> function) {
-            return new QueryBuilder<>(mDAO, mResolver, single(function), mRoute, mArguments);
+            return query(single(function));
         }
 
         @NonNull
@@ -235,14 +225,14 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Many<M> reading) {
-            return new QueryBuilder<>(mDAO, mResolver, reading, mRoute, mArguments);
+            return super.query(reading);
         }
     }
 
     private static class SomeAccess extends DAO.Access.Write.Base<Result<Uri>, Result<Integer>, Result<Integer>> implements DAO.Remote.Access.Some {
 
         @NonNull
-        private final android.orm.dao.Remote mDAO;
+        private final Remote mDAO;
         @NonNull
         private final Route.Manager mRouteManager;
         @NonNull
@@ -250,13 +240,15 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         private final android.orm.dao.remote.Exists mExists;
         @NonNull
+        private final android.orm.dao.remote.Read<Object> mRead;
+        @NonNull
         private final Function<Writer, Maybe<Uri>> mInsert;
         @NonNull
         private final android.orm.dao.remote.Update mUpdate;
         @NonNull
         private final android.orm.dao.remote.Delete mDelete;
 
-        private SomeAccess(@NonNull final android.orm.dao.Remote dao,
+        private SomeAccess(@NonNull final Remote dao,
                            @NonNull final ContentResolver resolver,
                            @NonNull final Route route,
                            @NonNull final Object... arguments) {
@@ -267,6 +259,7 @@ public class Remote extends Async implements DAO.Remote {
             mUri = route.createUri(arguments);
 
             mExists = new android.orm.dao.remote.Exists(resolver, mUri);
+            mRead = new android.orm.dao.remote.Read<>(resolver, mUri);
             mInsert = new android.orm.dao.remote.Insert(resolver, mUri);
             mUpdate = new android.orm.dao.remote.Update(resolver, mUri);
             mDelete = new android.orm.dao.remote.Delete(resolver, mUri);
@@ -348,23 +341,48 @@ public class Remote extends Async implements DAO.Remote {
                     }) :
                     result;
         }
+
+        @NonNull
+        protected final <V> QueryBuilder<V> query(@NonNull final Reading<V> reading) {
+            return new QueryBuilder<>(this, reading);
+        }
+
+        @NonNull
+        @SuppressWarnings("unchecked")
+        protected final <V> Result<V> read(@Nullable final V model, @NonNull final Plan.Read<V> plan) {
+            final Result<V> result;
+
+            if (plan.isEmpty()) {
+                result = Result.something(model);
+            } else {
+                final android.orm.dao.remote.Read<V> read = (android.orm.dao.remote.Read<V>) mRead;
+                final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, Select.Where.None, null);
+                final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
+                result = mDAO.execute(arguments, read).flatMap(afterRead);
+            }
+
+            return result;
+        }
+
+        @NonNull
+        protected final <V> Cancelable watch(@NonNull final Reading<V> reading,
+                                             @NonNull final android.orm.dao.remote.Read.Arguments<V> arguments,
+                                             @NonNull final Result.Callback<? super V> callback) {
+            return mDAO.watch(mRouteManager, mUri, reading, arguments, callback);
+        }
+
+        @NonNull
+        protected final Cancelable notify(@NonNull final Runnable runnable) {
+            return mDAO.notify(mRouteManager, mUri, runnable);
+        }
     }
 
     private static class QueryBuilder<V> implements DAO.Remote.Query.Builder.Refreshable<V> {
 
         @NonNull
-        private final android.orm.dao.Remote mDAO;
+        private final SomeAccess mAccess;
         @NonNull
         private final Reading<V> mReading;
-        @NonNull
-        private final Route.Manager mRouteManager;
-        @NonNull
-        private final Uri mUri;
-
-        @NonNull
-        private final android.orm.dao.remote.Read<V> mRead;
-
-        private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = afterRead();
 
         @NonNull
         private Select.Where mWhere = Select.Where.None;
@@ -373,18 +391,11 @@ public class Remote extends Async implements DAO.Remote {
         @Nullable
         private V mValue;
 
-        private QueryBuilder(@NonNull final android.orm.dao.Remote dao,
-                             @NonNull final ContentResolver resolver,
-                             @NonNull final Reading<V> reading,
-                             @NonNull final Route route,
-                             @NonNull final Object... arguments) {
+        private QueryBuilder(@NonNull final SomeAccess access, @NonNull final Reading<V> reading) {
             super();
 
-            mDAO = dao;
+            mAccess = access;
             mReading = reading;
-            mRouteManager = route.getManager();
-            mUri = route.createUri(arguments);
-            mRead = new android.orm.dao.remote.Read<>(resolver, mUri);
         }
 
         @NonNull
@@ -415,16 +426,7 @@ public class Remote extends Async implements DAO.Remote {
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
-            final Result<V> result;
-
-            if (plan.isEmpty()) {
-                result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
-            } else {
-                final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, mWhere, mOrder);
-                result = mDAO.execute(arguments, mRead).flatMap(mAfterRead);
-            }
-
-            return result;
+            return mAccess.read(mValue, plan);
         }
 
         @NonNull
@@ -435,12 +437,12 @@ public class Remote extends Async implements DAO.Remote {
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
             final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, mWhere, mOrder);
-            return mDAO.watch(mRouteManager, mUri, mReading, arguments, callback);
+            return mAccess.watch(mReading, arguments, callback);
         }
 
         @Override
         public final Cancelable onChange(@NonNull final Runnable runnable) {
-            return mDAO.notify(mRouteManager, mUri, runnable);
+            return mAccess.notify(runnable);
         }
     }
 

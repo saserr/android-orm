@@ -106,6 +106,12 @@ public final class DAO {
             public interface Single extends DAO.Access.Query.Single {
 
                 @NonNull
+                <M extends Model> Maybe<M> query(@NonNull final M model);
+
+                @NonNull
+                <M extends Instance.Readable> Maybe<M> query(@NonNull final M model);
+
+                @NonNull
                 @Override
                 <M> Builder<M> query(@NonNull final Value.Read<M> value);
 
@@ -432,6 +438,12 @@ public final class DAO {
         final class Query {
 
             public interface Single extends DAO.Access.Query.Single {
+
+                @NonNull
+                <M extends Model> Result<M> query(@NonNull final M model);
+
+                @NonNull
+                <M extends Instance.Readable> Result<M> query(@NonNull final M model);
 
                 @NonNull
                 @Override

@@ -22,12 +22,15 @@ import android.content.Context;
 import android.net.Uri;
 import android.orm.DAO;
 import android.orm.Database;
+import android.orm.Model;
 import android.orm.Route;
 import android.orm.dao.async.Observer;
 import android.orm.dao.direct.Notifier;
 import android.orm.dao.local.Watch;
+import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
+import android.orm.model.Plans;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Expression;
@@ -36,6 +39,7 @@ import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.util.Cancelable;
 import android.orm.util.Function;
+import android.orm.util.Functions;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.os.Handler;
@@ -51,7 +55,6 @@ import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
-import static android.orm.sql.Select.select;
 
 public class Local extends Async implements DAO.Local {
 
@@ -137,21 +140,29 @@ public class Local extends Async implements DAO.Local {
     private static class SingleAccess extends SomeAccess implements DAO.Local.Access.Single {
 
         @NonNull
-        private final android.orm.dao.Local mDAO;
-        @NonNull
-        private final Route.Item mRoute;
-        @NonNull
-        private final Object[] mArguments;
+        private final Select mSelect;
 
-        private SingleAccess(@NonNull final android.orm.dao.Local dao,
+        private SingleAccess(@NonNull final Local dao,
                              @NonNull final Notifier notifier,
                              @NonNull final Route.Item route,
                              @NonNull final Object... arguments) {
             super(dao, notifier, route, arguments);
 
-            mDAO = dao;
-            mRoute = route;
-            mArguments = arguments;
+            mSelect = select().with(Select.Limit.Single).build();
+        }
+
+        @NonNull
+        @Override
+        public final <M extends Model> Result<M> query(@NonNull final M model) {
+            return query(Model.toInstance(model)).map(Functions.constant(model));
+        }
+
+        @NonNull
+        @Override
+        public final <M extends Instance.Readable> Result<M> query(@NonNull final M model) {
+            beforeRead(model);
+            final Plan.Read<M> plan = Plans.single(model.getName(), Reading.Item.Update.from(model));
+            return read(model, plan, mSelect);
         }
 
         @NonNull
@@ -169,34 +180,24 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Single<M> reading) {
-            return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
+            return query(reading, Select.Limit.Single);
         }
     }
 
     private static class ManyAccess extends SomeAccess implements DAO.Local.Access.Many {
 
-        @NonNull
-        private final android.orm.dao.Local mDAO;
-        @NonNull
-        private final Route.Dir mRoute;
-        @NonNull
-        private final Object[] mArguments;
 
-        private ManyAccess(@NonNull final android.orm.dao.Local dao,
+        private ManyAccess(@NonNull final Local dao,
                            @NonNull final Notifier notifier,
                            @NonNull final Route.Dir route,
                            @NonNull final Object... arguments) {
             super(dao, notifier, route, arguments);
-
-            mDAO = dao;
-            mRoute = route;
-            mArguments = arguments;
         }
 
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final AggregateFunction<M> function) {
-            return new QueryBuilder<>(mDAO, single(function), mRoute, mArguments);
+            return query(single(function), null);
         }
 
         @NonNull
@@ -214,14 +215,14 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         @Override
         public final <M> QueryBuilder<M> query(@NonNull final Reading.Many<M> reading) {
-            return new QueryBuilder<>(mDAO, reading, mRoute, mArguments);
+            return query(reading, null);
         }
     }
 
     private static class SomeAccess extends DAO.Access.Write.Base<Result<Uri>, Result<Integer>, Result<Integer>> implements DAO.Local.Access.Some {
 
         @NonNull
-        private final android.orm.dao.Local mDAO;
+        private final Local mDAO;
         @NonNull
         private final Route.Manager mRouteManager;
         @NonNull
@@ -239,7 +240,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private final Function<Integer, Integer> mChangeNotify;
 
-        private SomeAccess(@NonNull final android.orm.dao.Local dao,
+        private SomeAccess(@NonNull final Local dao,
                            @NonNull final Notifier notifier,
                            @NonNull final Route route,
                            @NonNull final Object... arguments) {
@@ -354,41 +355,73 @@ public class Local extends Async implements DAO.Local {
                     }) :
                     result;
         }
+
+        @NonNull
+        protected final Select.Builder select() {
+            return Select.select(mTable).with(mWhere);
+        }
+
+        @NonNull
+        protected final <V> QueryBuilder<V> query(@NonNull final Reading<V> reading,
+                                                  @Nullable final Select.Limit limit) {
+            return new QueryBuilder<>(this, reading, mWhere, limit);
+        }
+
+        @NonNull
+        protected final <V> Result<V> read(@Nullable final V model,
+                                           @NonNull final Plan.Read<V> plan,
+                                           @NonNull final Select select) {
+            final Result<V> result;
+
+            if (plan.isEmpty()) {
+                result = (model == null) ? Result.<V>nothing() : Result.something(model);
+            } else {
+                final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
+                result = mDAO.execute(new android.orm.dao.direct.Read<>(plan, select)).flatMap(afterRead);
+            }
+
+            return result;
+        }
+
+        @NonNull
+        protected final <V> Cancelable watch(@NonNull final Reading<V> reading,
+                                             @NonNull final Plan.Read<V> plan,
+                                             @NonNull final Select select,
+                                             @NonNull final Result.Callback<? super V> callback) {
+            return mDAO.watch(mRouteManager, mUri, reading, plan, select, callback);
+        }
+
+        @NonNull
+        protected final Cancelable notify(@NonNull final Runnable runnable) {
+            return mDAO.notify(mRouteManager, mUri, runnable);
+        }
     }
 
     private static class QueryBuilder<V> implements DAO.Local.Query.Builder.Refreshable<V> {
 
         @NonNull
-        private final android.orm.dao.Local mDAO;
+        private final SomeAccess mAccess;
         @NonNull
         private final Reading<V> mReading;
         @NonNull
         private final Select.Where mDefault;
-        @NonNull
-        private final Route.Manager mRouteManager;
-        @NonNull
-        private final Uri mUri;
-
-        private final Function<Producer<Maybe<V>>, Maybe<V>> mAfterRead = afterRead();
 
         @NonNull
         private Select.Builder mSelect;
         @Nullable
         private V mValue;
 
-        private QueryBuilder(@NonNull final android.orm.dao.Local dao,
+        private QueryBuilder(@NonNull final SomeAccess access,
                              @NonNull final Reading<V> reading,
-                             @NonNull final Route route,
-                             @NonNull final Object... arguments) {
+                             @NonNull final Select.Where where,
+                             @Nullable final Select.Limit limit) {
             super();
 
-            mDAO = dao;
+            mAccess = access;
             mReading = reading;
-            mDefault = route.getWhere(arguments);
-            mRouteManager = route.getManager();
-            mUri = route.createUri(arguments);
+            mDefault = where;
 
-            mSelect = select(route.getTable());
+            mSelect = mAccess.select().with(limit);
         }
 
         @NonNull
@@ -433,15 +466,7 @@ public class Local extends Async implements DAO.Local {
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
-            final Result<V> result;
-
-            if (plan.isEmpty()) {
-                result = (mValue == null) ? Result.<V>nothing() : Result.something(mValue);
-            } else {
-                result = mDAO.execute(new android.orm.dao.direct.Read<>(plan, mSelect.build())).flatMap(mAfterRead);
-            }
-
-            return result;
+            return mAccess.read(mValue, plan, mSelect.build());
         }
 
         @NonNull
@@ -455,12 +480,12 @@ public class Local extends Async implements DAO.Local {
                 throw new IllegalArgumentException("Nothing will be watched");
             }
 
-            return mDAO.watch(mRouteManager, mUri, mReading, plan, mSelect.build(), callback);
+            return mAccess.watch(mReading, plan, mSelect.build(), callback);
         }
 
         @Override
         public final Cancelable onChange(@NonNull final Runnable runnable) {
-            return mDAO.notify(mRouteManager, mUri, runnable);
+            return mAccess.notify(runnable);
         }
     }
 
