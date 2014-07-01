@@ -17,19 +17,15 @@
 package android.orm.util;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.util.Maybes.something;
-import static android.orm.util.Validations.valid;
-
 public interface Validation<V> {
 
-    @NonNull
-    <T extends V> Result<T> validate(@NonNull final T v);
+    boolean isValid(@NonNull final Maybe<? extends V> v);
 
-    @NonNull
-    <T extends V> Result<Maybe<T>> validate(@NonNull final Maybe<T> m);
+    void isValidOrThrow(@NonNull final Maybe<? extends V> v);
 
     @NonNull
     <T extends V> Validation<T> and(@NonNull final Validation<T> other);
@@ -66,92 +62,28 @@ public interface Validation<V> {
     }
 
     abstract class Value<V> extends Base<V> {
+
+        @NonNls
         @NonNull
+        private final String mError;
+
+        protected Value(@NonNls @NonNull final String error) {
+            super();
+
+            mError = error;
+        }
+
+        protected abstract boolean isValid(@Nullable final V v);
+
         @Override
-        public final <T extends V> Result<Maybe<T>> validate(@NonNull final Maybe<T> value) {
-            final T t = value.getOrElse(null);
-            final Result<Maybe<T>> result;
-
-            if (t == null) {
-                result = valid(value);
-            } else {
-                final Result<T> validated = validate(t);
-                result = validated.isValid() ?
-                        valid(something(validated.get())) :
-                        Validations.<Maybe<T>>safeCast((Result.Invalid<T>) validated);
-            }
-
-            return result;
-        }
-    }
-
-    interface Result<V> {
-
-        boolean isValid();
-
-        boolean isInvalid();
-
-        @NonNull
-        V get();
-
-        @NonNull
-        <T> Result<T> map(@NonNull final Function<? super V, ? extends T> function);
-
-        @NonNull
-        <T> Result<T> flatMap(@NonNull final Function<? super V, Result<T>> function);
-
-        @NonNull
-        <T extends V> Result<T> and(@NonNull final Result<T> second);
-
-        @NonNull
-        V or(@NonNull final V other);
-
-        @NonNull
-        <T extends V> Result<V> or(@NonNull final Result<T> other);
-
-        abstract class Valid<V> implements Result<V> {
-
-            @NonNull
-            @Override
-            public abstract <T> Valid<T> map(@NonNull final Function<? super V, ? extends T> function);
-
-            @Override
-            public final boolean isValid() {
-                return true;
-            }
-
-            @Override
-            public final boolean isInvalid() {
-                return false;
-            }
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            return value.isNothing() || isValid(value.get());
         }
 
-        abstract class Invalid<V> implements Result<V> {
-
-            @NonNls
-            @NonNull
-            public abstract String getError();
-
-            @NonNull
-            @Override
-            public abstract <T> Invalid<T> map(@NonNull final Function<? super V, ? extends T> function);
-
-            @NonNull
-            @Override
-            public abstract <T> Invalid<T> flatMap(@NonNull final Function<? super V, Result<T>> function);
-
-            @NonNull
-            @Override
-            public abstract <T extends V> Invalid<T> and(@NonNull final Result<T> second);
-
-            @Override
-            public final boolean isValid() {
-                return false;
-            }
-
-            @Override
-            public final boolean isInvalid() {
-                return true;
+        @Override
+        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
+            if (!isValid(value)) {
+                throw new Exception(mError);
             }
         }
     }

@@ -17,6 +17,7 @@
 package android.orm.util;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
@@ -32,144 +33,93 @@ public final class Validations {
     private static final String IS_EMPTY = "Values cannot be empty";
 
     private interface Errors {
-        Validation.Result.Invalid<Object> NOT_POSITIVE = invalid("number is not positive");
-        Validation.Result.Invalid<Object> NOT_NEGATIVE = invalid("number is not negative");
+        @NonNls
+        String NOT_POSITIVE = "number is not positive";
+        @NonNls
+        String NOT_NEGATIVE = "number is not negative";
     }
 
     public static final Validation<Object> IsRequired = new Validation.Base<Object>() {
 
-        private final Result.Invalid<Object> mInvalid = invalid("value is required");
+        @NonNls
+        private static final String Error = "value is required";
 
-        @NonNull
         @Override
-        public <T> Result<T> validate(@NonNull final T value) {
-            return valid(value);
+        public boolean isValid(@NonNull final Maybe<?> value) {
+            return value.isSomething() && (value.get() != null);
         }
 
-        @NonNull
         @Override
-        public <T> Result<Maybe<T>> validate(@NonNull final Maybe<T> value) {
-            return (value.getOrElse(null) == null) ?
-                    Validations.<Maybe<T>>safeCast(mInvalid) :
-                    valid(value);
+        public void isValidOrThrow(@NonNull final Maybe<?> value) {
+            if (!isValid(value)) {
+                throw new Exception(Error);
+            }
         }
     };
 
-    public static final Validation<CharSequence> IsNotEmpty = new Validation.Value<CharSequence>() {
-
-        private final Result.Invalid<CharSequence> mInvalid = invalid("text is empty");
-
-        @NonNull
+    public static final Validation<CharSequence> IsNotEmpty = new Validation.Value<CharSequence>("text is empty") {
         @Override
-        public <T extends CharSequence> Result<T> validate(@NonNull final T value) {
-            return isEmpty(value) ?
-                    Validations.<T>safeCast(mInvalid) :
-                    valid(value);
+        public boolean isValid(@Nullable final CharSequence value) {
+            return !isEmpty(value);
         }
     };
 
     @NonNull
-    public static <V> Validation.Result.Valid<V> valid(@NonNull final V value) {
-        return new Valid<>(value);
-    }
-
-    @NonNull
-    public static <V> Validation.Result.Invalid<V> invalid(@NonNls @NonNull final String error) {
-        return new Invalid<>(error);
-    }
-
-    @NonNull
-    public static <V> Validation<V> IsEqualTo(@NonNull final V value) {
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is not equal to " + value);
-
-            @NonNull
+    public static <V> Validation<V> IsEqualTo(@NonNls @Nullable final V value) {
+        return new Validation.Value<V>("value is not equal to " + value) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T other) {
-                return value.equals(other) ?
-                        valid(other) :
-                        Validations.<T>safeCast(mInvalid);
+            public boolean isValid(@Nullable final V other) {
+                return (value == null) ? (other == null) : value.equals(other);
             }
         };
     }
 
     @NonNull
-    public static <V> Validation<V> IsNotEqualTo(@NonNull final V value) {
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is equal to " + value);
-
-            @NonNull
+    public static <V> Validation<V> IsNotEqualTo(@NonNls @Nullable final V value) {
+        return new Validation.Value<V>("value is equal to " + value) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T other) {
-                return value.equals(other) ?
-                        Validations.<T>safeCast(mInvalid) :
-                        valid(other);
+            public boolean isValid(@Nullable final V other) {
+                return (value == null) ? (other != null) : !value.equals(other);
             }
         };
     }
 
     @NonNull
-    public static <V extends Comparable<V>> Validation<V> IsLessThan(@NonNull final V value) {
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is greater than or equal to " + value);
-
-            @NonNull
+    public static <V extends Comparable<V>> Validation<V> IsLessThan(@NonNls @NonNull final V value) {
+        return new Validation.Value<V>("value is greater than or equal to " + value) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T other) {
-                return (other.compareTo(value) < 0) ?
-                        valid(other) :
-                        Validations.<T>safeCast(mInvalid);
+            public boolean isValid(@Nullable final V other) {
+                return (other == null) || (other.compareTo(value) < 0);
             }
         };
     }
 
     @NonNull
-    public static <V extends Comparable<V>> Validation<V> IsLessOrEqualThan(@NonNull final V value) {
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is greater than " + value);
-
-            @NonNull
+    public static <V extends Comparable<V>> Validation<V> IsLessOrEqualThan(@NonNls @NonNull final V value) {
+        return new Validation.Value<V>("value is greater than " + value) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T other) {
-                return (other.compareTo(value) <= 0) ?
-                        valid(other) :
-                        Validations.<T>safeCast(mInvalid);
+            public boolean isValid(@Nullable final V other) {
+                return (other == null) || (other.compareTo(value) <= 0);
             }
         };
     }
 
     @NonNull
-    public static <V extends Comparable<V>> Validation<V> IsGreaterThan(@NonNull final V value) {
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is less than or equal to " + value);
-
-            @NonNull
+    public static <V extends Comparable<V>> Validation<V> IsGreaterThan(@NonNls @NonNull final V value) {
+        return new Validation.Value<V>("value is less than or equal to " + value) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T other) {
-                return (other.compareTo(value) > 0) ?
-                        valid(other) :
-                        Validations.<T>safeCast(mInvalid);
+            public boolean isValid(@Nullable final V other) {
+                return (other == null) || (other.compareTo(value) > 0);
             }
         };
     }
 
     @NonNull
-    public static <V extends Comparable<V>> Validation<V> IsGreaterOrEqualThan(@NonNull final V value) {
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is less than " + value);
-
-            @NonNull
+    public static <V extends Comparable<V>> Validation<V> IsGreaterOrEqualThan(@NonNls @NonNull final V value) {
+        return new Validation.Value<V>("value is less than " + value) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T other) {
-                return (other.compareTo(value) >= 0) ?
-                        valid(other) :
-                        Validations.<T>safeCast(mInvalid);
+            public boolean isValid(@Nullable final V other) {
+                return (other == null) || (other.compareTo(value) >= 0);
             }
         };
     }
@@ -188,16 +138,10 @@ public final class Validations {
         }
         plain.replace(plain.length() - 2, plain.length(), "]");
 
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is not one of " + plain);
-
-            @NonNull
+        return new Validation.Value<V>("value is not one of " + plain) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T value) {
-                return (values.contains(value)) ?
-                        valid(value) :
-                        Validations.<T>safeCast(mInvalid);
+            public boolean isValid(@Nullable final V value) {
+                return values.contains(value);
             }
         };
     }
@@ -216,16 +160,10 @@ public final class Validations {
         }
         plain.replace(plain.length() - 2, plain.length(), "]");
 
-        return new Validation.Value<V>() {
-
-            private final Result.Invalid<V> mInvalid = invalid("value is one of " + plain);
-
-            @NonNull
+        return new Validation.Value<V>("value is one of " + plain) {
             @Override
-            public <T extends V> Result<T> validate(@NonNull final T value) {
-                return (values.contains(value)) ?
-                        Validations.<T>safeCast(mInvalid) :
-                        valid(value);
+            public boolean isValid(@Nullable final V value) {
+                return !values.contains(value);
             }
         };
     }
@@ -242,39 +180,21 @@ public final class Validations {
         return new Name<>(name, validation);
     }
 
-    @NonNull
-    @SuppressWarnings("unchecked")
-    public static <V> Validation.Result<V> safeCast(@NonNull final Validation.Result<? extends V> result) {
-        return (Validation.Result<V>) result;
-    }
-
-    @NonNull
-    @SuppressWarnings("unchecked")
-    public static <V> Validation.Result.Invalid<V> safeCast(@NonNull final Validation.Result.Invalid<?> result) {
-        return (Validation.Result.Invalid<V>) result;
-    }
-
     public static final class OnLong {
 
         private static final Long ZERO = 0L;
 
-        public static final Validation<Long> IsPositive = new Validation.Value<Long>() {
-            @NonNull
+        public static final Validation<Long> IsPositive = new Validation.Value<Long>(Errors.NOT_POSITIVE) {
             @Override
-            public <T extends Long> Result<T> validate(@NonNull final T value) {
-                return (value.compareTo(ZERO) > 0) ?
-                        valid(value) :
-                        Validations.<T>safeCast(Errors.NOT_POSITIVE);
+            public boolean isValid(@Nullable final Long value) {
+                return (value == null) || (value.compareTo(ZERO) > 0);
             }
         };
 
-        public static final Validation<Long> IsNegative = new Validation.Value<Long>() {
-            @NonNull
+        public static final Validation<Long> IsNegative = new Validation.Value<Long>(Errors.NOT_NEGATIVE) {
             @Override
-            public <T extends Long> Result<T> validate(@NonNull final T value) {
-                return (value.compareTo(ZERO) < 0) ?
-                        valid(value) :
-                        Validations.<T>safeCast(Errors.NOT_NEGATIVE);
+            public boolean isValid(@Nullable final Long value) {
+                return (value == null) || (value.compareTo(ZERO) < 0);
             }
         };
 
@@ -287,23 +207,17 @@ public final class Validations {
 
         private static final Double ZERO = 0.0D;
 
-        public static final Validation<Double> IsPositive = new Validation.Value<Double>() {
-            @NonNull
+        public static final Validation<Double> IsPositive = new Validation.Value<Double>(Errors.NOT_POSITIVE) {
             @Override
-            public <T extends Double> Result<T> validate(@NonNull final T value) {
-                return (value.compareTo(ZERO) > 0) ?
-                        valid(value) :
-                        Validations.<T>safeCast(Errors.NOT_POSITIVE);
+            public boolean isValid(@Nullable final Double value) {
+                return (value == null) || (value.compareTo(ZERO) > 0);
             }
         };
 
-        public static final Validation<Double> IsNegative = new Validation.Value<Double>() {
-            @NonNull
+        public static final Validation<Double> IsNegative = new Validation.Value<Double>(Errors.NOT_NEGATIVE) {
             @Override
-            public <T extends Double> Result<T> validate(@NonNull final T value) {
-                return (value.compareTo(ZERO) < 0) ?
-                        valid(value) :
-                        Validations.<T>safeCast(Errors.NOT_NEGATIVE);
+            public boolean isValid(@Nullable final Double value) {
+                return (value == null) || (value.compareTo(ZERO) < 0);
             }
         };
 
@@ -314,139 +228,22 @@ public final class Validations {
 
     public static final class OnBigDecimal {
 
-        public static final Validation<BigDecimal> IsPositive = new Validation.Value<BigDecimal>() {
-            @NonNull
+        public static final Validation<BigDecimal> IsPositive = new Validation.Value<BigDecimal>(Errors.NOT_POSITIVE) {
             @Override
-            public <T extends BigDecimal> Result<T> validate(@NonNull final T value) {
-                return (value.compareTo(ZERO) > 0) ?
-                        valid(value) :
-                        Validations.<T>safeCast(Errors.NOT_POSITIVE);
+            public boolean isValid(@Nullable final BigDecimal value) {
+                return (value == null) || (value.compareTo(ZERO) > 0);
             }
         };
 
-        public static final Validation<BigDecimal> IsNegative = new Validation.Value<BigDecimal>() {
-            @NonNull
+        public static final Validation<BigDecimal> IsNegative = new Validation.Value<BigDecimal>(Errors.NOT_NEGATIVE) {
             @Override
-            public <T extends BigDecimal> Result<T> validate(@NonNull final T value) {
-                return (value.compareTo(ZERO) < 0) ?
-                        valid(value) :
-                        Validations.<T>safeCast(Errors.NOT_NEGATIVE);
+            public boolean isValid(@Nullable final BigDecimal value) {
+                return (value == null) || (value.compareTo(ZERO) < 0);
             }
         };
 
         private OnBigDecimal() {
             super();
-        }
-    }
-
-    private static class Valid<V> extends Validation.Result.Valid<V> {
-
-        @NonNull
-        private final V mValue;
-
-        private Valid(@NonNull final V value) {
-            super();
-
-            mValue = value;
-        }
-
-        @NonNull
-        @Override
-        public final V get() {
-            return mValue;
-        }
-
-        @NonNull
-        @Override
-        public final <T> Valid<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return Validations.<T>valid(function.invoke(mValue));
-        }
-
-        @NonNull
-        @Override
-        public final <T> Validation.Result<T> flatMap(@NonNull final Function<? super V, Validation.Result<T>> function) {
-            return function.invoke(mValue);
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Validation.Result<T> and(@NonNull final Validation.Result<T> second) {
-            return second;
-        }
-
-        @NonNull
-        @Override
-        public final V or(@NonNull final V other) {
-            return get();
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Valid<V> or(@NonNull final Validation.Result<T> other) {
-            return this;
-        }
-    }
-
-    private static class Invalid<V> extends Validation.Result.Invalid<V> {
-
-        @NonNls
-        @NonNull
-        private final String mError;
-
-        private Invalid(@NonNls @NonNull final String error) {
-            super();
-
-            mError = error;
-        }
-
-        @NonNull
-        @Override
-        public final V get() {
-            throw new Validation.Exception(mError);
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String getError() {
-            return mError;
-        }
-
-        @NonNull
-        @Override
-        public final <T> Invalid<T> map(@NonNull final Function<? super V, ? extends T> function) {
-            return safeCast(this);
-        }
-
-        @NonNull
-        @Override
-        public final <T> Invalid<T> flatMap(@NonNull final Function<? super V, Validation.Result<T>> function) {
-            return safeCast(this);
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Invalid<T> and(@NonNull final Validation.Result<T> second) {
-            return second.isValid() ?
-                    Validations.<T>safeCast(this) :
-                    combine(this, (Invalid<T>) second);
-        }
-
-        @NonNull
-        @Override
-        public final V or(@NonNull final V other) {
-            return other;
-        }
-
-        @NonNull
-        @Override
-        public final <T extends V> Validation.Result<V> or(@NonNull final Validation.Result<T> other) {
-            return Validations.<V>safeCast(other);
-        }
-
-        private static <V, T extends V> Invalid<T> combine(@NonNull final Invalid<V> first,
-                                                           @NonNull final Invalid<T> second) {
-            return invalid(first.getError() + " and " + second.getError());
         }
     }
 
@@ -458,39 +255,25 @@ public final class Validations {
         @NonNull
         private final Validation<V> mValidation;
 
-        private Name(@NonNull final String name, @NonNull final Validation<V> validation) {
+        private Name(@NonNls @NonNull final String name, @NonNull final Validation<V> validation) {
             super();
 
             mName = name;
             mValidation = validation;
         }
 
-        @NonNull
         @Override
-        public final <T extends V> Result<T> validate(@NonNull final T value) {
-            final Result<T> result;
-
-            try {
-                result = mValidation.validate(value);
-            } catch (final Exception ex) {
-                throw new Exception(mName + ": " + ex.getMessage(), ex);
-            }
-
-            return result;
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            return mValidation.isValid(value);
         }
 
-        @NonNull
         @Override
-        public final <T extends V> Result<Maybe<T>> validate(@NonNull final Maybe<T> value) {
-            final Result<Maybe<T>> result;
-
+        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
             try {
-                result = mValidation.validate(value);
+                mValidation.isValidOrThrow(value);
             } catch (final Exception ex) {
                 throw new Exception(mName + ": " + ex.getMessage(), ex);
             }
-
-            return result;
         }
 
         @NonNull
@@ -506,30 +289,30 @@ public final class Validations {
         }
     }
 
-    private static class Composition<V, T extends V> extends Validation.Base<T> {
+    private static class Composition<V> extends Validation.Base<V> {
 
         @NonNull
-        private final Validation<V> mFirst;
+        private final Validation<? super V> mFirst;
         @NonNull
-        private final Validation<T> mSecond;
+        private final Validation<V> mSecond;
 
-        private Composition(@NonNull final Validation<V> first, @NonNull final Validation<T> second) {
+        private Composition(@NonNull final Validation<? super V> first,
+                            @NonNull final Validation<V> second) {
             super();
 
             mFirst = first;
             mSecond = second;
         }
 
-        @NonNull
         @Override
-        public final <U extends T> Result<U> validate(@NonNull final U value) {
-            return mFirst.validate(value).and(mSecond.validate(value));
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            return mFirst.isValid(value) && mSecond.isValid(value);
         }
 
-        @NonNull
         @Override
-        public final <U extends T> Result<Maybe<U>> validate(@NonNull final Maybe<U> value) {
-            return mFirst.validate(value).and(mSecond.validate(value));
+        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
+            mFirst.isValidOrThrow(value);
+            mSecond.isValidOrThrow(value);
         }
     }
 

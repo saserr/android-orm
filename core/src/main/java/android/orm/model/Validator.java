@@ -68,7 +68,7 @@ public final class Validator {
                     @Override
                     public boolean isValid() {
                         final V value = getter.get();
-                        final boolean valid = validation.validate(something(value)).isValid();
+                        final boolean valid = validation.isValid(something(value));
 
                         if (valid) {
                             callback.onValid(value);
@@ -130,7 +130,7 @@ public final class Validator {
                 return new Entry<V>() {
                     @Override
                     public boolean isValid(@Nullable final V value) {
-                        final boolean valid = validation.validate(something(value)).isValid();
+                        final boolean valid = validation.isValid(something(value));
 
                         if (valid) {
                             callback.onValid(value);
@@ -151,7 +151,7 @@ public final class Validator {
                     @Override
                     public boolean isValid(@Nullable final V value) {
                         final T t = (value == null) ? null : lens.get(value);
-                        final boolean valid = validation.validate(something(t)).isValid();
+                        final boolean valid = validation.isValid(something(t));
 
                         if (valid) {
                             callback.onValid(value);

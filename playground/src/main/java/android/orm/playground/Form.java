@@ -24,26 +24,20 @@ import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.Value;
 import android.orm.util.Maybe;
-import android.orm.util.Validations;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
-import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.model.Plans.compose;
 import static android.orm.playground.Bindings.action;
 import static android.orm.playground.Bindings.write;
 import static android.orm.util.Maybes.something;
-import static android.orm.util.Validations.valid;
 
 public class Form extends Instance.ReadWrite.Base {
-
-    private static final Validation.Result<Plan.Write> EMPTY = valid(EmptyWrite);
 
     @NonNull
     private final Context mContext;
@@ -68,7 +62,14 @@ public class Form extends Instance.ReadWrite.Base {
     }
 
     public final boolean isValid() {
-        return prepare().isValid();
+        boolean valid = true;
+
+        final int size = mWrites.size();
+        for (int i = 0; (i < size) && valid; i++) {
+            valid = mWrites.get(i).isValid();
+        }
+
+        return valid;
     }
 
     @SuppressWarnings("unchecked")
@@ -98,22 +99,13 @@ public class Form extends Instance.ReadWrite.Base {
     @NonNull
     @Override
     public final Plan.Write prepareWrite() {
-        return prepare().get();
-    }
-
-    @NonNull
-    private Validation.Result<Plan.Write> prepare() {
         final Collection<Plan.Write> plans = new ArrayList<>(mWrites.size());
-        Validation.Result<Plan.Write> last = EMPTY;
 
-        for (int i = 0; (i < mWrites.size()) && last.isValid(); i++) {
-            last = mWrites.get(i).prepareWrite(mContext);
-            if (last.isValid()) {
-                plans.add(last.get());
-            }
+        for (final Entry.Write entry : mWrites) {
+            plans.add(entry.prepareWrite(mContext));
         }
 
-        return last.isValid() ? valid(compose(plans)) : last;
+        return compose(plans);
     }
 
     public static Builder builder(@NonNls @NonNull final String name) {
@@ -160,18 +152,6 @@ public class Form extends Instance.ReadWrite.Base {
         }
 
         @NonNull
-        public final <V> Builder bind(@NonNull final Binding.Validated<V> binding,
-                                      @NonNull final Value.ReadWrite<V> value) {
-            return bind(binding, Mappers.mapper(value));
-        }
-
-        @NonNull
-        public final <M> Builder bind(@NonNull final Binding.Validated<M> binding,
-                                      @NonNull final Mapper.ReadWrite<M> mapper) {
-            return with(entry(binding, mapper));
-        }
-
-        @NonNull
         public final Form build(@NonNull final Context context) {
             return new Form(context, mName, mReads, mWrites);
         }
@@ -199,8 +179,11 @@ public class Form extends Instance.ReadWrite.Base {
         }
 
         public interface Write {
+
+            boolean isValid();
+
             @NonNull
-            Validation.Result<Plan.Write> prepareWrite(@NonNull final Context context);
+            Plan.Write prepareWrite(@NonNull final Context context);
         }
 
         public interface ReadWrite<V> extends Read<V>, Write {
@@ -215,10 +198,16 @@ public class Form extends Instance.ReadWrite.Base {
     private static <V> Entry.Write entry(@NonNull final Binding.Readable<V> binding,
                                          @NonNull final Mapper.Write<V> mapper) {
         return new Entry.Write() {
+
+            @Override
+            public boolean isValid() {
+                return true;
+            }
+
             @NonNull
             @Override
-            public Validation.Result<Plan.Write> prepareWrite(@NonNull final Context context) {
-                return valid(write(mapper, binding));
+            public Plan.Write prepareWrite(@NonNull final Context context) {
+                return write(mapper, binding);
             }
         };
     }
@@ -227,6 +216,11 @@ public class Form extends Instance.ReadWrite.Base {
     private static <V> Entry.ReadWrite<V> entry(@NonNull final Binding.ReadWrite<V> binding,
                                                 @NonNull final Mapper.ReadWrite<V> mapper) {
         return new Entry.ReadWrite<V>() {
+
+            @Override
+            public boolean isValid() {
+                return true;
+            }
 
             @NonNull
             @Override
@@ -240,53 +234,8 @@ public class Form extends Instance.ReadWrite.Base {
 
             @NonNull
             @Override
-            public Validation.Result<Plan.Write> prepareWrite(@NonNull final Context context) {
-                return valid(write(mapper, binding));
-            }
-
-            @Override
-            public void set(@NonNull final Maybe<V> value) {
-                binding.set(value);
-            }
-        };
-    }
-
-    @NonNull
-    private static <V> Entry.ReadWrite<V> entry(@NonNull final Binding.Validated<V> binding,
-                                                @NonNull final Mapper.ReadWrite<V> mapper) {
-        return new Entry.ReadWrite<V>() {
-
-            @NonNull
-            @Override
-            public Reading.Item.Action prepareRead(@NonNull final Context context) {
-                final Validation.Result<Maybe<V>> value = binding.get(context);
-                final Reading.Item<V> item;
-
-                if (value.isValid()) {
-                    final V v = value.get().getOrElse(null);
-                    item = (v == null) ? mapper.prepareRead() : mapper.prepareRead(v);
-                } else {
-                    item = mapper.prepareRead();
-                }
-
-                return action(item, binding);
-            }
-
-            @NonNull
-            @Override
-            public Validation.Result<Plan.Write> prepareWrite(@NonNull final Context context) {
-                final Validation.Result<Maybe<V>> value = binding.get(context);
-                final Validation.Result<Plan.Write> result;
-
-                if (value.isValid()) {
-                    final V v = value.get().getOrElse(null);
-                    result = valid((v == null) ? EmptyWrite : mapper.prepareWrite(v));
-                    binding.setErrors(Collections.<String>emptyList());
-                } else {
-                    result = Validations.<Plan.Write>safeCast((Validation.Result.Invalid<Maybe<V>>) value);
-                }
-
-                return result;
+            public Plan.Write prepareWrite(@NonNull final Context context) {
+                return write(mapper, binding);
             }
 
             @Override
