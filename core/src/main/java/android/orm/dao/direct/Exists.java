@@ -48,10 +48,10 @@ public class Exists implements Expression<Boolean> {
     public final Maybe<Boolean> execute(@NonNull final SQLiteDatabase database) {
         final String table = Helper.escape(mTable.getName());
         final String where = mWhere.toSQL();
-        final String order = mTable.getOrder().toSQL();
+        final Select.Order order = mTable.getOrder();
         final Maybe<Boolean> result;
 
-        final Cursor cursor = database.query(table, PROJECTION, where, null, null, null, order, SINGLE);
+        final Cursor cursor = database.query(table, PROJECTION, where, null, null, null, (order == null) ? null : order.toSQL(), SINGLE);
         try {
             result = Maybes.something(cursor.getCount() > 0);
         } finally {

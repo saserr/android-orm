@@ -179,8 +179,8 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         public Dir(@NonNull final Manager manager,
                    @NonNull final Item itemRoute,
-                   @NonNull final Select.Order order,
                    @NonNull final Select.Where where,
+                   @Nullable final Select.Order order,
                    @NonNull final Path path) {
             super(manager, Type.Dir, itemRoute.getTable(), where, order, path);
 
@@ -288,7 +288,10 @@ public abstract class Route extends Value.Read.Base<Uri> {
         public final Dir dir(@NonNull final Item itemRoute,
                              @NonNull final Select.Where where,
                              @NonNull final Path path) {
-            return dir(itemRoute, where, itemRoute.getTable().getOrder(), path);
+            final Select.Order order = itemRoute.getTable().getOrder();
+            final Dir route = new Dir(this, itemRoute, where, order, path);
+            with(route);
+            return route;
         }
 
         @NonNull
@@ -303,7 +306,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
                              @NonNull final Select.Where where,
                              @NonNull final Select.Order order,
                              @NonNull final Path path) {
-            final Dir route = new Dir(this, itemRoute, order, where, path);
+            final Dir route = new Dir(this, itemRoute, where, order, path);
             with(route);
             return route;
         }

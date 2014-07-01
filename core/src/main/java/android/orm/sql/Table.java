@@ -46,7 +46,6 @@ public class Table<K> {
     private static final SparseArray<Set<Column<?>>> NO_COLUMNS_BY_VERSION = new SparseArray<>();
     private static final List<ForeignKey<?>> NO_FOREIGN_KEYS = emptyList();
     private static final SparseArray<List<ForeignKey<?>>> NO_FOREIGN_KEYS_BY_VERSION = new SparseArray<>();
-    private static final Select.Order DEFAULT_ORDER = order(ROW_ID, Ascending);
 
     // TODO logging
 
@@ -62,7 +61,7 @@ public class Table<K> {
     private final SparseArray<List<ForeignKey<?>>> mForeignKeysByVersion;
     @NonNull
     private final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> mForeignKeysAtVersion;
-    @NonNull
+    @Nullable
     private final Select.Order mOrder;
     @Nullable
     private final PrimaryKey<K> mPrimaryKey;
@@ -107,7 +106,7 @@ public class Table<K> {
         mColumnsAtVersion = columnsAtVersion;
         mForeignKeysByVersion = foreignKeysByVersion;
         mForeignKeysAtVersion = foreignKeysAtVersion;
-        mOrder = (order == null) ? DEFAULT_ORDER : order;
+        mOrder = order;
         mPrimaryKey = primaryKey;
     }
 
@@ -159,7 +158,7 @@ public class Table<K> {
         return result;
     }
 
-    @NonNull
+    @Nullable
     public final Select.Order getOrder() {
         return mOrder;
     }
