@@ -16,6 +16,7 @@
 
 package android.orm.model;
 
+import android.orm.sql.Value;
 import android.orm.util.Lens;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -23,6 +24,9 @@ import android.support.annotation.Nullable;
 import org.jetbrains.annotations.NonNls;
 
 import java.util.Arrays;
+
+import static android.orm.model.Plans.EmptyWrite;
+import static android.orm.model.Reading.Item.action;
 
 public final class Instances {
 
@@ -73,6 +77,145 @@ public final class Instances {
         return access(getter(model, lens), setter(model, lens));
     }
 
+    @NonNull
+    public static Instance.Writable instance(@NonNull final Value.Constant value) {
+        return new Instance.Writable.Base() {
+
+            @NonNls
+            @NonNull
+            @Override
+            public String getName() {
+                return value.getName();
+            }
+
+            @NonNull
+            @Override
+            public Plan.Write prepareWrite() {
+                return Plans.write(value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Instance.Readable instance(@NonNull final Binding.Write<V> binding,
+                                                 @NonNull final Value.Read<V> value) {
+        return new Instance.Readable.Base() {
+
+            @NonNls
+            @NonNull
+            @Override
+            public String getName() {
+                return value.getName();
+            }
+
+            @NonNull
+            @Override
+            public Reading.Item.Action prepareRead() {
+                return action(binding, Reading.Item.Create.from(value));
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Instance.Writable instance(@NonNull final Binding.Read<V> binding,
+                                                 @NonNull final Value.Write<V> value) {
+        return new Instance.Writable.Base() {
+
+            @NonNls
+            @NonNull
+            @Override
+            public String getName() {
+                return value.getName();
+            }
+
+            @NonNull
+            @Override
+            public Plan.Write prepareWrite() {
+                return Plans.write(binding.get(), value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Instance.ReadWrite instance(@NonNull final Binding.ReadWrite<V> binding,
+                                                  @NonNull final Value.ReadWrite<V> value) {
+        return combine(
+                instance((Binding.Write<V>) binding, value),
+                instance((Binding.Read<V>) binding, value)
+        );
+    }
+
+    @NonNull
+    public static <V> Instance.Readable instance(@NonNull final Binding.Write<V> binding,
+                                                 @NonNull final Mapper.Read<V> mapper) {
+        return new Instance.Readable.Base() {
+
+            @NonNls
+            @NonNull
+            @Override
+            public String getName() {
+                return mapper.getName();
+            }
+
+            @NonNull
+            @Override
+            public Reading.Item.Action prepareRead() {
+                return action(binding, mapper.prepareRead());
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Instance.Writable instance(@NonNull final Binding.Read<V> binding,
+                                                 @NonNull final Mapper.Write<V> mapper) {
+        return new Instance.Writable.Base() {
+
+            @NonNls
+            @NonNull
+            @Override
+            public String getName() {
+                return mapper.getName();
+            }
+
+            @NonNull
+            @Override
+            public Plan.Write prepareWrite() {
+                final V value = binding.get().getOrElse(null);
+                return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Instance.ReadWrite instance(@NonNull final Binding.ReadWrite<V> binding,
+                                                  @NonNull final Mapper.ReadWrite<V> mapper) {
+        return new Instance.ReadWrite.Base() {
+
+            @NonNls
+            @NonNull
+            @Override
+            public String getName() {
+                return mapper.getName();
+            }
+
+            @NonNull
+            @Override
+            public Reading.Item.Action prepareRead() {
+                final V value = binding.get().getOrElse(null);
+                return (value == null) ?
+                        action(binding, mapper.prepareRead()) :
+                        action(binding, mapper.prepareRead(value));
+            }
+
+            @NonNull
+            @Override
+            public Plan.Write prepareWrite() {
+                final V value = binding.get().getOrElse(null);
+                return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
+            }
+        };
+    }
+
     public static Instance.Readable compose(@NonNull final Instance.Readable first,
                                             @NonNull final Instance.Readable second) {
         return new ReadableComposition(first, second);
@@ -92,13 +235,13 @@ public final class Instances {
 
     private static class ReadableComposition extends Instance.Readable.Base implements Observer.Read {
 
+        @NonNls
+        @NonNull
+        private final String mName;
         @NonNull
         private final Instance.Readable mFirst;
         @NonNull
         private final Instance.Readable mSecond;
-        @NonNls
-        @NonNull
-        private final String mName;
         @NonNull
         private final Observer.Read mObserver;
 
@@ -106,9 +249,9 @@ public final class Instances {
                                     @NonNull final Instance.Readable second) {
             super();
 
+            mName = '(' + first.getName() + ", " + second.getName() + ')';
             mFirst = first;
             mSecond = second;
-            mName = '(' + mFirst.getName() + ", " + mSecond.getName() + ')';
 
             if (first instanceof Observer.Read) {
                 mObserver = (second instanceof Observer.Read) ?
@@ -121,6 +264,7 @@ public final class Instances {
             }
         }
 
+        @NonNls
         @NonNull
         @Override
         public final String getName() {
@@ -146,6 +290,9 @@ public final class Instances {
 
     private static class WritableComposition extends Instance.Writable.Base implements Observer.Write {
 
+        @NonNls
+        @NonNull
+        private final String mName;
         @NonNull
         private final Instance.Writable mFirst;
         @NonNull
@@ -157,6 +304,7 @@ public final class Instances {
                                     @NonNull final Instance.Writable second) {
             super();
 
+            mName = '(' + first.getName() + ", " + second.getName() + ')';
             mFirst = first;
             mSecond = second;
 
@@ -169,6 +317,13 @@ public final class Instances {
                         (Observer.Write) second :
                         DUMMY;
             }
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
         }
 
         @NonNull

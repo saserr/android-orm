@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package android.orm.playground;
+package android.orm.model;
 
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.orm.model.Mapper;
-import android.orm.model.Plan;
-import android.orm.model.Reading;
+import android.orm.sql.Readable;
 import android.orm.sql.Select;
-import android.orm.util.Consumer;
+import android.orm.sql.Value;
+import android.orm.sql.Values;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -35,36 +34,12 @@ import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.something;
 import static android.text.TextUtils.isEmpty;
 
 public final class Bindings {
-
-    @NonNull
-    public static <V> Binding.Readable<V> value(@NonNull final Producer<V> producer) {
-        return new Binding.Readable.Base<V>() {
-            @NonNull
-            @Override
-            public Maybe<V> get() {
-                return something(producer.produce());
-            }
-        };
-    }
-
-    @NonNull
-    public static <V> Binding.Writable<V> value(@NonNull final Consumer<V> consumer) {
-        return new Binding.Writable.Base<V>() {
-            @Override
-            public void set(@NonNull final Maybe<V> value) {
-                if (value.isSomething()) {
-                    consumer.consume(value.get());
-                }
-            }
-        };
-    }
 
     @NonNull
     public static <V> Binding.ReadWrite<V> value(@NonNull final AdapterView<? extends Adapter> adapter) {
@@ -121,8 +96,8 @@ public final class Bindings {
     }
 
     @NonNull
-    public static Binding.Writable<Uri> uri(@NonNull final ImageView view) {
-        return new Binding.Writable.Base<Uri>() {
+    public static Binding.Write<Uri> uri(@NonNull final ImageView view) {
+        return new Binding.Write.Base<Uri>() {
             @Override
             public void set(@NonNull final Maybe<Uri> value) {
                 if (value.isSomething()) {
@@ -138,8 +113,8 @@ public final class Bindings {
     }
 
     @NonNull
-    public static Binding.Writable<Bitmap> bitmap(@NonNull final ImageView view) {
-        return new Binding.Writable.Base<Bitmap>() {
+    public static Binding.Write<Bitmap> bitmap(@NonNull final ImageView view) {
+        return new Binding.Write.Base<Bitmap>() {
             @Override
             public void set(@NonNull final Maybe<Bitmap> value) {
                 if (value.isSomething()) {
@@ -175,78 +150,41 @@ public final class Bindings {
     }
 
     @NonNull
-    public static <V, T> Binding.Readable<T> convert(@NonNull final Binding.Readable<V> binding,
-                                                     @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
-        return new ReadableConversion<>(binding, converter);
+    public static <V, T> Binding.Read<T> convert(@NonNull final Binding.Read<V> binding,
+                                                 @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
+        return new ReadConversion<>(binding, converter);
     }
 
     @NonNull
-    public static <V, T> Binding.Writable<T> convert(@NonNull final Binding.Writable<V> binding,
-                                                     @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
-        return new WritableConversion<>(binding, converter);
+    public static <V, T> Binding.Write<T> convert(@NonNull final Binding.Write<V> binding,
+                                                  @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+        return new WriteConversion<>(binding, converter);
     }
 
     @NonNull
     public static <V, T> Binding.ReadWrite<T> convert(@NonNull final Binding.ReadWrite<V> binding,
                                                       @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
         return combine(
-                new ReadableConversion<>(binding, from(converter)),
-                new WritableConversion<>(binding, to(converter))
+                new ReadConversion<>(binding, from(converter)),
+                new WriteConversion<>(binding, to(converter))
         );
     }
 
     @NonNull
-    public static <V> Binding.ReadWrite<V> combine(@NonNull final Binding.Readable<V> read,
-                                                   @NonNull final Binding.Writable<V> write) {
+    public static <V> Binding.ReadWrite<V> combine(@NonNull final Binding.Read<V> read,
+                                                   @NonNull final Binding.Write<V> write) {
         return new Combine<>(read, write);
     }
 
-    @NonNull
-    public static <V> Reading.Item.Action action(@NonNull final Reading.Item<V> reading,
-                                                 @NonNull final Binding.Writable<V> binding) {
-        return new Reading.Item.Action() {
-
-            @NonNull
-            @Override
-            public Select.Projection getProjection() {
-                return reading.getProjection();
-            }
-
-            @NonNull
-            @Override
-            public Runnable read(@NonNull final android.orm.sql.Readable input) {
-                return set(reading.read(input), binding);
-            }
-        };
-    }
-
-    @NonNull
-    public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
-                                       @NonNull final Binding.Readable<V> binding) {
-        final V value = binding.get().getOrElse(null);
-        return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
-    }
-
-    @NonNull
-    private static <V> Runnable set(@NonNull final Producer<Maybe<V>> producer,
-                                    @NonNull final Binding.Writable<V> binding) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                binding.set(producer.produce());
-            }
-        };
-    }
-
-    private static class ReadableConversion<V, T> extends Binding.Readable.Base<T> {
+    private static class ReadConversion<V, T> extends Binding.Read.Base<T> {
 
         @NonNull
-        private final Binding.Readable<V> mBinding;
+        private final Binding.Read<V> mBinding;
         @NonNull
         private final Function<Maybe<V>, Maybe<T>> mConverter;
 
-        private ReadableConversion(@NonNull final Binding.Readable<V> binding,
-                                   @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
+        private ReadConversion(@NonNull final Binding.Read<V> binding,
+                               @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
             super();
 
             mBinding = binding;
@@ -260,15 +198,15 @@ public final class Bindings {
         }
     }
 
-    private static class WritableConversion<V, T> extends Binding.Writable.Base<T> {
+    private static class WriteConversion<V, T> extends Binding.Write.Base<T> {
 
         @NonNull
-        private final Binding.Writable<V> mBinding;
+        private final Binding.Write<V> mBinding;
         @NonNull
         private final Function<Maybe<T>, Maybe<V>> mConverter;
 
-        private WritableConversion(@NonNull final Binding.Writable<V> binding,
-                                   @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+        private WriteConversion(@NonNull final Binding.Write<V> binding,
+                                @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
             super();
 
             mBinding = binding;
@@ -284,12 +222,12 @@ public final class Bindings {
     private static class Combine<V> extends Binding.ReadWrite.Base<V> {
 
         @NonNull
-        private final Binding.Readable<V> mRead;
+        private final Binding.Read<V> mRead;
         @NonNull
-        private final Binding.Writable<V> mWrite;
+        private final Binding.Write<V> mWrite;
 
-        private Combine(@NonNull final Binding.Readable<V> read,
-                        @NonNull final Binding.Writable<V> write) {
+        private Combine(@NonNull final Binding.Read<V> read,
+                        @NonNull final Binding.Write<V> write) {
             super();
 
             mRead = read;

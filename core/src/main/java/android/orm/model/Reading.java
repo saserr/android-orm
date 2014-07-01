@@ -180,6 +180,44 @@ public interface Reading<M> {
         }
 
         @NonNull
+        public static <V> Action action(@NonNull final Binding.Write<V> binding,
+                                        @NonNull final Create<V> reading) {
+            return new Action() {
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return reading.getProjection();
+                }
+
+                @NonNull
+                @Override
+                public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                    return set(reading.read(input).produce(), binding);
+                }
+            };
+        }
+
+        @NonNull
+        public static <V> Action action(@NonNull final Binding.Write<V> binding,
+                                        @NonNull final Item<V> reading) {
+            return new Action() {
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return reading.getProjection();
+                }
+
+                @NonNull
+                @Override
+                public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                    return set(reading.read(input), binding);
+                }
+            };
+        }
+
+        @NonNull
         public static <M> Action action(@NonNull final Mapper.Read<M> mapper,
                                         @NonNull final Instance.Setter<M> setter) {
             return new Action() {
@@ -665,6 +703,17 @@ public interface Reading<M> {
         }
 
         @NonNull
+        private static <V> Runnable set(@NonNull final Maybe<V> result,
+                                        @NonNull final Binding.Write<V> binding) {
+            return new Runnable() {
+                @Override
+                public void run() {
+                    binding.set(result);
+                }
+            };
+        }
+
+        @NonNull
         private static <V> Runnable set(@NonNull final Maybe<V> value,
                                         @NonNull final Instance.Setter<V> setter) {
             return new Runnable() {
@@ -673,6 +722,17 @@ public interface Reading<M> {
                     if (value.isSomething()) {
                         setter.set(value.get());
                     }
+                }
+            };
+        }
+
+        @NonNull
+        private static <V> Runnable set(@NonNull final Producer<Maybe<V>> producer,
+                                        @NonNull final Binding.Write<V> binding) {
+            return new Runnable() {
+                @Override
+                public void run() {
+                    binding.set(producer.produce());
                 }
             };
         }

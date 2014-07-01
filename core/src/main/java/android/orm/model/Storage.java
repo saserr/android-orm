@@ -17,7 +17,6 @@
 package android.orm.model;
 
 import android.orm.sql.Value;
-import android.orm.sql.Writer;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -61,6 +60,13 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
 
     @NonNull
     protected abstract Plan.Write prepareWrite(@NonNull final Maybe<V> v);
+
+    @NonNls
+    @NonNull
+    @Override
+    public final String getName() {
+        return mName;
+    }
 
     @NonNull
     @Override
@@ -137,23 +143,5 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
                 return (m == null) ? EmptyWrite : mapper.prepareWrite(m);
             }
         };
-    }
-
-    public static class Constant extends Instance.Writable.Base {
-
-        @NonNull
-        private final Writer mWriter;
-
-        public Constant(@NonNull final Writer writer) {
-            super();
-
-            mWriter = writer;
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Write prepareWrite() {
-            return Plans.write(mWriter);
-        }
     }
 }

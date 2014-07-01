@@ -241,6 +241,10 @@ public final class Instance {
 
     public interface Writable {
 
+        @NonNls
+        @NonNull
+        String getName();
+
         @NonNull
         Plan.Write prepareWrite();
 
@@ -267,11 +271,23 @@ public final class Instance {
 
         class Builder {
 
+            @NonNls
+            @NonNull
+            private final String mName;
+
             private final Collection<Producer<Plan.Write>> mProducers = new ArrayList<>();
             private final Collection<Observer.Write> mObservers = new ArrayList<>();
 
-            public Builder() {
+            public Builder(@NonNls @NonNull final String name) {
                 super();
+
+                mName = name;
+            }
+
+            @NonNls
+            @NonNull
+            public final String getName() {
+                return mName;
             }
 
             @NonNull
@@ -303,7 +319,7 @@ public final class Instance {
 
             @NonNull
             public final Writable build() {
-                return new CompositeWritable(mProducers, mObservers);
+                return new CompositeWritable(mName, mProducers, mObservers);
             }
 
             @NonNull
@@ -364,17 +380,30 @@ public final class Instance {
 
             private static class CompositeWritable extends Base implements Observer.Write {
 
+                @NonNls
+                @NonNull
+                private final String mName;
+
                 @NonNull
                 private final Collection<Producer<Plan.Write>> mProducers;
                 @NonNull
                 private final Observer.Write mObserver;
 
-                private CompositeWritable(@NonNull final Collection<Producer<Plan.Write>> producers,
+                private CompositeWritable(@NonNls @NonNull final String name,
+                                          @NonNull final Collection<Producer<Plan.Write>> producers,
                                           @NonNull final Collection<Observer.Write> observers) {
                     super();
 
+                    mName = name;
                     mProducers = new ArrayList<>(producers);
                     mObserver = Observer.write(new ArrayList<>(observers));
+                }
+
+                @NonNls
+                @NonNull
+                @Override
+                public final String getName() {
+                    return mName;
                 }
 
                 @NonNull
@@ -455,14 +484,15 @@ public final class Instance {
             private final String mName;
             @NonNull
             private final Readable.Builder mRead;
-
-            private final Writable.Builder mWrite = new Writable.Builder();
+            @NonNull
+            private final Writable.Builder mWrite;
 
             public Builder(@NonNls @NonNull final String name) {
                 super();
 
                 mName = name;
                 mRead = new Readable.Builder(name);
+                mWrite = new Writable.Builder(name);
             }
 
             @NonNls
@@ -567,8 +597,8 @@ public final class Instance {
     }
 
     @NonNull
-    public static Writable.Builder writable() {
-        return new Writable.Builder();
+    public static Writable.Builder writable(@NonNls @NonNull final String name) {
+        return new Writable.Builder(name);
     }
 
     @NonNull

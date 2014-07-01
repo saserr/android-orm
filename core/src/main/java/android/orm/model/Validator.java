@@ -16,6 +16,8 @@
 
 package android.orm.model;
 
+import android.orm.util.Lens;
+import android.orm.util.Maybe;
 import android.orm.util.Validation;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -51,6 +53,13 @@ public final class Validator {
             }
 
             @NonNull
+            public final <V> Builder with(@NonNull final Validation<? super V> validation,
+                                          @NonNull final Binding.Read<V> binding,
+                                          @NonNull final Callback<Maybe<V>> callback) {
+                return with(entry(validation, binding, callback));
+            }
+
+            @NonNull
             public final Instance build() {
                 return Validator.build(new ArrayList<>(mEntries));
             }
@@ -69,6 +78,26 @@ public final class Validator {
                     public boolean isValid() {
                         final V value = getter.get();
                         final boolean valid = validation.isValid(something(value));
+
+                        if (valid) {
+                            callback.onValid(value);
+                        } else {
+                            callback.onInvalid(value);
+                        }
+
+                        return valid;
+                    }
+                };
+            }
+
+            private static <V> Entry entry(@NonNull final Validation<? super V> validation,
+                                           @NonNull final Binding.Read<V> binding,
+                                           @NonNull final Callback<Maybe<V>> callback) {
+                return new Entry() {
+                    @Override
+                    public boolean isValid() {
+                        final Maybe<V> value = binding.get();
+                        final boolean valid = validation.isValid(value);
 
                         if (valid) {
                             callback.onValid(value);
@@ -103,7 +132,7 @@ public final class Validator {
 
             @NonNull
             public final <T> Builder<V> with(@NonNull final Validation<? super T> validation,
-                                             @NonNull final android.orm.util.Lens.Read<V, T> lens,
+                                             @NonNull final Lens.Read<V, T> lens,
                                              @NonNull final Callback<V> callback) {
                 return with(entry(validation, lens, callback));
             }
@@ -145,7 +174,7 @@ public final class Validator {
 
             @NonNull
             private static <V, T> Entry<V> entry(@NonNull final Validation<? super T> validation,
-                                                 @NonNull final android.orm.util.Lens.Read<V, T> lens,
+                                                 @NonNull final Lens.Read<V, T> lens,
                                                  @NonNull final Callback<V> callback) {
                 return new Entry<V>() {
                     @Override

@@ -27,7 +27,6 @@ import android.orm.model.Reading;
 import android.orm.model.Storage;
 import android.orm.model.View;
 import android.orm.sql.Value;
-import android.orm.sql.Writer;
 import android.orm.util.Converter;
 import android.orm.util.Converters;
 import android.orm.util.Function;
@@ -40,6 +39,8 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
+import static android.orm.model.Instances.instance;
 
 public abstract class Model {
 
@@ -111,8 +112,8 @@ public abstract class Model {
         return view;
     }
 
-    protected final void storage(@NonNull final Writer writer) {
-        with(new Storage.Constant(writer));
+    protected final void storage(@NonNull final Value.Constant value) {
+        with(instance(value));
     }
 
     @NonNull

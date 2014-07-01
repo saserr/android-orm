@@ -16,6 +16,7 @@
 
 package android.orm.playground;
 
+import android.orm.model.Binding;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
@@ -29,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static android.orm.playground.Bindings.action;
+import static android.orm.playground.Form.action;
 
 public class Show extends Instance.Readable.Base {
 
@@ -82,13 +83,13 @@ public class Show extends Instance.Readable.Base {
         }
 
         @NonNull
-        public final <V> Builder bind(@NonNull final Binding.Writable<V> binding,
+        public final <V> Builder bind(@NonNull final Binding.Write<V> binding,
                                       @NonNull final Value.Read<V> value) {
             return bind(binding, Mappers.read(value));
         }
 
         @NonNull
-        public final <V> Builder bind(@NonNull final Binding.Writable<V> binding,
+        public final <V> Builder bind(@NonNull final Binding.Write<V> binding,
                                       @NonNull final Mapper.Read<V> mapper) {
             return with(entry(binding, mapper));
         }
@@ -122,7 +123,7 @@ public class Show extends Instance.Readable.Base {
     }
 
     @NonNull
-    private static <V> Entry entry(@NonNull final Binding.Writable<V> binding,
+    private static <V> Entry entry(@NonNull final Binding.Write<V> binding,
                                    @NonNull final Mapper.Read<V> mapper) {
         return new Entry() {
             @NonNull

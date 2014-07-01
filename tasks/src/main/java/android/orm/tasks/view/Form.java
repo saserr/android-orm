@@ -17,10 +17,11 @@
 package android.orm.tasks.view;
 
 import android.app.Activity;
-import android.orm.model.Instance;
+import android.orm.model.Bindings;
 import android.orm.model.Validator;
 import android.orm.tasks.R;
 import android.orm.tasks.model.Task;
+import android.orm.util.Maybe;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -31,36 +32,14 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 
 import static android.orm.util.Validations.IsNotEmpty;
+import static android.orm.util.Validations.IsRequired;
 
 public class Form extends Fragment {
 
     private Controller mController = DUMMY_CONTROLLER;
 
     private EditText mTitle;
-
-    private final Instance.Getter<CharSequence> mTitleGetter = new Instance.Getter<CharSequence>() {
-        @Nullable
-        @Override
-        public CharSequence get() {
-            return mTitle.getText();
-        }
-    };
-
-    private final Validator.Instance mValidator = Validator.instance()
-            .with(IsNotEmpty, mTitleGetter, new Validator.Callback<CharSequence>() {
-
-                @Override
-                public void onValid(@Nullable final CharSequence title) {
-                    mTitle.setError(null);
-                }
-
-                @Override
-                public void onInvalid(@Nullable final CharSequence title) {
-                    mTitle.setError(getResources().getString(R.string.error_task_title_required));
-                    mTitle.requestFocus();
-                }
-            })
-            .build();
+    private Validator.Instance mValidator;
 
     private final View.OnKeyListener mSave = new View.OnKeyListener() {
         @Override
@@ -99,6 +78,22 @@ public class Form extends Fragment {
 
         mTitle = (EditText) view.findViewById(R.id.edit_task_title);
         mTitle.setOnKeyListener(mSave);
+
+        mValidator = Validator.instance()
+                .with(IsRequired.and(IsNotEmpty), Bindings.text(mTitle), new Validator.Callback<Maybe<String>>() {
+
+                    @Override
+                    public void onValid(@Nullable final Maybe<String> title) {
+                        mTitle.setError(null);
+                    }
+
+                    @Override
+                    public void onInvalid(@Nullable final Maybe<String> title) {
+                        mTitle.setError(getResources().getString(R.string.error_task_title_required));
+                        mTitle.requestFocus();
+                    }
+                })
+                .build();
 
         clear();
 

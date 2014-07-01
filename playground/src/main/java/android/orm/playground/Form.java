@@ -17,13 +17,16 @@
 package android.orm.playground;
 
 import android.content.Context;
+import android.orm.model.Binding;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.util.Maybe;
+import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
@@ -32,9 +35,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.model.Plans.compose;
-import static android.orm.playground.Bindings.action;
-import static android.orm.playground.Bindings.write;
 import static android.orm.util.Maybes.something;
 
 public class Form extends Instance.ReadWrite.Base {
@@ -128,13 +130,13 @@ public class Form extends Instance.ReadWrite.Base {
         }
 
         @NonNull
-        public final <V> Builder bind(@NonNull final Binding.Readable<V> binding,
+        public final <V> Builder bind(@NonNull final Binding.Read<V> binding,
                                       @NonNull final Value.Write<V> value) {
             return bind(binding, Mappers.write(value));
         }
 
         @NonNull
-        public final <V> Builder bind(@NonNull final Binding.Readable<V> binding,
+        public final <V> Builder bind(@NonNull final Binding.Read<V> binding,
                                       @NonNull final Mapper.Write<V> mapper) {
             return with(entry(binding, mapper));
         }
@@ -195,7 +197,7 @@ public class Form extends Instance.ReadWrite.Base {
     }
 
     @NonNull
-    private static <V> Entry.Write entry(@NonNull final Binding.Readable<V> binding,
+    private static <V> Entry.Write entry(@NonNull final Binding.Read<V> binding,
                                          @NonNull final Mapper.Write<V> mapper) {
         return new Entry.Write() {
 
@@ -241,6 +243,43 @@ public class Form extends Instance.ReadWrite.Base {
             @Override
             public void set(@NonNull final Maybe<V> value) {
                 binding.set(value);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Reading.Item.Action action(@NonNull final Reading.Item<V> reading,
+                                                 @NonNull final Binding.Write<V> binding) {
+        return new Reading.Item.Action() {
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return reading.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(reading.read(input), binding);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
+                                       @NonNull final Binding.Read<V> binding) {
+        final V value = binding.get().getOrElse(null);
+        return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
+    }
+
+    @NonNull
+    private static <V> Runnable set(@NonNull final Producer<Maybe<V>> producer,
+                                    @NonNull final Binding.Write<V> binding) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                binding.set(producer.produce());
             }
         };
     }
