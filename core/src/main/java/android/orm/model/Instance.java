@@ -30,6 +30,7 @@ import java.util.Collection;
 
 import static android.orm.model.Instances.combine;
 import static android.orm.model.Instances.compose;
+import static android.orm.model.Instances.instance;
 import static android.orm.model.Plans.write;
 import static android.orm.model.Reading.Item.action;
 
@@ -60,6 +61,9 @@ public final class Instance {
         Readable and(@NonNull final Readable other);
 
         @NonNull
+        ReadWrite and(@NonNull final Value.Constant value);
+
+        @NonNull
         ReadWrite and(@NonNull final Writable other);
 
         abstract class Base implements Readable {
@@ -68,6 +72,12 @@ public final class Instance {
             @Override
             public final Readable and(@NonNull final Readable other) {
                 return compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final Value.Constant value) {
+                return combine(this, instance(value));
             }
 
             @NonNull
@@ -249,12 +259,21 @@ public final class Instance {
         Plan.Write prepareWrite();
 
         @NonNull
+        Writable and(@NonNull final Value.Constant value);
+
+        @NonNull
         Writable and(@NonNull final Writable other);
 
         @NonNull
         ReadWrite and(@NonNull final Readable other);
 
         abstract class Base implements Writable {
+
+            @NonNull
+            @Override
+            public final Writable and(@NonNull final Value.Constant value) {
+                return compose(this, instance(value));
+            }
 
             @NonNull
             @Override
@@ -454,6 +473,10 @@ public final class Instance {
     public interface ReadWrite extends Readable, Writable {
 
         @NonNull
+        @Override
+        ReadWrite and(@NonNull final Value.Constant value);
+
+        @NonNull
         ReadWrite and(@NonNull final ReadWrite other);
 
         abstract class Base implements ReadWrite {
@@ -462,6 +485,12 @@ public final class Instance {
             @Override
             public final ReadWrite and(@NonNull final Readable other) {
                 return combine(compose(this, other), this);
+            }
+
+            @NonNull
+            @Override
+            public final ReadWrite and(@NonNull final Value.Constant value) {
+                return combine(this, compose(this, instance(value)));
             }
 
             @NonNull
