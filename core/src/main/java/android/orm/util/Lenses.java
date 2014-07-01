@@ -22,18 +22,6 @@ import android.support.annotation.Nullable;
 public final class Lenses {
 
     @NonNull
-    public static <M, V> Lens.Read<M, V> check(@NonNull final Lens.Read<M, V> lens,
-                                               @NonNull final Validation<? super V> validation) {
-        return new Check<>(lens, validation);
-    }
-
-    @NonNull
-    public static <M, V> Lens.ReadWrite<M, V> check(@NonNull final Lens.ReadWrite<M, V> lens,
-                                                    @NonNull final Validation<? super V> validation) {
-        return combine(new Check<>(lens, validation), lens);
-    }
-
-    @NonNull
     public static <M, V, T> Lens.Read<M, T> convert(@NonNull final Lens.Read<M, V> lens,
                                                     @NonNull final Function<? super V, ? extends T> converter) {
         return new ReadConversion<>(lens, converter);
@@ -61,29 +49,6 @@ public final class Lenses {
     @SuppressWarnings("unchecked")
     public static <M, V> Lens.Write<M, V> safeCast(@NonNull final Lens.Write<M, ? super V> lens) {
         return (Lens.Write<M, V>) lens;
-    }
-
-    private static class Check<M, V> implements Lens.Read<M, V> {
-
-        @NonNull
-        private final Lens.Read<M, V> mLens;
-        @NonNull
-        private final Validation<? super V> mValidation;
-
-        private Check(@NonNull final Lens.Read<M, V> lens,
-                      @NonNull final Validation<? super V> validation) {
-            super();
-
-            mLens = lens;
-            mValidation = validation;
-        }
-
-        @Nullable
-        @Override
-        public final V get(@NonNull final M model) {
-            final V value = mLens.get(model);
-            return (value == null) ? null : mValidation.validate(value).get();
-        }
     }
 
     private static class ReadConversion<M, V, T> implements Lens.Read<M, T> {

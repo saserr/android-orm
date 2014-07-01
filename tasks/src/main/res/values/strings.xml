@@ -30,4 +30,5 @@
     </plurals>
 
     <string name="error_save_task">There was a problem saving the task</string>
+    <string name="error_task_title_required">Title is required</string>
 </resources>

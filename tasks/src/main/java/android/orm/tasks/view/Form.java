@@ -17,9 +17,12 @@
 package android.orm.tasks.view;
 
 import android.app.Activity;
+import android.orm.model.Instance;
+import android.orm.model.Validator;
 import android.orm.tasks.R;
 import android.orm.tasks.model.Task;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -27,11 +30,37 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
+import static android.orm.util.Validations.IsNotEmpty;
+
 public class Form extends Fragment {
 
     private Controller mController = DUMMY_CONTROLLER;
 
     private EditText mTitle;
+
+    private final Instance.Getter<CharSequence> mTitleGetter = new Instance.Getter<CharSequence>() {
+        @Nullable
+        @Override
+        public CharSequence get() {
+            return mTitle.getText();
+        }
+    };
+
+    private final Validator.Instance mValidator = Validator.instance()
+            .with(IsNotEmpty, mTitleGetter, new Validator.Callback<CharSequence>() {
+
+                @Override
+                public void onValid(@Nullable final CharSequence title) {
+                    mTitle.setError(null);
+                }
+
+                @Override
+                public void onInvalid(@Nullable final CharSequence title) {
+                    mTitle.setError(getResources().getString(R.string.error_task_title_required));
+                    mTitle.requestFocus();
+                }
+            })
+            .build();
 
     private final View.OnKeyListener mSave = new View.OnKeyListener() {
         @Override
@@ -41,8 +70,10 @@ public class Form extends Fragment {
             if (((code == KeyEvent.KEYCODE_ENTER)
                     || (code == KeyEvent.KEYCODE_DPAD_CENTER))
                     && (event.getAction() == KeyEvent.ACTION_DOWN)) {
-                final String title = mTitle.getText().toString();
-                mController.save(new Task(title));
+                if (mValidator.isValid()) {
+                    final String title = mTitle.getText().toString();
+                    mController.save(new Task(title));
+                }
                 result = true;
             } else {
                 result = false;
