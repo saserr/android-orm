@@ -80,7 +80,7 @@ public class Local extends Async implements DAO.Local {
 
     @NonNull
     @Override
-    public final DAO.Local.Access.Single at(@NonNull final Route.Item route,
+    public final DAO.Async.Access.Single at(@NonNull final Route.Item route,
                                             @NonNull final Object... arguments) {
         return new SingleAccess(this, mNotifier, route, arguments);
     }
@@ -94,7 +94,7 @@ public class Local extends Async implements DAO.Local {
 
     @NonNull
     @Override
-    public final DAO.Local.Access.Some at(@NonNull final Route route, @NonNull final Object... arguments) {
+    public final DAO.Async.Access.Some at(@NonNull final Route route, @NonNull final Object... arguments) {
         return new SomeAccess(this, mNotifier, route, arguments);
     }
 
@@ -137,7 +137,7 @@ public class Local extends Async implements DAO.Local {
         ));
     }
 
-    private static class SingleAccess extends SomeAccess implements DAO.Local.Access.Single {
+    private static class SingleAccess extends SomeAccess implements DAO.Async.Access.Single {
 
         @NonNull
         private final Select mSelect;
@@ -219,7 +219,7 @@ public class Local extends Async implements DAO.Local {
         }
     }
 
-    private static class SomeAccess extends DAO.Access.Write.Base<Result<Uri>, Result<Integer>, Result<Integer>> implements DAO.Local.Access.Some {
+    private static class SomeAccess extends DAO.Access.Write.Base<Result<Uri>, Result<Integer>, Result<Integer>> implements DAO.Async.Access.Some {
 
         @NonNull
         private final Local mDAO;
@@ -397,7 +397,7 @@ public class Local extends Async implements DAO.Local {
         }
     }
 
-    private static class QueryBuilder<V> implements DAO.Local.Query.Builder.Refreshable<V> {
+    private static class QueryBuilder<V> implements DAO.Local.Query.Builder.Many.Refreshable<V> {
 
         @NonNull
         private final SomeAccess mAccess;

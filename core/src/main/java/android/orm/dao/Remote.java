@@ -377,7 +377,7 @@ public class Remote extends Async implements DAO.Remote {
         }
     }
 
-    private static class QueryBuilder<V> implements DAO.Remote.Query.Builder.Refreshable<V> {
+    private static class QueryBuilder<V> implements DAO.Remote.Query.Builder.Many.Refreshable<V> {
 
         @NonNull
         private final SomeAccess mAccess;

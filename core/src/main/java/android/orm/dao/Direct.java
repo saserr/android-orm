@@ -439,7 +439,7 @@ public abstract class Direct implements DAO.Direct {
         }
     }
 
-    private static class QueryBuilder<V> implements DAO.Direct.Query.Builder.Refreshable<V> {
+    private static class QueryBuilder<V> implements DAO.Direct.Query.Builder.Many.Refreshable<V> {
 
         @NonNull
         private final BaseAccess<?> mAccess;

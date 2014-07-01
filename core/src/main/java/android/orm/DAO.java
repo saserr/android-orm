@@ -113,73 +113,98 @@ public final class DAO {
 
                 @NonNull
                 @Override
-                <M> Builder<M> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Single<M> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Single.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+                <M> Builder.Single.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
             }
 
             public interface Many extends DAO.Access.Query.Many {
 
                 @NonNull
                 @Override
-                <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+                <M> Builder.Many<M> query(@NonNull final AggregateFunction<M> function);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+                <M> Builder.Many.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
             }
 
-            public interface Builder<V> extends DAO.Access.Query.Builder<V, Maybe<V>> {
+            public static final class Builder {
 
-                @NonNull
-                @Override
-                Builder<V> with(@Nullable final Select.Where where);
-
-                @NonNull
-                @Override
-                Builder<V> with(@Nullable final Select.Order order);
-
-                @NonNull
-                Builder<V> with(@Nullable final Select.Limit limit);
-
-                @NonNull
-                Builder<V> with(@Nullable final Select.Offset offset);
-
-                interface Refreshable<V> extends Builder<V>, DAO.Access.Query.Builder.Refreshable<V, Maybe<V>> {
+                public interface Single<V> extends DAO.Access.Query.Builder.Single<V, Maybe<V>> {
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Where where);
+                    Single<V> with(@Nullable final Select.Where where);
+
+                    interface Refreshable<V> extends Single<V>, DAO.Access.Query.Builder.Single.Refreshable<V, Maybe<V>> {
+
+                        @NonNull
+                        @Override
+                        Single.Refreshable<V> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        @Override
+                        Single.Refreshable<V> using(@Nullable final V v);
+                    }
+                }
+
+                public interface Many<V> extends DAO.Access.Query.Builder.Many<V, Maybe<V>>, Single<V> {
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Order order);
+                    Many<V> with(@Nullable final Select.Where where);
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Limit limit);
+                    Many<V> with(@Nullable final Select.Order order);
 
                     @NonNull
-                    @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Offset offset);
+                    Many<V> with(@Nullable final Select.Limit limit);
 
                     @NonNull
-                    @Override
-                    Builder.Refreshable<V> using(@Nullable final V v);
+                    Many<V> with(@Nullable final Select.Offset offset);
+
+                    interface Refreshable<V> extends Many<V>, DAO.Access.Query.Builder.Many.Refreshable<V, Maybe<V>>, Single.Refreshable<V> {
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Order order);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Limit limit);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Offset offset);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> using(@Nullable final V v);
+                    }
+                }
+
+                private Builder() {
+                    super();
                 }
             }
 
@@ -270,13 +295,8 @@ public final class DAO {
     public interface Local extends Async {
 
         @NonNull
-        Access.Single at(@NonNull final Route.Item route, @NonNull final Object... arguments);
-
-        @NonNull
+        @Override
         Access.Many at(@NonNull final Route.Dir route, @NonNull final Object... arguments);
-
-        @NonNull
-        Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
 
         @NonNull
         <V> Result<V> execute(@NonNull final Expression<V> expression);
@@ -286,77 +306,69 @@ public final class DAO {
 
         final class Query {
 
-            public interface Single extends Async.Query.Single {
-
-                @NonNull
-                @Override
-                <M> Builder<M> query(@NonNull final Value.Read<M> value);
-
-                @NonNull
-                @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
-
-                @NonNull
-                @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
-            }
-
             public interface Many extends Async.Query.Many {
 
                 @NonNull
                 @Override
-                <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+                <M> Builder.Many<M> query(@NonNull final AggregateFunction<M> function);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+                <M> Builder.Many.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
             }
 
-            public interface Builder<V> extends Async.Query.Builder<V> {
+            public static final class Builder {
 
-                @NonNull
-                @Override
-                Builder<V> with(@Nullable final Select.Where where);
-
-                @NonNull
-                @Override
-                Builder<V> with(@Nullable final Select.Order order);
-
-                @NonNull
-                Builder<V> with(@Nullable final Select.Limit limit);
-
-                @NonNull
-                Builder<V> with(@Nullable final Select.Offset offset);
-
-                interface Refreshable<V> extends Builder<V>, Async.Query.Builder.Refreshable<V> {
+                public interface Many<V> extends Async.Query.Builder.Many<V> {
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Where where);
+                    Many<V> with(@Nullable final Select.Where where);
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Order order);
+                    Many<V> with(@Nullable final Select.Order order);
 
                     @NonNull
-                    @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Limit limit);
+                    Many<V> with(@Nullable final Select.Limit limit);
 
                     @NonNull
-                    @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Offset offset);
+                    Many<V> with(@Nullable final Select.Offset offset);
 
-                    @NonNull
-                    @Override
-                    Builder.Refreshable<V> using(@Nullable final V v);
+                    interface Refreshable<V> extends Many<V>, Async.Query.Builder.Many.Refreshable<V> {
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Order order);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Limit limit);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Offset offset);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> using(@Nullable final V v);
+                    }
+                }
+
+                private Builder() {
+                    super();
                 }
             }
 
@@ -366,9 +378,6 @@ public final class DAO {
         }
 
         final class Read {
-
-            public interface Single extends Query.Single, Async.Read.Single {
-            }
 
             public interface Many extends Query.Many, Async.Read.Many {
             }
@@ -380,13 +389,7 @@ public final class DAO {
 
         final class Access {
 
-            public interface Some extends Async.Access.Some {
-            }
-
-            public interface Single extends Read.Single, Async.Access.Single, Some {
-            }
-
-            public interface Many extends Read.Many, Async.Access.Many, Some {
+            public interface Many extends Read.Many, Async.Access.Many {
             }
 
             private Access() {
@@ -396,15 +399,6 @@ public final class DAO {
     }
 
     public interface Remote extends Async {
-
-        @NonNull
-        Access.Single at(@NonNull final Route.Item route, @NonNull final Object... arguments);
-
-        @NonNull
-        Access.Many at(@NonNull final Route.Dir route, @NonNull final Object... arguments);
-
-        @NonNull
-        Access.Some at(@NonNull final Route route, @NonNull final Object... arguments);
 
         @NonNull
         Transaction.Remote transaction();
@@ -447,59 +441,84 @@ public final class DAO {
 
                 @NonNull
                 @Override
-                <M> Builder<M> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Single<M> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Single.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+                <M> Builder.Single.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
             }
 
             public interface Many extends DAO.Access.Query.Many {
 
                 @NonNull
                 @Override
-                <M> Builder<M> query(@NonNull final AggregateFunction<M> function);
+                <M> Builder.Many<M> query(@NonNull final AggregateFunction<M> function);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
                 @Override
-                <M> Builder.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+                <M> Builder.Many.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
             }
 
-            public interface Builder<V> extends DAO.Access.Query.Builder<V, Result<V>>, DAO.Access.Watchable<V> {
+            public static final class Builder {
 
-                @NonNull
-                @Override
-                Builder<V> with(@Nullable final Select.Where where);
-
-                @NonNull
-                @Override
-                Builder<V> with(@Nullable final Select.Order order);
-
-                interface Refreshable<V> extends Builder<V>, DAO.Access.Query.Builder.Refreshable<V, Result<V>> {
+                public interface Single<V> extends DAO.Access.Query.Builder.Single<V, Result<V>>, DAO.Access.Watchable<V> {
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Where where);
+                    Single<V> with(@Nullable final Select.Where where);
+
+                    interface Refreshable<V> extends Single<V>, DAO.Access.Query.Builder.Single.Refreshable<V, Result<V>> {
+
+                        @NonNull
+                        @Override
+                        Single.Refreshable<V> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        @Override
+                        Single.Refreshable<V> using(@Nullable final V v);
+                    }
+                }
+
+                public interface Many<V> extends DAO.Access.Query.Builder.Many<V, Result<V>>, Single<V> {
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> with(@Nullable final Select.Order order);
+                    Many<V> with(@Nullable final Select.Where where);
 
                     @NonNull
                     @Override
-                    Builder.Refreshable<V> using(@Nullable final V v);
+                    Many<V> with(@Nullable final Select.Order order);
+
+                    interface Refreshable<V> extends Many<V>, DAO.Access.Query.Builder.Many.Refreshable<V, Result<V>>, Single.Refreshable<V> {
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> with(@Nullable final Select.Order order);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V> using(@Nullable final V v);
+                    }
+                }
+
+                private Builder() {
+                    super();
                 }
             }
 
@@ -574,53 +593,78 @@ public final class DAO {
             public interface Single {
 
                 @NonNull
-                <M> Builder<M, ?> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Single<M, ?> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
-                <M> Builder<M, ?> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Single.Refreshable<M, ?> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
-                <M> Builder<M, ?> query(@NonNull final Reading.Single<M> reading);
+                <M> Builder.Single.Refreshable<M, ?> query(@NonNull final Reading.Single<M> reading);
             }
 
             public interface Many {
 
                 @NonNull
-                <M> Builder<M, ?> query(@NonNull final AggregateFunction<M> function);
+                <M> Builder.Many<M, ?> query(@NonNull final AggregateFunction<M> function);
 
                 @NonNull
-                <M> Builder<List<M>, ?> query(@NonNull final Value.Read<M> value);
+                <M> Builder.Many<List<M>, ?> query(@NonNull final Value.Read<M> value);
 
                 @NonNull
-                <M> Builder<List<M>, ?> query(@NonNull final Mapper.Read<M> mapper);
+                <M> Builder.Many.Refreshable<List<M>, ?> query(@NonNull final Mapper.Read<M> mapper);
 
                 @NonNull
-                <M> Builder<M, ?> query(@NonNull final Reading.Many<M> reading);
+                <M> Builder.Many.Refreshable<M, ?> query(@NonNull final Reading.Many<M> reading);
             }
 
-            public interface Builder<V, R> {
+            public static final class Builder {
 
-                @NonNull
-                Builder<V, R> with(@Nullable final Select.Where where);
+                public interface Single<V, R> {
 
-                @NonNull
-                Builder<V, R> with(@Nullable final Select.Order order);
+                    @NonNull
+                    Single<V, R> with(@Nullable final Select.Where where);
 
-                @NonNull
-                R execute();
+                    @NonNull
+                    R execute();
 
-                interface Refreshable<V, R> extends Builder<V, R> {
+                    interface Refreshable<V, R> extends Single<V, R> {
+
+                        @NonNull
+                        @Override
+                        Refreshable<V, R> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        Refreshable<V, R> using(@Nullable final V v);
+                    }
+                }
+
+                public interface Many<V, R> extends Single<V, R> {
 
                     @NonNull
                     @Override
-                    Refreshable<V, R> with(@Nullable final Select.Where where);
+                    Many<V, R> with(@Nullable final Select.Where where);
 
                     @NonNull
-                    @Override
-                    Refreshable<V, R> with(@Nullable final Select.Order order);
+                    Many<V, R> with(@Nullable final Select.Order order);
 
-                    @NonNull
-                    Refreshable<V, R> using(@Nullable final V v);
+                    interface Refreshable<V, R> extends Many<V, R>, Single.Refreshable<V, R> {
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V, R> with(@Nullable final Select.Where where);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V, R> with(@Nullable final Select.Order order);
+
+                        @NonNull
+                        @Override
+                        Many.Refreshable<V, R> using(@Nullable final V v);
+                    }
+                }
+
+                private Builder() {
+                    super();
                 }
             }
 
