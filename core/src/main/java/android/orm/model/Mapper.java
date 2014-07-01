@@ -48,7 +48,7 @@ public final class Mapper {
         Reading.Item<M> prepareRead(@NonNull final M m);
 
         @NonNull
-        <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other);
+        <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> value);
 
         @NonNull
         <N> Read<Pair<M, N>> and(@NonNull final Read<N> other);
@@ -60,8 +60,8 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other) {
-                return new Composition<>(this, other);
+            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> value) {
+                return new Composition<>(this, value);
             }
 
             @NonNull
@@ -86,7 +86,8 @@ public final class Mapper {
                 @NonNull
                 private final String mName;
 
-                private Composition(@NonNull final Read<M> first, @NonNull final Value.Read<N> second) {
+                private Composition(@NonNull final Read<M> first,
+                                    @NonNull final Value.Read<N> second) {
                     this(first, Mappers.read(second));
                 }
 
@@ -95,7 +96,7 @@ public final class Mapper {
 
                     mFirst = first;
                     mSecond = second;
-                    mName = '(' + mFirst.getName() + ", " + mSecond.getName() + ')';
+                    mName = '(' + first.getName() + ", " + second.getName() + ')';
                 }
 
                 @NonNls
@@ -248,7 +249,10 @@ public final class Mapper {
         Plan.Write prepareWrite(@NonNull final M m);
 
         @NonNull
-        <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other);
+        Write<M> and(@NonNull final Value.Constant value);
+
+        @NonNull
+        <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> value);
 
         @NonNull
         <N> Write<Pair<M, N>> and(@NonNull final Write<N> other);
@@ -260,8 +264,14 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other) {
-                return new Composition<>(this, other);
+            public final Write<M> and(@NonNull final Value.Constant value) {
+                return new ConstantComposition<>(this, value);
+            }
+
+            @NonNull
+            @Override
+            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> value) {
+                return new Composition<>(this, value);
             }
 
             @NonNull
@@ -276,6 +286,39 @@ public final class Mapper {
                 return new Converted<>(this, converter);
             }
 
+            private static class ConstantComposition<M> extends Base<M> {
+
+                @NonNull
+                private final Write<M> mFirst;
+                @NonNull
+                private final Value.Constant mSecond;
+                @NonNls
+                @NonNull
+                private final String mName;
+
+                private ConstantComposition(@NonNull final Write<M> first,
+                                            @NonNull final Value.Constant second) {
+                    super();
+
+                    mFirst = first;
+                    mSecond = second;
+                    mName = '(' + first.getName() + ", " + second.getName() + ')';
+                }
+
+                @NonNls
+                @NonNull
+                @Override
+                public final String getName() {
+                    return mName;
+                }
+
+                @NonNull
+                @Override
+                public final Plan.Write prepareWrite(@NonNull final M value) {
+                    return mFirst.prepareWrite(value).and(Plans.write(mSecond));
+                }
+            }
+
             private static class Composition<M, N> extends Base<Pair<M, N>> {
 
                 @NonNull
@@ -286,7 +329,8 @@ public final class Mapper {
                 @NonNull
                 private final String mName;
 
-                private Composition(@NonNull final Write<M> first, @NonNull final Value.Write<N> second) {
+                private Composition(@NonNull final Write<M> first,
+                                    @NonNull final Value.Write<N> second) {
                     this(first, Mappers.write(second));
                 }
 
@@ -409,6 +453,10 @@ public final class Mapper {
     public interface ReadWrite<M> extends Read<M>, Write<M> {
 
         @NonNull
+        @Override
+        ReadWrite<M> and(@NonNull final Value.Constant value);
+
+        @NonNull
         <V> ReadWrite<Pair<M, V>> and(@NonNull final Value.ReadWrite<V> other);
 
         @NonNull
@@ -426,14 +474,23 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other) {
-                return new Read.Base.Composition<>(this, other);
+            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> value) {
+                return new Read.Base.Composition<>(this, value);
             }
 
             @NonNull
             @Override
-            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other) {
-                return new Write.Base.Composition<>(this, other);
+            public final ReadWrite<M> and(@NonNull final Value.Constant value) {
+                return combine(
+                        this,
+                        new Write.Base.ConstantComposition<>(this, value)
+                );
+            }
+
+            @NonNull
+            @Override
+            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> value) {
+                return new Write.Base.Composition<>(this, value);
             }
 
             @NonNull
