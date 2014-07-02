@@ -85,6 +85,10 @@ public final class Update {
             if (updated > 0) {
                 values.putAll(mAdditional);
                 result = new ReadUri(mRoute, mWhere, mAdditional).execute(database);
+
+                if (result.isNothing()) {
+                    throw new SQLException("Couldn't create item uri after update");
+                }
             } else {
                 result = nothing();
             }
