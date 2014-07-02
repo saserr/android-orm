@@ -24,16 +24,12 @@ import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
-import static android.util.Log.INFO;
 
 public class Insert implements Function<Writer, Maybe<Uri>> {
-
-    private static final String TAG = Insert.class.getSimpleName();
 
     @NonNull
     private final ContentResolver mResolver;
@@ -52,10 +48,6 @@ public class Insert implements Function<Writer, Maybe<Uri>> {
     public final Maybe<Uri> invoke(@NonNull final Writer writer) {
         final ContentValues values = new ContentValues();
         writer.write(Insert, writable(values));
-        if ((values.size() <= 0) && Log.isLoggable(TAG, INFO)) {
-            Log.i(TAG, "An empty row will be written"); //NON-NLS
-        }
-
         final Uri uri = mResolver.insert(mUri, values);
         return (uri == null) ? Maybes.<Uri>nothing() : something(uri);
     }

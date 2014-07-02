@@ -22,6 +22,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.orm.Route;
 import android.orm.model.Plan;
+import android.orm.sql.Column;
 import android.orm.sql.Expression;
 import android.orm.sql.Helper;
 import android.orm.sql.PrimaryKey;
@@ -51,9 +52,11 @@ public class Insert implements Expression<Uri> {
 
     @NonNull
     private final Route.Item mRoute;
+    @NonNull
+    private final Table<?> mTable;
     @NonNls
     @NonNull
-    private final String mTable;
+    private final String mTableName;
     @Nullable
     private final PrimaryKey<?> mPrimaryKey;
     @NonNull
@@ -67,9 +70,9 @@ public class Insert implements Expression<Uri> {
         super();
 
         mRoute = route;
-        final Table<?> table = route.getTable();
-        mTable = Helper.escape(table.getName());
-        mPrimaryKey = table.getPrimaryKey();
+        mTable = route.getTable();
+        mTableName = Helper.escape(mTable.getName());
+        mPrimaryKey = mTable.getPrimaryKey();
         mPlan = plan;
         mAdditional = additional;
     }
@@ -81,11 +84,21 @@ public class Insert implements Expression<Uri> {
         final ContentValues values = new ContentValues(mAdditional);
         final Writable output = writable(values);
         mPlan.write(Insert, output);
-        if ((values.size() <= 0) && Log.isLoggable(TAG, INFO)) {
-            Log.i(TAG, "An empty row will be written"); //NON-NLS
+        String nullColumn = null;
+        if (values.size() <= 0) {
+            if (Log.isLoggable(TAG, INFO)) {
+                Log.i(TAG, "An empty row will be written"); //NON-NLS
+            }
+
+            for (final Column<?> column : mTable.getColumns(database.getVersion())) {
+                if (column.isNullable()) {
+                    nullColumn = Helper.escape(column.getName());
+                    break;
+                }
+            }
         }
 
-        final long id = database.insertOrThrow(mTable, null, values);
+        final long id = database.insertOrThrow(mTableName, nullColumn, values);
         final Maybe<Uri> result;
 
         if (id > 0L) {
