@@ -20,9 +20,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.orm.util.Converter;
+import android.orm.util.Legacy;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
@@ -30,6 +32,7 @@ import org.jetbrains.annotations.NonNls;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,6 +45,12 @@ import static java.lang.Double.parseDouble;
 import static java.lang.Long.parseLong;
 
 public final class Types {
+
+    private static final String TAG = Type.class.getSimpleName();
+    @NonNls
+    private static final String FILE_NOT_FOUND = "Could not find file ";
+    @NonNls
+    private static final String FILE_NOT_CLOSED = "Could not close file ";
 
     public static final Type<String> Text = new Type.Base<String>("text", "*") {
 
@@ -240,45 +249,84 @@ public final class Types {
             File,
             new Converter<Pair<File, byte[]>, File>() {
 
+                private static final int KILOBYTE = 1024;
+
                 @NonNull
                 @Override
                 public File from(@NonNull final Pair<File, byte[]> pair) {
+                    final File file = pair.first;
+                    final byte[] bytes = pair.second;
+                    final String path = file.getAbsolutePath();
+
+                    FileOutputStream out = null;
                     try {
-                        final FileOutputStream out = new FileOutputStream(pair.first);
-                        try {
-                            out.write(pair.second, 0, pair.second.length);
-                        } finally {
-                            out.close();
+                        out = new FileOutputStream(file);
+                        out.write(bytes, 0, bytes.length);
+                    } catch (final FileNotFoundException cause) {
+                        final String message = FILE_NOT_FOUND + path;
+                        Log.e(TAG, message, cause);
+                        throw Legacy.wrap(message, cause);
+                    } catch (final IOException cause) {
+                        @NonNls final String message = "Could not write to file " + path;
+                        Log.e(TAG, message, cause);
+                        throw Legacy.wrap(message, cause);
+                    } finally {
+                        if (out != null) {
+                            try {
+                                out.close();
+                            } catch (final IOException cause) {
+                                Log.w(TAG, FILE_NOT_CLOSED + path, cause);
+                            }
                         }
-                    } catch (final IOException ex) {
-                        // TODO log
                     }
 
-                    return pair.first;
+                    return file;
                 }
 
                 @NonNull
                 @Override
                 public Pair<File, byte[]> to(@NonNull final File file) {
+                    final String path = file.getAbsolutePath();
                     byte[] bytes = null;
 
+                    ByteArrayOutputStream out = null;
+                    InputStream in = null;
                     try {
-                        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-                        final InputStream in = new FileInputStream(file);
-                        try {
-                            final byte[] buffer = new byte[1024];
-                            int read = in.read(buffer);
-                            while (read != -1) {
-                                out.write(buffer, 0, read);
-                                read = in.read(buffer);
-                            }
-                            bytes = out.toByteArray();
-                        } finally {
-                            in.close();
-                            out.close();
+                        in = new FileInputStream(file);
+                        out = new ByteArrayOutputStream();
+
+                        final byte[] buffer = new byte[KILOBYTE];
+                        int read = in.read(buffer);
+                        while (read != -1) {
+                            out.write(buffer, 0, read);
+                            read = in.read(buffer);
                         }
-                    } catch (final IOException ex) {
-                        // TODO log
+
+                        bytes = out.toByteArray();
+                    } catch (final FileNotFoundException cause) {
+                        @NonNls final String message = FILE_NOT_FOUND + path;
+                        Log.e(TAG, message, cause);
+                        throw Legacy.wrap(message, cause);
+                    } catch (final IOException cause) {
+                        @NonNls final String message = "Could not read from file " + path;
+                        Log.e(TAG, message, cause);
+                        throw Legacy.wrap(message, cause);
+                    } finally {
+                        if (in != null) {
+                            try {
+                                in.close();
+                            } catch (final IOException cause) {
+                                Log.w(TAG, FILE_NOT_CLOSED + path, cause);
+                            }
+                        }
+                        if (out != null) {
+                            try {
+                                out.close();
+                            } catch (final IOException cause) {
+                                @NonNls final String message = "Byte stream not closed";
+                                Log.w(TAG, message, cause);
+                            }
+                        }
                     }
 
                     return Pair.create(file, bytes);
@@ -304,6 +352,7 @@ public final class Types {
         });
     }
 
+    @NonNull
     public static Type<Pair<File, Bitmap>> bitmap(@NonNull final Bitmap.CompressFormat format,
                                                   final int quality,
                                                   @Nullable final BitmapFactory.Options options) {
@@ -314,18 +363,28 @@ public final class Types {
                     @NonNull
                     @Override
                     public File from(@NonNull final Pair<File, Bitmap> pair) {
+                        final File file = pair.first;
+                        final String path = file.getAbsolutePath();
+
+                        FileOutputStream out = null;
                         try {
-                            final FileOutputStream out = new FileOutputStream(pair.first);
-                            try {
-                                pair.second.compress(format, quality, out);
-                            } finally {
-                                out.close();
+                            out = new FileOutputStream(file);
+                            pair.second.compress(format, quality, out);
+                        } catch (final FileNotFoundException cause) {
+                            @NonNls final String message = FILE_NOT_FOUND + path;
+                            Log.e(TAG, message, cause);
+                            throw Legacy.wrap(message, cause);
+                        } finally {
+                            if (out != null) {
+                                try {
+                                    out.close();
+                                } catch (final IOException cause) {
+                                    Log.w(TAG, FILE_NOT_CLOSED + path, cause);
+                                }
                             }
-                        } catch (final IOException ex) {
-                            // TODO log
                         }
 
-                        return pair.first;
+                        return file;
                     }
 
                     @NonNull
