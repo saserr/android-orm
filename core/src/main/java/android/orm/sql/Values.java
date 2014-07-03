@@ -25,7 +25,6 @@ import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.sql.Helper.escape;
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.nothing;
@@ -117,7 +116,7 @@ public final class Values {
 
             mName = name;
             mType = type;
-            mProjection = Select.projection(mName, escape(mName));
+            mProjection = Select.projection(mName, null);
         }
 
         @NonNls

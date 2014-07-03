@@ -154,11 +154,10 @@ public class ForeignKey<V> implements Fragment {
             mOnDelete = onDelete;
             mOnUpdate = onUpdate;
 
-            final Map<String, String> childKeyMap = childKey.getProjection().asMap();
-            if ((childKeyMap == null) || childKeyMap.isEmpty()) {
+            mChildKey = childKey.getProjection().asMap().keySet();
+            if (mChildKey.isEmpty()) {
                 throw new IllegalArgumentException("Child key must reference something");
             }
-            mChildKey = childKeyMap.keySet();
 
             final Map<String, String> parentKeyMap = (parentKey == null) ? null : parentKey.getProjection().asMap();
             if ((parentKeyMap != null) && parentKeyMap.isEmpty()) {

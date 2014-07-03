@@ -58,7 +58,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
         super();
 
         final Map<String, String> projection = value.getProjection().asMap();
-        if ((projection == null) || projection.isEmpty()) {
+        if (projection.isEmpty()) {
             throw new IllegalArgumentException("Value must reference something");
         }
 

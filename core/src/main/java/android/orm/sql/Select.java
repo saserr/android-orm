@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -89,19 +90,26 @@ public class Select {
     }
 
     @NonNull
+    public final Cursor execute(@NonNull final SQLiteDatabase database) {
+        return database.rawQuery(toSQL(null, mTable, mWhere, mOrder, mLimit, mOffset), null);
+    }
+
+    @NonNull
     public static <K> Builder select(@NonNull final Table<K> table) {
         return new Builder(table);
     }
 
     @NonNull
     public static <V> Projection projection(@NonNull final Column<V> column) {
-        return projection(column.getName(), escape(column.getName()));
+        return projection(column.getName(), null);
     }
 
     @NonNull
     public static Projection projection(@NonNls @NonNull final String name,
-                                        @NonNls @NonNull final String value) {
-        return Projection.Base.create(singletonMap(name, value));
+                                        @NonNls @Nullable final String value) {
+        return ((value != null) && escape(name).equals(value)) ?
+                Projection.Base.create(Collections.<String, String>singletonMap(name, null)) :
+                Projection.Base.create(singletonMap(name, value));
     }
 
     @NonNull
@@ -194,10 +202,10 @@ public class Select {
 
         boolean isEmpty();
 
-        @Nullable
+        @NonNull
         String[] asArray();
 
-        @Nullable
+        @NonNull
         Map<String, String> asMap();
 
         @NonNull
@@ -210,49 +218,6 @@ public class Select {
         Projection without(@NonNull final Set<String> names);
 
         boolean isAny(@NonNull final Collection<String> columns);
-
-        Projection All = new Projection() {
-
-            @Override
-            public boolean isEmpty() {
-                return false;
-            }
-
-            @Nullable
-            @Override
-            public String[] asArray() {
-                return null;
-            }
-
-            @Nullable
-            @Override
-            public Map<String, String> asMap() {
-                return null;
-            }
-
-            @NonNull
-            @Override
-            public Projection and(@NonNull final Projection other) {
-                return this;
-            }
-
-            @NonNull
-            @Override
-            public Projection without(@NonNull final Projection other) {
-                return this;
-            }
-
-            @NonNull
-            @Override
-            public Projection without(@NonNull final Set<String> names) {
-                return this;
-            }
-
-            @Override
-            public boolean isAny(@NonNull final Collection<String> columns) {
-                return true;
-            }
-        };
 
         Projection Nothing = new Projection() {
 
@@ -304,20 +269,13 @@ public class Select {
             public final Projection and(@NonNull final Projection other) {
                 final Map<String, String> projection1 = asMap();
                 final Map<String, String> projection2 = other.asMap();
-                final Projection result;
+                check(projection1, projection2);
 
-                if ((projection1 == null) || (projection2 == null)) {
-                    result = All;
-                } else {
-                    check(projection1, projection2);
+                final Map<String, String> projection = new HashMap<>(projection1.size() + projection2.size());
+                projection.putAll(projection1);
+                projection.putAll(projection2);
 
-                    final Map<String, String> projection = new HashMap<>(projection1.size() + projection2.size());
-                    projection.putAll(projection1);
-                    projection.putAll(projection2);
-                    result = create(projection);
-                }
-
-                return result;
+                return create(projection);
             }
 
             @NonNull
@@ -325,21 +283,14 @@ public class Select {
             public final Projection without(@NonNull final Projection other) {
                 final Map<String, String> projection1 = asMap();
                 final Map<String, String> projection2 = other.asMap();
-                final Projection result;
+                check(projection1, projection2);
 
-                if ((projection1 == null) || (projection2 == null)) {
-                    result = All;
-                } else {
-                    check(projection1, projection2);
-
-                    final Map<String, String> projection = new HashMap<>(projection1);
-                    for (final String name : projection2.keySet()) {
-                        projection.remove(name);
-                    }
-                    result = create(projection);
+                final Map<String, String> projection = new HashMap<>(projection1);
+                for (final String name : projection2.keySet()) {
+                    projection.remove(name);
                 }
 
-                return result;
+                return create(projection);
             }
 
             @NonNull
@@ -348,9 +299,7 @@ public class Select {
                 final Map<String, String> projection1 = asMap();
                 final Projection result;
 
-                if (projection1 == null) {
-                    result = All;
-                } else if (names.isEmpty()) {
+                if (names.isEmpty()) {
                     result = this;
                 } else {
                     final Map<String, String> projection = new HashMap<>(projection1);
@@ -375,10 +324,16 @@ public class Select {
                     // if values are not same in both projections throw error
                     @NonNls final String value1 = projection1.get(name);
                     @NonNls final String value2 = projection2.get(name);
-                    if (!value1.equals(value2)) {
+                    if (!equals(value1, value2)) {
                         throw new SQLException("Projection has different values " + value1 + " and " + value2 + " with same name " + name);
                     }
                 }
+            }
+
+            private static boolean equals(@NonNls @Nullable final String value1,
+                                          @NonNls @Nullable final String value2) {
+                return ((value1 == null) && (value2 == null)) ||
+                        ((value1 != null) && value1.equals(value2));
             }
 
             @NonNull
@@ -428,7 +383,7 @@ public class Select {
                         for (final Map.Entry<String, String> entry : projection.entrySet()) {
                             @NonNls final String name = escape(entry.getKey());
                             @NonNls final String value = entry.getValue();
-                            result[i] = name.equals(value) ? value : (value + " as " + name); //NON-NLS
+                            result[i] = (value == null) ? name : (value + " as " + name); //NON-NLS
                             i++;
                         }
 
@@ -790,7 +745,7 @@ public class Select {
 
     @NonNls
     @NonNull
-    private static <K> String toSQL(@NonNull final Projection projection,
+    private static <K> String toSQL(@Nullable final Projection projection,
                                     @NonNull final Table<K> from,
                                     @NonNull final Where where,
                                     @Nullable final Order order,
@@ -799,19 +754,11 @@ public class Select {
         @NonNls final StringBuilder result = new StringBuilder();
 
         result.append("select ");
-        final Map<String, String> projectionMap = projection.asMap();
-        if (projectionMap == null) {
+        if (projection == null) {
             result.append('*');
         } else {
-            for (final Map.Entry<String, String> entry : projectionMap.entrySet()) {
-                @NonNls final String name = escape(entry.getKey());
-                @NonNls final String value = entry.getValue();
-                if (name.equals(value)) {
-                    result.append(name);
-                } else {
-                    result.append(value).append(" as ").append(name); //NON-NLS
-                }
-                result.append(", ");
+            for (final String element : projection.asArray()) {
+                result.append(element).append(", ");
             }
             final int length = result.length();
             result.delete(length - 2, length);

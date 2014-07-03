@@ -64,7 +64,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
         mName = name;
         mType = type;
-        mProjection = Select.projection(name, Helper.escape(name));
+        mProjection = Select.projection(name, null);
         mConstraints = constraints;
         mSQL = sql(name, type, constraints);
         mWildcard = type.getWildcard();

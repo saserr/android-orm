@@ -795,7 +795,7 @@
       <option name="m_limit" value="6" />
     </inspection_tool>
     <inspection_tool class="OverlyComplexBooleanExpression" enabled="true" level="WARNING" enabled_by_default="true">
-      <option name="m_limit" value="3" />
+      <option name="m_limit" value="4" />
       <option name="m_ignorePureConjunctionsDisjunctions" value="true" />
     </inspection_tool>
     <inspection_tool class="OverlyStrongTypeCast" enabled="true" level="WARNING" enabled_by_default="true">
