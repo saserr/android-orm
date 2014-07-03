@@ -22,6 +22,12 @@ import android.net.Uri;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
 import android.orm.dao.Transaction;
+import android.orm.dao.async.Observer;
+import android.orm.dao.async.executor.CurrentThread;
+import android.orm.dao.async.executor.DispatcherPerObserver;
+import android.orm.dao.async.executor.DispatcherPerTable;
+import android.orm.dao.async.executor.DispatcherPerUri;
+import android.orm.dao.async.executor.FixedSize;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
@@ -36,6 +42,7 @@ import android.orm.util.Cancelable;
 import android.orm.util.Function;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;
+import android.orm.util.Producer;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -57,47 +64,103 @@ import static java.lang.Thread.currentThread;
 
 public final class DAO {
 
-    public static final Lazy<ExecutorService> CurrentThread = new Lazy.Volatile<ExecutorService>() {
-        @NonNull
-        @Override
-        protected ExecutorService produce() {
-            return new CurrentThreadExecutorService();
-        }
-    };
+    public interface TaskExecutors {
 
-    public static final Lazy<ExecutorService> SameThread = new Lazy.Volatile<ExecutorService>() {
-        @NonNull
-        @Override
-        protected ExecutorService produce() {
-            return new SameThreadExecutorService();
-        }
-    };
+        Producer<ExecutorService> CurrentThread = new Producer<ExecutorService>() {
+            @NonNull
+            @Override
+            public ExecutorService produce() {
+                return new CurrentThreadExecutorService();
+            }
+        };
 
-    public static final Lazy<ExecutorService> SingleThread = new Lazy.Volatile<ExecutorService>() {
-        @NonNull
-        @Override
-        protected ExecutorService produce() {
-            return Executors.newSingleThreadExecutor();
-        }
-    };
+        Lazy<ExecutorService> SameThread = new Lazy.Volatile<ExecutorService>() {
+            @NonNull
+            @Override
+            protected ExecutorService produce() {
+                return new SameThreadExecutorService();
+            }
+        };
 
-    public static final Lazy<ExecutorService> ThreadPerCore = new Lazy.Volatile<ExecutorService>() {
-        @NonNull
-        @Override
-        protected ExecutorService produce() {
-            return Executors.newFixedThreadPool(getRuntime().availableProcessors());
-        }
-    };
+        Lazy<ExecutorService> SingleThread = new Lazy.Volatile<ExecutorService>() {
+            @NonNull
+            @Override
+            protected ExecutorService produce() {
+                return Executors.newSingleThreadExecutor();
+            }
+        };
 
-    public static final Lazy<ExecutorService> CacheThreads = new Lazy.Volatile<ExecutorService>() {
-        @NonNull
-        @Override
-        protected ExecutorService produce() {
-            return Executors.newCachedThreadPool();
-        }
-    };
+        Lazy<ExecutorService> ThreadPerCore = new Lazy.Volatile<ExecutorService>() {
+            @NonNull
+            @Override
+            protected ExecutorService produce() {
+                return Executors.newFixedThreadPool(getRuntime().availableProcessors());
+            }
+        };
 
-    private static final Lazy<ExecutorService> DEFAULT_EXECUTOR = CacheThreads;
+        Lazy<ExecutorService> CacheThreads = new Lazy.Volatile<ExecutorService>() {
+            @NonNull
+            @Override
+            protected ExecutorService produce() {
+                return Executors.newCachedThreadPool();
+            }
+        };
+    }
+
+    public interface ObserverExecutors {
+
+        Producer<Observer.Executor> CurrentThread = new Producer<Observer.Executor>() {
+            @NonNull
+            @Override
+            public Observer.Executor produce() {
+                return new CurrentThread();
+            }
+        };
+
+        Lazy<Observer.Executor> SingleThread = new Lazy.Volatile<Observer.Executor>() {
+            @NonNull
+            @Override
+            protected Observer.Executor produce() {
+                return new FixedSize(1, 1);
+            }
+        };
+
+        Lazy<Observer.Executor> ThreadPerCore = new Lazy.Volatile<Observer.Executor>() {
+            @NonNull
+            @Override
+            protected Observer.Executor produce() {
+                final int processors = getRuntime().availableProcessors();
+                return new FixedSize(processors, processors);
+            }
+        };
+
+        Lazy<Observer.Executor> ThreadPerTable = new Lazy.Volatile<Observer.Executor>() {
+            @NonNull
+            @Override
+            protected Observer.Executor produce() {
+                return new DispatcherPerTable();
+            }
+        };
+
+        Lazy<Observer.Executor> ThreadPerUri = new Lazy.Volatile<Observer.Executor>() {
+            @NonNull
+            @Override
+            protected Observer.Executor produce() {
+                return new DispatcherPerUri();
+            }
+        };
+
+        Lazy<Observer.Executor> ThreadPerObserver = new Lazy.Volatile<Observer.Executor>() {
+            @NonNull
+            @Override
+            protected Observer.Executor produce() {
+                return new DispatcherPerObserver();
+            }
+        };
+    }
+
+    private static final Lazy<ExecutorService> DEFAULT_TASK_EXECUTOR = TaskExecutors.CacheThreads;
+    private static final Lazy<Observer.Executor> DEFAULT_OBSERVER_EXECUTOR = ObserverExecutors.ThreadPerObserver;
 
     @NonNull
     public static Direct direct(@NonNull final Context context, @NonNull final Database database) {
@@ -106,25 +169,53 @@ public final class DAO {
 
     @NonNull
     public static Local local(@NonNull final Context context, @NonNull final Database database) {
-        return local(context, database, DEFAULT_EXECUTOR.get());
+        return local(context, database, DEFAULT_TASK_EXECUTOR.get(), DEFAULT_OBSERVER_EXECUTOR.get());
     }
 
     @NonNull
     public static Local local(@NonNull final Context context,
                               @NonNull final Database database,
                               @NonNull final ExecutorService executor) {
-        return new android.orm.dao.Local(context, database, executor);
+        return local(context, database, executor, DEFAULT_OBSERVER_EXECUTOR.get());
+    }
+
+    @NonNull
+    public static Local local(@NonNull final Context context,
+                              @NonNull final Database database,
+                              @NonNull final Observer.Executor executor) {
+        return local(context, database, DEFAULT_TASK_EXECUTOR.get(), executor);
+    }
+
+    @NonNull
+    public static Local local(@NonNull final Context context,
+                              @NonNull final Database database,
+                              @NonNull final ExecutorService tasks,
+                              @NonNull final Observer.Executor observers) {
+        return new android.orm.dao.Local(context, database, tasks, observers);
     }
 
     @NonNull
     public static Remote remote(@NonNull final Context context) {
-        return remote(context, DEFAULT_EXECUTOR.get());
+        return remote(context, DEFAULT_TASK_EXECUTOR.get(), DEFAULT_OBSERVER_EXECUTOR.get());
     }
 
     @NonNull
     public static Remote remote(@NonNull final Context context,
-                                @NonNull final ExecutorService executor) {
-        return new android.orm.dao.Remote(context, executor);
+                                @NonNull final ExecutorService tasks) {
+        return remote(context, tasks, DEFAULT_OBSERVER_EXECUTOR.get());
+    }
+
+    @NonNull
+    public static Remote remote(@NonNull final Context context,
+                                @NonNull final Observer.Executor observers) {
+        return remote(context, DEFAULT_TASK_EXECUTOR.get(), observers);
+    }
+
+    @NonNull
+    public static Remote remote(@NonNull final Context context,
+                                @NonNull final ExecutorService tasks,
+                                @NonNull final Observer.Executor observers) {
+        return new android.orm.dao.Remote(context, tasks, observers);
     }
 
     public interface Direct {
@@ -620,10 +711,10 @@ public final class DAO {
     public static final class Access {
 
         public interface Notifiable {
-            Cancelable onChange(@NonNull final Runnable runnable);
+            Cancelable onChange(@NonNull final Observer observer);
         }
 
-        public interface Watchable<V> extends Notifiable {
+        public interface Watchable<V> {
             Cancelable onChange(@NonNull final Result.Callback<? super V> callback);
         }
 

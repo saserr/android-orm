@@ -158,12 +158,9 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
     @NonNull
     public final Match createMatch(@NonNull final Uri uri) {
+        final ContentValues onInsert = mPath.parseValues(uri);
         final Select.Where where = mPath.getWhere(uri);
-        return new Match(getItemRoute(), mContentType, parse(uri), mWhere.and(where), mOrder);
-    }
-
-    public final ContentValues parse(@NonNull final Uri uri) {
-        return mPath.parseValues(uri);
+        return new Match(getItemRoute(), mContentType, onInsert, mWhere.and(where), mOrder);
     }
 
     private static <K> String getContentType(@Type @NonNls @NonNull final String type,

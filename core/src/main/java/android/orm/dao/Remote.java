@@ -66,8 +66,10 @@ public class Remote extends Async implements DAO.Remote {
     @NonNull
     private final android.orm.dao.remote.Transaction.Executor mTransactionExecutor;
 
-    public Remote(@NonNull final Context context, @NonNull final ExecutorService executor) {
-        super(executor);
+    public Remote(@NonNull final Context context,
+                  @NonNull final ExecutorService tasks,
+                  @NonNull final Observer.Executor observers) {
+        super(context, tasks, observers);
 
         mResolver = context.getContentResolver();
         mHandler = new Handler();
@@ -116,26 +118,13 @@ public class Remote extends Async implements DAO.Remote {
     }
 
     @NonNull
-    private Cancelable notify(@NonNull final Route.Manager manager,
-                              @NonNull final Uri uri,
-                              @NonNull final Runnable runnable) {
-        return register(new Observer(manager, mResolver, uri, new Runnable() {
-            @Override
-            public void run() {
-                mHandler.post(runnable);
-            }
-        }));
-    }
-
-    @NonNull
-    private <V> Cancelable watch(@NonNull final Route.Manager manager,
+    private <V> Cancelable watch(@NonNull final Route route,
                                  @NonNull final Uri uri,
                                  @NonNull final Reading<V> reading,
                                  @NonNull final android.orm.dao.remote.Read.Arguments<V> arguments,
                                  @NonNull final Result.Callback<? super V> callback) {
-        return register(new Observer(
-                manager,
-                mResolver,
+        return execute(
+                route,
                 uri,
                 new Watch<>(
                         mHandler,
@@ -144,7 +133,7 @@ public class Remote extends Async implements DAO.Remote {
                         arguments,
                         callback
                 )
-        ));
+        );
     }
 
     @NonNull
@@ -234,7 +223,7 @@ public class Remote extends Async implements DAO.Remote {
         @NonNull
         private final Remote mDAO;
         @NonNull
-        private final Route.Manager mRouteManager;
+        private final Route mRoute;
         @NonNull
         private final Uri mUri;
         @NonNull
@@ -255,7 +244,7 @@ public class Remote extends Async implements DAO.Remote {
             super();
 
             mDAO = dao;
-            mRouteManager = route.getManager();
+            mRoute = route;
             mUri = route.createUri(arguments);
 
             mExists = new android.orm.dao.remote.Exists(resolver, mUri);
@@ -308,8 +297,8 @@ public class Remote extends Async implements DAO.Remote {
 
         @NonNull
         @Override
-        public final Cancelable onChange(@NonNull final Runnable runnable) {
-            return mDAO.notify(mRouteManager, mUri, runnable);
+        public final Cancelable onChange(@NonNull final Observer observer) {
+            return mDAO.execute(mRoute, mUri, observer);
         }
 
         @NonNull
@@ -368,12 +357,7 @@ public class Remote extends Async implements DAO.Remote {
         protected final <V> Cancelable watch(@NonNull final Reading<V> reading,
                                              @NonNull final android.orm.dao.remote.Read.Arguments<V> arguments,
                                              @NonNull final Result.Callback<? super V> callback) {
-            return mDAO.watch(mRouteManager, mUri, reading, arguments, callback);
-        }
-
-        @NonNull
-        protected final Cancelable notify(@NonNull final Runnable runnable) {
-            return mDAO.notify(mRouteManager, mUri, runnable);
+            return mDAO.watch(mRoute, mUri, reading, arguments, callback);
         }
     }
 
@@ -438,11 +422,6 @@ public class Remote extends Async implements DAO.Remote {
                     mReading.preparePlan(mValue);
             final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, mWhere, mOrder);
             return mAccess.watch(mReading, arguments, callback);
-        }
-
-        @Override
-        public final Cancelable onChange(@NonNull final Runnable runnable) {
-            return mAccess.notify(runnable);
         }
     }
 

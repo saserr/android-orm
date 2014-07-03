@@ -16,7 +16,6 @@
 
 package android.orm.dao;
 
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
@@ -61,21 +60,19 @@ public class Local extends Async implements DAO.Local {
     @NonNull
     private final DAO.Direct mDirectDAO;
     @NonNull
-    private final ContentResolver mResolver;
-    @NonNull
     private final Handler mHandler;
     @NonNull
     private final Notifier mNotifier;
 
     public Local(@NonNull final Context context,
                  @NonNull final Database database,
-                 @NonNull final ExecutorService executor) {
-        super(executor);
+                 @NonNull final ExecutorService tasks,
+                 @NonNull final Observer.Executor observers) {
+        super(context, tasks, observers);
 
         mDirectDAO = android.orm.dao.Direct.create(context, database);
-        mResolver = context.getContentResolver();
         mHandler = new Handler();
-        mNotifier = new Notifier.Immediate(mResolver);
+        mNotifier = new Notifier.Immediate(context.getContentResolver());
     }
 
     @NonNull
@@ -111,30 +108,13 @@ public class Local extends Async implements DAO.Local {
     }
 
     @NonNull
-    private Cancelable notify(@NonNull final Route.Manager manager,
-                              @NonNull final Uri uri,
-                              @NonNull final Runnable runnable) {
-        return register(new Observer(manager, mResolver, uri, new Runnable() {
-            @Override
-            public void run() {
-                mHandler.post(runnable);
-            }
-        }));
-    }
-
-    @NonNull
-    private <V> Cancelable watch(@NonNull final Route.Manager manager,
+    private <V> Cancelable watch(@NonNull final Route route,
                                  @NonNull final Uri uri,
                                  @NonNull final Reading<V> reading,
                                  @NonNull final Plan.Read<V> plan,
                                  @NonNull final Select select,
                                  @NonNull final Result.Callback<? super V> callback) {
-        return register(new Observer(
-                manager,
-                mResolver,
-                uri,
-                new Watch<>(mDirectDAO, mHandler, reading, plan, select, callback)
-        ));
+        return execute(route, uri, new Watch<>(mDirectDAO, mHandler, reading, plan, select, callback));
     }
 
     private static class SingleAccess extends SomeAccess implements DAO.Async.Access.Single {
@@ -224,7 +204,7 @@ public class Local extends Async implements DAO.Local {
         @NonNull
         private final Local mDAO;
         @NonNull
-        private final Route.Manager mRouteManager;
+        private final Route mRoute;
         @NonNull
         private final Route.Item mItemRoute;
         @NonNull
@@ -247,7 +227,7 @@ public class Local extends Async implements DAO.Local {
             super();
 
             mDAO = dao;
-            mRouteManager = route.getManager();
+            mRoute = route;
             mItemRoute = route.getItemRoute();
             mUri = route.createUri(arguments);
             mTable = route.getTable();
@@ -322,8 +302,8 @@ public class Local extends Async implements DAO.Local {
 
         @NonNull
         @Override
-        public final Cancelable onChange(@NonNull final Runnable runnable) {
-            return mDAO.notify(mRouteManager, mUri, runnable);
+        public final Cancelable onChange(@NonNull final Observer observer) {
+            return mDAO.execute(mRoute, mUri, observer);
         }
 
         @NonNull
@@ -388,12 +368,7 @@ public class Local extends Async implements DAO.Local {
                                              @NonNull final Plan.Read<V> plan,
                                              @NonNull final Select select,
                                              @NonNull final Result.Callback<? super V> callback) {
-            return mDAO.watch(mRouteManager, mUri, reading, plan, select, callback);
-        }
-
-        @NonNull
-        protected final Cancelable notify(@NonNull final Runnable runnable) {
-            return mDAO.notify(mRouteManager, mUri, runnable);
+            return mDAO.watch(mRoute, mUri, reading, plan, select, callback);
         }
     }
 
@@ -481,11 +456,6 @@ public class Local extends Async implements DAO.Local {
             }
 
             return mAccess.watch(mReading, plan, mSelect.build(), callback);
-        }
-
-        @Override
-        public final Cancelable onChange(@NonNull final Runnable runnable) {
-            return mAccess.notify(runnable);
         }
     }
 

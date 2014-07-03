@@ -16,8 +16,10 @@
 
 package android.orm.dao.local;
 
+import android.net.Uri;
 import android.orm.DAO;
 import android.orm.dao.Result;
+import android.orm.dao.async.Observer;
 import android.orm.dao.direct.Read;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
@@ -30,13 +32,14 @@ import android.orm.util.Producer;
 import android.orm.util.Promise;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 import static android.orm.model.Observer.beforeRead;
 
-public class Watch<V, T extends V> implements Future.Callback<Maybe<Producer<Maybe<T>>>>, Runnable {
+public class Watch<V, T extends V> implements Future.Callback<Maybe<Producer<Maybe<T>>>>, Observer {
 
     private static final String TAG = Watch.class.getSimpleName();
 
@@ -96,7 +99,7 @@ public class Watch<V, T extends V> implements Future.Callback<Maybe<Producer<May
     }
 
     @Override
-    public final void run() {
+    public final void onChange(@Nullable final Uri uri) {
         final Promise<Maybe<Producer<Maybe<T>>>> promise = new Promise<>();
         promise.getFuture().onComplete(mHandler, this);
         try {

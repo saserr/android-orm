@@ -16,29 +16,27 @@
 
 package android.orm.dao;
 
+import android.content.Context;
 import android.database.SQLException;
+import android.net.Uri;
 import android.orm.DAO;
+import android.orm.Route;
 import android.orm.dao.async.Observer;
+import android.orm.dao.async.Session;
 import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.orm.util.Promise;
-import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.lang.annotation.Retention;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 public abstract class Async implements DAO.Async {
 
@@ -48,188 +46,80 @@ public abstract class Async implements DAO.Async {
 
     private static final Interrupted Interrupted = new Interrupted("Interrupted");
     @NonNls
-    private static final String UNKNOWN_STATE = "Unknown state: ";
-    @NonNls
-    private static final String DAO_STOPPED = "DAO is stopped";
-    @NonNls
-    private static final String EXECUTE_TASK_ON_NON_STARTED_DAO = "Task has been executed on a non-started DAO. For now this is allowed, but that might change in future!";
+    private static final String ERROR_STOPPED = "DAO is stopped";
 
     @NonNull
-    private final ExecutorService mExecutor;
+    private final ExecutorService mTasks;
+    @NonNull
+    private final Session mObservers;
 
+    private final AtomicBoolean mStopped = new AtomicBoolean(false);
     private final AtomicReference<ErrorHandler> mErrorHandler = new AtomicReference<>();
-    private final Semaphore mSemaphore = new Semaphore(1);
-    private final Collection<Observer> mObservers = new ArrayList<>();
 
-    @State
-    private int mState = State.INITIALIZED;
-
-    protected Async(@NonNull final ExecutorService executor) {
+    protected Async(@NonNull final Context context,
+                    @NonNull final ExecutorService tasks,
+                    @NonNull final Observer.Executor observers) {
         super();
 
-        mExecutor = executor;
+        mTasks = tasks;
+        mObservers = observers.session(context.getContentResolver());
     }
 
     @Override
     public final void setErrorHandler(@Nullable final ErrorHandler handler) {
+        if (mStopped.get()) {
+            throw new UnsupportedOperationException(ERROR_STOPPED);
+        }
+
         mErrorHandler.set(handler);
     }
 
     @Override
     public final void start() {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        for (final Observer observer : mObservers) {
-                            observer.start();
-                        }
-                        mState = State.STARTED;
-                        break;
-                    case State.STARTED:
-                        /* do nothing */
-                        break;
-                    case State.STOPPED:
-                        throw new UnsupportedOperationException(DAO_STOPPED);
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while starting DAO", ex); //NON-NLS
+        if (mStopped.get()) {
+            throw new UnsupportedOperationException(ERROR_STOPPED);
         }
+
+        mObservers.start();
     }
 
     @Override
     public final void pause() {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.STARTED:
-                        for (final Observer observer : mObservers) {
-                            observer.stop();
-                        }
-                        mState = State.PAUSED;
-                        break;
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        /* do nothing */
-                        break;
-                    case State.STOPPED:
-                        throw new UnsupportedOperationException(DAO_STOPPED);
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while pausing DAO", ex); //NON-NLS
+        if (mStopped.get()) {
+            throw new UnsupportedOperationException(ERROR_STOPPED);
         }
+
+        mObservers.pause();
     }
 
     @Override
     public final void stop() {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.STARTED:
-                        for (final Observer observer : mObservers) {
-                            observer.stop();
-                        }
-                        //noinspection fallthrough
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        mObservers.clear();
-                        mState = State.STOPPED;
-                        break;
-                    case State.STOPPED:
-                        /* do nothing */
-                        break;
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-
+        if (!mStopped.getAndSet(true)) {
+            mObservers.stop();
             mErrorHandler.set(null);
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while stopping DAO", ex); //NON-NLS
         }
     }
 
     @NonNull
     protected final <V> Result<V> execute(@NonNull final Producer<Maybe<V>> producer) {
-        try {
-            mSemaphore.acquire();
-            try {
-                if (mState != State.STARTED) {
-                    Log.w(TAG, EXECUTE_TASK_ON_NON_STARTED_DAO, new Throwable());
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ignored) {
+        if (mStopped.get()) {
+            throw new UnsupportedOperationException(ERROR_STOPPED);
         }
 
         final Promise<Maybe<V>> promise = new Promise<>();
-        final Cancelable cancelable = cancelable(mExecutor.submit(new Task<>(promise, producer)));
+        final Cancelable cancelable = cancelable(mTasks.submit(new Task<>(promise, producer)));
         return new Result<>(promise.getFuture(), cancelable, mErrorHandler.get());
     }
 
     @NonNull
-    protected final Cancelable register(@NonNull final Observer observer) {
-        try {
-            mSemaphore.acquire();
-            try {
-                switch (mState) {
-                    case State.STARTED:
-                        observer.start();
-                        //noinspection fallthrough
-                    case State.INITIALIZED:
-                    case State.PAUSED:
-                        mObservers.add(observer);
-                        break;
-                    case State.STOPPED:
-                        throw new UnsupportedOperationException(DAO_STOPPED);
-                    default:
-                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
-                }
-            } finally {
-                mSemaphore.release();
-            }
-        } catch (final InterruptedException ex) {
-            Log.e(TAG, "Thread interrupted while starting an observer", ex); //NON-NLS
+    protected final Cancelable execute(@NonNull final Route route,
+                                       @NonNull final Uri uri,
+                                       @NonNull final Observer observer) {
+        if (mStopped.get()) {
+            throw new UnsupportedOperationException(ERROR_STOPPED);
         }
 
-        return cancelable(observer);
-    }
-
-    @NonNull
-    private Cancelable cancelable(@NonNull final Observer observer) {
-        return new Cancelable() {
-            @Override
-            public void cancel() {
-                try {
-                    mSemaphore.acquire();
-                    try {
-                        mObservers.remove(observer);
-                        observer.stop();
-                    } finally {
-                        mSemaphore.release();
-                    }
-                } catch (final InterruptedException ex) {
-                    Log.e(TAG, "Thread interrupted while stopping an observer", ex); //NON-NLS
-                }
-            }
-        };
+        return mObservers.submit(route, uri, observer);
     }
 
     public static void interruptIfNecessary() {
@@ -255,15 +145,6 @@ public abstract class Async implements DAO.Async {
         private Interrupted(@NonNls @NonNull final String error) {
             super(error);
         }
-    }
-
-    @Retention(SOURCE)
-    @IntDef({State.INITIALIZED, State.STARTED, State.PAUSED, State.STOPPED})
-    private @interface State {
-        int INITIALIZED = 0;
-        int STARTED = 1;
-        int PAUSED = 2;
-        int STOPPED = 3;
     }
 
     private static class Task<V> implements Runnable {
