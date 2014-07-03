@@ -34,31 +34,79 @@ import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Cancelable;
 import android.orm.util.Function;
+import android.orm.util.Lazy;
 import android.orm.util.Maybe;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Pair;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static android.orm.model.Plans.write;
 import static android.orm.util.Maybes.something;
+import static java.lang.Runtime.getRuntime;
+import static java.lang.Thread.currentThread;
 
 public final class DAO {
 
-    private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool();
+    public static final Lazy<ExecutorService> CurrentThread = new Lazy.Volatile<ExecutorService>() {
+        @NonNull
+        @Override
+        protected ExecutorService produce() {
+            return new CurrentThreadExecutorService();
+        }
+    };
+
+    public static final Lazy<ExecutorService> SameThread = new Lazy.Volatile<ExecutorService>() {
+        @NonNull
+        @Override
+        protected ExecutorService produce() {
+            return new SameThreadExecutorService();
+        }
+    };
+
+    public static final Lazy<ExecutorService> SingleThread = new Lazy.Volatile<ExecutorService>() {
+        @NonNull
+        @Override
+        protected ExecutorService produce() {
+            return Executors.newSingleThreadExecutor();
+        }
+    };
+
+    public static final Lazy<ExecutorService> ThreadPerCore = new Lazy.Volatile<ExecutorService>() {
+        @NonNull
+        @Override
+        protected ExecutorService produce() {
+            return Executors.newFixedThreadPool(getRuntime().availableProcessors());
+        }
+    };
+
+    public static final Lazy<ExecutorService> CacheThreads = new Lazy.Volatile<ExecutorService>() {
+        @NonNull
+        @Override
+        protected ExecutorService produce() {
+            return Executors.newCachedThreadPool();
+        }
+    };
+
+    private static final Lazy<ExecutorService> DEFAULT_EXECUTOR = CacheThreads;
 
     @NonNull
-    public static Direct direct(@NonNull final Context context,
-                                @NonNull final Database database) {
+    public static Direct direct(@NonNull final Context context, @NonNull final Database database) {
         return android.orm.dao.Direct.create(context, database);
     }
 
     @NonNull
     public static Local local(@NonNull final Context context, @NonNull final Database database) {
-        return local(context, database, DEFAULT_EXECUTOR);
+        return local(context, database, DEFAULT_EXECUTOR.get());
     }
 
     @NonNull
@@ -70,7 +118,7 @@ public final class DAO {
 
     @NonNull
     public static Remote remote(@NonNull final Context context) {
-        return remote(context, DEFAULT_EXECUTOR);
+        return remote(context, DEFAULT_EXECUTOR.get());
     }
 
     @NonNull
@@ -881,6 +929,89 @@ public final class DAO {
 
         private Access() {
             super();
+        }
+    }
+
+    private static class CurrentThreadExecutorService extends AbstractExecutorService {
+
+        private final Handler mHandler = new Handler();
+        private volatile boolean mStopped = false;
+
+        @Override
+        public final void shutdown() {
+            mStopped = true;
+        }
+
+        @NonNull
+        @Override
+        public final List<Runnable> shutdownNow() {
+            mStopped = true;
+            return Collections.emptyList();
+        }
+
+        @Override
+        public final boolean isShutdown() {
+            return mStopped;
+        }
+
+        @Override
+        public final boolean isTerminated() {
+            return mStopped;
+        }
+
+        @Override
+        public final boolean awaitTermination(final long timeout, @NotNull final TimeUnit unit) {
+            shutdown();
+            return true;
+        }
+
+        @Override
+        public final void execute(@NotNull final Runnable command) {
+            if (mHandler.getLooper().getThread().equals(currentThread())) {
+                command.run();
+            } else {
+                mHandler.post(command);
+            }
+        }
+    }
+
+    private static class SameThreadExecutorService extends AbstractExecutorService {
+
+        private volatile boolean mStopped = false;
+
+        @Override
+        public final void shutdown() {
+            mStopped = true;
+        }
+
+        @NonNull
+        @Override
+        public final List<Runnable> shutdownNow() {
+            mStopped = true;
+            return Collections.emptyList();
+        }
+
+        @Override
+        public final boolean isShutdown() {
+            return mStopped;
+        }
+
+        @Override
+        public final boolean isTerminated() {
+            return mStopped;
+        }
+
+        @Override
+        public final boolean awaitTermination(final long timeout, @NotNull final TimeUnit unit) {
+            shutdown();
+            return true;
+        }
+
+        @Override
+        public final void execute(@NotNull final Runnable command) {
+            if (!mStopped) {
+                command.run();
+            }
         }
     }
 
