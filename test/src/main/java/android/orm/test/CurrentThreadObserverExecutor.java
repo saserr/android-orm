@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.dao.async.executor;
+package android.orm.test;
 
 import android.content.ContentResolver;
 import android.net.Uri;
@@ -25,7 +25,7 @@ import android.orm.util.Cancelable;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 
-public class CurrentThread implements Observer.Executor {
+public class CurrentThreadObserverExecutor implements Observer.Executor {
 
     @NonNull
     private final Manager.Factory mFactory;
@@ -33,11 +33,11 @@ public class CurrentThread implements Observer.Executor {
     @NonNull
     private final Handler mHandler = new Handler();
 
-    public CurrentThread() {
+    public CurrentThreadObserverExecutor() {
         this(Manager.Factory.Default);
     }
 
-    public CurrentThread(@NonNull final Manager.Factory factory) {
+    public CurrentThreadObserverExecutor(@NonNull final Manager.Factory factory) {
         super();
 
         mFactory = factory;

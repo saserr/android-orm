@@ -13,6 +13,7 @@
             <option value="$PROJECT_DIR$/joda" />
             <option value="$PROJECT_DIR$/playground" />
             <option value="$PROJECT_DIR$/tasks" />
+            <option value="$PROJECT_DIR$/test" />
           </set>
         </option>
       </GradleProjectSettings>
