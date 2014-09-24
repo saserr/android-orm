@@ -49,7 +49,7 @@ public class CurrentThreadObserverExecutor implements Observer.Executor {
         return new Session(resolver, mFactory, mHandler);
     }
 
-    private static class Session extends android.orm.dao.async.Session.Base {
+    private static class Session implements android.orm.dao.async.Session {
 
         @NonNull
         private final ContentResolver mResolver;
@@ -58,6 +58,7 @@ public class CurrentThreadObserverExecutor implements Observer.Executor {
         @NonNull
         private final Handler mHandler;
 
+        private boolean mStarted = false;
         @NonNull
         private Manager mManager;
 
@@ -73,27 +74,37 @@ public class CurrentThreadObserverExecutor implements Observer.Executor {
         }
 
         @Override
-        protected final void onStart() {
-            mManager.onStart(mHandler);
+        public final boolean isStarted() {
+            return mStarted;
         }
 
         @Override
-        protected final void onPause() {
-            mManager.onStop();
+        public final void start() {
+            if (!mStarted) {
+                mManager.onStart(mHandler);
+                mStarted = true;
+            }
         }
 
         @Override
-        protected final void onStop() {
-            mManager.onStop();
+        public final void pause() {
+            if (mStarted) {
+                mManager.onStop();
+                mStarted = false;
+            }
+        }
+
+        @Override
+        public final void stop() {
+            pause();
             mManager = mFactory.create(mResolver);
         }
 
         @NonNull
         @Override
-        protected final Cancelable submit(final boolean started,
-                                          @NonNull final Route route,
-                                          @NonNull final Uri uri,
-                                          @NonNull final Observer observer) {
+        public final Cancelable submit(@NonNull final Route route,
+                                       @NonNull final Uri uri,
+                                       @NonNull final Observer observer) {
             return mManager.submit(route, uri, observer);
         }
     }

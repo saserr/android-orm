@@ -22,12 +22,20 @@ import android.orm.Route;
 import android.orm.dao.async.Dispatcher;
 import android.orm.dao.async.Observer;
 import android.orm.util.Cancelable;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.jetbrains.annotations.NonNls;
+
+import java.lang.annotation.Retention;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 public abstract class DispatcherExecutor implements Observer.Executor {
 
@@ -96,14 +104,20 @@ public abstract class DispatcherExecutor implements Observer.Executor {
         });
     }
 
-    private static class Session extends android.orm.dao.async.Session.Base {
+    private static class Session implements android.orm.dao.async.Session {
+
+        @NonNls
+        private static final String UNKNOWN_STATE = "Unknown state: ";
 
         @NonNull
         private final DispatcherExecutor mExecutor;
         @NonNull
         private final ContentResolver mResolver;
 
+        private final Lock mLock = new ReentrantLock();
         private final Collection<Registration> mRegistrations = new ArrayList<>();
+        @State
+        private int mState = State.INITIALIZED;
 
         private Session(@NonNull final DispatcherExecutor executor,
                         @NonNull final ContentResolver resolver) {
@@ -114,44 +128,133 @@ public abstract class DispatcherExecutor implements Observer.Executor {
         }
 
         @Override
-        protected final void onStart() {
-            for (final Registration registration : mRegistrations) {
-                registration.start();
+        public final boolean isStarted() {
+            final boolean result;
+
+            mLock.lock();
+            try {
+                result = mState == State.STARTED;
+            } finally {
+                mLock.unlock();
+            }
+
+            return result;
+        }
+
+        @Override
+        public final void start() {
+            mLock.lock();
+            try {
+                switch (mState) {
+                    case State.INITIALIZED:
+                    case State.PAUSED:
+                    case State.STOPPED:
+                        for (final Registration registration : mRegistrations) {
+                            registration.start();
+                        }
+                        mState = State.STARTED;
+                        break;
+                    case State.STARTED:
+                            /* do nothing */
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
+                }
+            } finally {
+                mLock.unlock();
             }
         }
 
         @Override
-        protected final void onPause() {
-            for (final Registration registration : mRegistrations) {
-                registration.stop();
+        public final void pause() {
+            mLock.lock();
+            try {
+                switch (mState) {
+                    case State.STARTED:
+                        for (final Registration registration : mRegistrations) {
+                            registration.stop();
+                        }
+                        mState = State.PAUSED;
+                        break;
+                    case State.INITIALIZED:
+                    case State.PAUSED:
+                    case State.STOPPED:
+                            /* do nothing */
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
+                }
+            } finally {
+                mLock.unlock();
             }
         }
 
         @Override
-        protected final void onStop() {
-            onPause();
-            mRegistrations.clear();
+        public final void stop() {
+            mLock.lock();
+            try {
+                switch (mState) {
+                    case State.STARTED:
+                    case State.INITIALIZED:
+                    case State.PAUSED:
+                        for (final Registration registration : mRegistrations) {
+                            registration.stop();
+                        }
+                        mRegistrations.clear();
+                        mState = State.STOPPED;
+                        break;
+                    case State.STOPPED:
+                            /* do nothing */
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(UNKNOWN_STATE + mState);
+                }
+            } finally {
+                mLock.unlock();
+            }
         }
 
         @NonNull
         @Override
-        protected final Cancelable submit(final boolean started,
-                                          @NonNull final Route route,
-                                          @NonNull final Uri uri,
-                                          @NonNull final Observer observer) {
-            final Registration registration = new Registration(mExecutor, mResolver, route, uri, observer);
-            if (started) {
-                registration.start();
-            }
-            mRegistrations.add(registration);
+        public final Cancelable submit(@NonNull final Route route,
+                                       @NonNull final Uri uri,
+                                       @NonNull final Observer observer) {
+            final Cancelable cancelable;
 
-            return new Cancelable() {
-                @Override
-                public void cancel() {
-                    registration.stop();
-                    mRegistrations.remove(registration);
+            mLock.lock();
+            try {
+                final Registration registration = new Registration(mExecutor, mResolver, route, uri, observer);
+                if (mState == State.STARTED) {
+                    registration.start();
                 }
-            };
+                mRegistrations.add(registration);
+
+                cancelable = new Cancelable() {
+                    @Override
+                    public void cancel() {
+                        mLock.lock();
+                        try {
+                            registration.stop();
+                            mRegistrations.remove(registration);
+                        } finally {
+                            mLock.unlock();
+                        }
+                    }
+                };
+            } finally {
+                mLock.unlock();
+            }
+
+            return cancelable;
+        }
+
+        @Retention(SOURCE)
+        @IntDef({State.INITIALIZED, State.STARTED, State.PAUSED, State.STOPPED})
+        private @interface State {
+            int INITIALIZED = 0;
+            int STARTED = 1;
+            int PAUSED = 2;
+            int STOPPED = 3;
         }
     }
 
