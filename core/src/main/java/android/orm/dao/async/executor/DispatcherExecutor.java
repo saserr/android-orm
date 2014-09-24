@@ -65,6 +65,7 @@ public abstract class DispatcherExecutor implements Observer.Executor {
         return new Session(this, resolver);
     }
 
+    @NonNull
     private Cancelable submit(@NonNull final ContentResolver resolver,
                               @NonNull final Route route,
                               @NonNull final Uri uri,
