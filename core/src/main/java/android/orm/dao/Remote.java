@@ -162,7 +162,8 @@ public class Remote extends Async implements DAO.Remote {
         public final <M extends Instance.Readable> Result<M> query(@NonNull final M model) {
             beforeRead(model);
             final Plan.Read<M> plan = single(model.getName(), Reading.Item.Update.from(model));
-            return read(model, plan);
+            final android.orm.dao.remote.Read.Arguments<M> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, Select.Where.None, null);
+            return read(model, plan, arguments);
         }
 
         @NonNull
@@ -338,14 +339,15 @@ public class Remote extends Async implements DAO.Remote {
 
         @NonNull
         @SuppressWarnings("unchecked")
-        protected final <V> Result<V> read(@Nullable final V model, @NonNull final Plan.Read<V> plan) {
+        protected final <V> Result<V> read(@Nullable final V model,
+                                           @NonNull final Plan.Read<V> plan,
+                                           @NonNull final android.orm.dao.remote.Read.Arguments<V> arguments) {
             final Result<V> result;
 
             if (plan.isEmpty()) {
                 result = Result.something(model);
             } else {
                 final android.orm.dao.remote.Read<V> read = (android.orm.dao.remote.Read<V>) mRead;
-                final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, Select.Where.None, null);
                 final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
                 result = mDAO.execute(arguments, read).flatMap(afterRead);
             }
@@ -410,7 +412,8 @@ public class Remote extends Async implements DAO.Remote {
             final Plan.Read<V> plan = (mValue == null) ?
                     mReading.preparePlan() :
                     mReading.preparePlan(mValue);
-            return mAccess.read(mValue, plan);
+            final android.orm.dao.remote.Read.Arguments<V> arguments = new android.orm.dao.remote.Read.Arguments<>(plan, mWhere, mOrder);
+            return mAccess.read(mValue, plan, arguments);
         }
 
         @NonNull

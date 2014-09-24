@@ -63,10 +63,12 @@ public class CurrentThreadExecutorService extends AbstractExecutorService {
 
     @Override
     public final void execute(@NotNull final Runnable command) {
-        if (mHandler.getLooper().getThread().equals(currentThread())) {
-            command.run();
-        } else {
-            mHandler.post(command);
+        if (!mStopped) {
+            if (mHandler.getLooper().getThread().equals(currentThread())) {
+                command.run();
+            } else {
+                mHandler.post(command);
+            }
         }
     }
 }

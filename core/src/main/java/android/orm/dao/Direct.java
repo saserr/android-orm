@@ -575,13 +575,13 @@ public abstract class Direct implements DAO.Direct {
 
         @Override
         public final void execute(@NonNull final Statement statement) {
-            final SQLiteDatabase db = mHelper.getWritableDatabase();
-            db.beginTransaction();
+            final SQLiteDatabase database = mHelper.getWritableDatabase();
+            database.beginTransaction();
             try {
-                statement.execute(db);
-                db.setTransactionSuccessful();
+                statement.execute(database);
+                database.setTransactionSuccessful();
             } finally {
-                db.endTransaction();
+                database.endTransaction();
             }
         }
 
@@ -590,13 +590,13 @@ public abstract class Direct implements DAO.Direct {
         public final <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
             Maybe<V> result = nothing();
 
-            final SQLiteDatabase db = mHelper.getWritableDatabase();
-            db.beginTransaction();
+            final SQLiteDatabase database = mHelper.getWritableDatabase();
+            database.beginTransaction();
             try {
-                result = expression.execute(db);
-                db.setTransactionSuccessful();
+                result = expression.execute(database);
+                database.setTransactionSuccessful();
             } finally {
-                db.endTransaction();
+                database.endTransaction();
             }
 
             return result;
@@ -607,19 +607,19 @@ public abstract class Direct implements DAO.Direct {
         public final <V> Maybe<V> execute(@NonNull final Transaction.Direct<V> transaction) {
             Maybe<V> result = nothing();
 
-            final SQLiteDatabase db = mHelper.getWritableDatabase();
-            db.beginTransaction();
+            final SQLiteDatabase database = mHelper.getWritableDatabase();
+            database.beginTransaction();
             try {
                 final Notifier.Delayed notifier = new Notifier.Delayed(mResolver);
-                result = transaction.run(Direct.create(db, notifier));
+                result = transaction.run(Direct.create(database, notifier));
                 notifier.sendAll();
-                db.setTransactionSuccessful();
+                database.setTransactionSuccessful();
             } catch (final Transaction.Rollback ignored) {
                 if (Log.isLoggable(TAG, INFO)) {
                     Log.i(TAG, "Transaction has been rolled back"); //NON-NLS
                 }
             } finally {
-                db.endTransaction();
+                database.endTransaction();
             }
 
             return result;

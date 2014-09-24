@@ -70,7 +70,7 @@ public class Local extends Async implements DAO.Local {
                  @NonNull final Observer.Executor observers) {
         super(context, tasks, observers);
 
-        mDirectDAO = android.orm.dao.Direct.create(context, database);
+        mDirectDAO = Direct.create(context, database);
         mHandler = new Handler();
         mNotifier = new Notifier.Immediate(context.getContentResolver());
     }
