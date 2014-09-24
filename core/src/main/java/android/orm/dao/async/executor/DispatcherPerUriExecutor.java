@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DispatcherPerUri extends DispatcherExecutor {
+public class DispatcherPerUriExecutor extends DispatcherExecutor {
 
     @NonNull
     private final Manager.Factory mFactory;
@@ -37,23 +37,23 @@ public class DispatcherPerUri extends DispatcherExecutor {
     private final Lock mLock = new ReentrantLock();
     private final Map<Uri, Dispatcher> mDispatchers = new HashMap<>();
 
-    public DispatcherPerUri() {
+    public DispatcherPerUriExecutor() {
         this(Manager.Factory.Default);
     }
 
-    public DispatcherPerUri(@NonNull final Manager.Factory factory) {
+    public DispatcherPerUriExecutor(@NonNull final Manager.Factory factory) {
         super();
 
         mFactory = factory;
     }
 
-    public DispatcherPerUri(final long removalDelay, @NonNull final TimeUnit removalDelayUnit) {
+    public DispatcherPerUriExecutor(final long removalDelay, @NonNull final TimeUnit removalDelayUnit) {
         this(removalDelay, removalDelayUnit, Manager.Factory.Default);
     }
 
-    public DispatcherPerUri(final long removalDelay,
-                            @NonNull final TimeUnit removalDelayUnit,
-                            @NonNull final Manager.Factory factory) {
+    public DispatcherPerUriExecutor(final long removalDelay,
+                                    @NonNull final TimeUnit removalDelayUnit,
+                                    @NonNull final Manager.Factory factory) {
         super(removalDelay, removalDelayUnit);
 
         mFactory = factory;

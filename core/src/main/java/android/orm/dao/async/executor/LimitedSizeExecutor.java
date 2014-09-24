@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class FixedSize extends DispatcherExecutor {
+public class LimitedSizeExecutor extends DispatcherExecutor {
 
     private final int mMinSize;
     private final int mMaxSize;
@@ -39,11 +39,11 @@ public class FixedSize extends DispatcherExecutor {
     private final Lock mLock = new ReentrantLock();
     private final List<Dispatcher> mDispatchers = new ArrayList<>();
 
-    public FixedSize(final int minSize, final int maxSize) {
+    public LimitedSizeExecutor(final int minSize, final int maxSize) {
         this(minSize, maxSize, Manager.Factory.Default);
     }
 
-    public FixedSize(final int minSize, final int maxSize, @NonNull final Manager.Factory factory) {
+    public LimitedSizeExecutor(final int minSize, final int maxSize, @NonNull final Manager.Factory factory) {
         super();
 
         mMinSize = minSize;
@@ -51,18 +51,18 @@ public class FixedSize extends DispatcherExecutor {
         mFactory = factory;
     }
 
-    public FixedSize(final int minSize,
-                     final int maxSize,
-                     final long removalDelay,
-                     @NonNull final TimeUnit removalDelayUnit) {
+    public LimitedSizeExecutor(final int minSize,
+                               final int maxSize,
+                               final long removalDelay,
+                               @NonNull final TimeUnit removalDelayUnit) {
         this(minSize, maxSize, removalDelay, removalDelayUnit, Manager.Factory.Default);
     }
 
-    public FixedSize(final int minSize,
-                     final int maxSize,
-                     final long removalDelay,
-                     @NonNull final TimeUnit removalDelayUnit,
-                     @NonNull final Manager.Factory factory) {
+    public LimitedSizeExecutor(final int minSize,
+                               final int maxSize,
+                               final long removalDelay,
+                               @NonNull final TimeUnit removalDelayUnit,
+                               @NonNull final Manager.Factory factory) {
         super(removalDelay, removalDelayUnit);
 
         mMinSize = minSize;

@@ -23,10 +23,10 @@ import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
 import android.orm.dao.Transaction;
 import android.orm.dao.async.Observer;
-import android.orm.dao.async.executor.DispatcherPerObserver;
-import android.orm.dao.async.executor.DispatcherPerTable;
-import android.orm.dao.async.executor.DispatcherPerUri;
-import android.orm.dao.async.executor.FixedSize;
+import android.orm.dao.async.executor.DispatcherPerObserverExecutor;
+import android.orm.dao.async.executor.DispatcherPerTableExecutor;
+import android.orm.dao.async.executor.DispatcherPerUriExecutor;
+import android.orm.dao.async.executor.LimitedSizeExecutor;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
@@ -88,7 +88,7 @@ public final class DAO {
             @NonNull
             @Override
             protected Observer.Executor produce() {
-                return new FixedSize(1, 1);
+                return new LimitedSizeExecutor(1, 1);
             }
         };
 
@@ -97,7 +97,7 @@ public final class DAO {
             @Override
             protected Observer.Executor produce() {
                 final int processors = getRuntime().availableProcessors();
-                return new FixedSize(processors, processors);
+                return new LimitedSizeExecutor(processors, processors);
             }
         };
 
@@ -105,7 +105,7 @@ public final class DAO {
             @NonNull
             @Override
             protected Observer.Executor produce() {
-                return new DispatcherPerTable();
+                return new DispatcherPerTableExecutor();
             }
         };
 
@@ -113,7 +113,7 @@ public final class DAO {
             @NonNull
             @Override
             protected Observer.Executor produce() {
-                return new DispatcherPerUri();
+                return new DispatcherPerUriExecutor();
             }
         };
 
@@ -121,7 +121,7 @@ public final class DAO {
             @NonNull
             @Override
             protected Observer.Executor produce() {
-                return new DispatcherPerObserver();
+                return new DispatcherPerObserverExecutor();
             }
         };
     }

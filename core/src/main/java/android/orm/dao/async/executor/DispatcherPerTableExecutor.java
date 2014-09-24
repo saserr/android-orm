@@ -21,25 +21,43 @@ import android.net.Uri;
 import android.orm.Route;
 import android.orm.dao.async.Dispatcher;
 import android.orm.dao.async.Manager;
+import android.orm.sql.Table;
 import android.support.annotation.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DispatcherPerObserver extends DispatcherExecutor {
+public class DispatcherPerTableExecutor extends DispatcherExecutor {
+
+    @NonNull
+    private final Manager.Factory mFactory;
 
     private final Lock mLock = new ReentrantLock();
-    private final List<Dispatcher> mDispatchers = new ArrayList<>();
+    private final Map<Table<?>, Dispatcher> mDispatchers = new HashMap<>();
 
-    public DispatcherPerObserver() {
-        super();
+    public DispatcherPerTableExecutor() {
+        this(Manager.Factory.Default);
     }
 
-    public DispatcherPerObserver(final long removalDelay, @NonNull final TimeUnit removalDelayUnit) {
+    public DispatcherPerTableExecutor(@NonNull final Manager.Factory factory) {
+        super();
+
+        mFactory = factory;
+    }
+
+    public DispatcherPerTableExecutor(final long removalDelay, @NonNull final TimeUnit removalDelayUnit) {
+        this(removalDelay, removalDelayUnit, Manager.Factory.Default);
+    }
+
+    public DispatcherPerTableExecutor(final long removalDelay,
+                                      @NonNull final TimeUnit removalDelayUnit,
+                                      @NonNull final Manager.Factory factory) {
         super(removalDelay, removalDelayUnit);
+
+        mFactory = factory;
     }
 
     @NonNull
@@ -47,23 +65,17 @@ public class DispatcherPerObserver extends DispatcherExecutor {
     protected final Dispatcher get(@NonNull final ContentResolver resolver,
                                    @NonNull final Route route,
                                    @NonNull final Uri uri) {
-        Dispatcher dispatcher = null;
+        final Table<?> table = route.getTable();
+        final Dispatcher dispatcher;
 
         mLock.lock();
         try {
-            final int size = mDispatchers.size();
-            for (int i = 0; (i < size) && (dispatcher == null); i++) {
-                final Dispatcher current = mDispatchers.get(i);
-                if (current.isEmpty()) {
-                    dispatcher = current;
-                }
-            }
-
-            if (dispatcher == null) {
-                final Manager manager = new Manager.PerObserver(resolver);
-                dispatcher = new Dispatcher(manager);
+            if (mDispatchers.containsKey(table)) {
+                dispatcher = mDispatchers.get(table);
+            } else {
+                dispatcher = new Dispatcher(mFactory.create(resolver));
                 dispatcher.start();
-                mDispatchers.add(dispatcher);
+                mDispatchers.put(table, dispatcher);
             }
         } finally {
             mLock.unlock();
@@ -80,7 +92,7 @@ public class DispatcherPerObserver extends DispatcherExecutor {
 
         mLock.lock();
         try {
-            mDispatchers.remove(dispatcher);
+            mDispatchers.remove(route.getTable());
         } finally {
             mLock.unlock();
         }
