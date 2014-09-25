@@ -18,10 +18,13 @@ package android.orm.sql;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Offset;
 import android.orm.util.Legacy;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +39,14 @@ public final class Readables {
 
     @NonNull
     public static Readable readable(@NonNull final Cursor cursor) {
-        return new CursorReadable(cursor);
+        return readable(cursor, null, null);
+    }
+
+    @NonNull
+    public static Readable readable(@NonNull final Cursor cursor,
+                                    @Nullable final Limit limit,
+                                    @Nullable final Offset offset) {
+        return new CursorReadable(cursor, limit, offset);
     }
 
     @NonNull
@@ -54,11 +64,17 @@ public final class Readables {
 
         @NonNull
         private final Cursor mCursor;
+        private final int mLimit;
+        private final int mOffset;
 
-        private CursorReadable(@NonNull final Cursor cursor) {
+        private CursorReadable(@NonNull final Cursor cursor,
+                               @Nullable final Limit limit,
+                               @Nullable final Offset offset) {
             super();
 
             mCursor = cursor;
+            mLimit = (limit == null) ? Integer.MAX_VALUE : limit.getAmount();
+            mOffset = (offset == null) ? 0 : offset.getAmount();
         }
 
         @NonNull
@@ -96,17 +112,21 @@ public final class Readables {
 
         @Override
         public final int size() {
-            return mCursor.getCount();
+            final int size = mCursor.getCount() - mOffset;
+            return (mLimit <= size) ? mLimit : ((size < 0) ? 0 : size);
         }
 
         @Override
         public final boolean start() {
-            return mCursor.moveToFirst();
+            return mCursor.moveToPosition(mOffset);
         }
 
         @Override
         public final boolean next() {
-            return mCursor.moveToNext();
+            final int current = mCursor.getPosition() - mOffset;
+            return (current < 0) ?
+                    mCursor.moveToPosition(mOffset) :
+                    ((mLimit > current) && mCursor.moveToNext());
         }
 
         @Override

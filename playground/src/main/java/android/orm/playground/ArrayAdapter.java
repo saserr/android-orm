@@ -19,6 +19,7 @@ package android.orm.playground;
 import android.content.Context;
 import android.orm.DAO;
 import android.orm.dao.Result;
+import android.orm.reactive.watch.Watchable;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
@@ -29,7 +30,7 @@ public class ArrayAdapter<V> extends android.widget.ArrayAdapter<V> {
     public <C extends Collection<V>> ArrayAdapter(@NonNull final Context context,
                                                   final int layout,
                                                   final int textView,
-                                                  @NonNull final DAO.Access.Watchable<C> access) {
+                                                  @NonNull final Watchable<C> access) {
         super(context, layout, textView);
 
         access.onChange(new Result.Callback<Collection<V>>() {

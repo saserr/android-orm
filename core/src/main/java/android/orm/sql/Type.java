@@ -24,16 +24,11 @@ import org.jetbrains.annotations.NonNls;
 
 public interface Type<V> extends Fragment {
 
-    @NonNls
     @NonNull
-    String getName();
-
-    @NonNls
-    @NonNull
-    String getWildcard();
+    Primitive getPrimitive();
 
     @NonNull
-    V fromString(@NonNull final String value);
+    V fromString(@NonNls @NonNull final String value);
 
     @NonNls
     @NonNull
@@ -62,30 +57,18 @@ public interface Type<V> extends Fragment {
 
         @NonNls
         @NonNull
-        private final String mName;
-        @NonNls
-        @NonNull
-        private final String mWildcard;
+        private final Primitive mPrimitive;
 
-        protected Base(@NonNls @NonNull final String name, @NonNls @NonNull final String wildcard) {
+        protected Base(@NonNls @NonNull final Primitive primitive) {
             super();
 
-            mName = name;
-            mWildcard = wildcard;
+            mPrimitive = primitive;
         }
 
-        @NonNls
         @NonNull
         @Override
-        public final String getName() {
-            return mName;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String getWildcard() {
-            return mWildcard;
+        public final Primitive getPrimitive() {
+            return mPrimitive;
         }
 
         @NonNull
@@ -98,7 +81,7 @@ public interface Type<V> extends Fragment {
         @NonNull
         @Override
         public final String toSQL() {
-            return mName;
+            return mPrimitive.toSQL();
         }
 
         @Override
@@ -108,7 +91,7 @@ public interface Type<V> extends Fragment {
             if (this == object) {
                 result = true;
             } else if ((object != null) && (getClass() == object.getClass())) {
-                result = mName.equals(((Type<?>) object).getName());
+                result = mPrimitive == ((Type<?>) object).getPrimitive();
             }
 
             return result;
@@ -116,7 +99,29 @@ public interface Type<V> extends Fragment {
 
         @Override
         public final int hashCode() {
-            return mName.hashCode();
+            return mPrimitive.hashCode();
+        }
+    }
+
+    enum Primitive implements Fragment {
+
+        Text("text"),
+        Integer("integer"),
+        Real("real");
+
+        @NonNls
+        @NonNull
+        private final String mSQL;
+
+        Primitive(@NonNls @NonNull final String sql) {
+            mSQL = sql;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String toSQL() {
+            return mSQL;
         }
     }
 }

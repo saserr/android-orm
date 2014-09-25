@@ -19,8 +19,8 @@ package android.orm.dao.direct;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Expression;
 import android.orm.sql.Helper;
-import android.orm.sql.Select;
 import android.orm.sql.Table;
+import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -30,9 +30,9 @@ public class Delete implements Expression<Integer> {
     @NonNull
     private final Table<?> mTable;
     @NonNull
-    private final Select.Where mWhere;
+    private final Where mWhere;
 
-    public Delete(@NonNull final Table<?> table, @NonNull final Select.Where where) {
+    public Delete(@NonNull final Table<?> table, @NonNull final Where where) {
         super();
 
         mTable = table;

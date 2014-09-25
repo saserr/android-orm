@@ -7,6 +7,8 @@
       <module fileurl="file://$PROJECT_DIR$/gson/gson.iml" filepath="$PROJECT_DIR$/gson/gson.iml" />
       <module fileurl="file://$PROJECT_DIR$/joda/joda.iml" filepath="$PROJECT_DIR$/joda/joda.iml" />
       <module fileurl="file://$PROJECT_DIR$/playground/playground.iml" filepath="$PROJECT_DIR$/playground/playground.iml" />
+      <module fileurl="file://$PROJECT_DIR$/reactive/reactive.iml" filepath="$PROJECT_DIR$/reactive/reactive.iml" />
+      <module fileurl="file://$PROJECT_DIR$/remote/remote.iml" filepath="$PROJECT_DIR$/remote/remote.iml" />
       <module fileurl="file://$PROJECT_DIR$/tasks/tasks.iml" filepath="$PROJECT_DIR$/tasks/tasks.iml" />
       <module fileurl="file://$PROJECT_DIR$/test/test.iml" filepath="$PROJECT_DIR$/test/test.iml" />
     </modules>

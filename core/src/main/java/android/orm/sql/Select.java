@@ -19,8 +19,10 @@ package android.orm.sql;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.sql.fragment.OrderType;
-import android.orm.util.Function;
+import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Offset;
+import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Where;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -28,7 +30,6 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
-import static android.orm.sql.Types.Text;
+import static android.orm.sql.Readables.readable;
 import static android.util.Log.INFO;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -72,8 +73,8 @@ public class Select {
     }
 
     @Nullable
-    public final Cursor execute(@NonNull final Projection projection,
-                                @NonNull final SQLiteDatabase database) {
+    public final Readable execute(@NonNull final Projection projection,
+                                  @NonNull final SQLiteDatabase database) {
         @org.jetbrains.annotations.Nullable final Cursor cursor;
 
         if (projection.isEmpty()) {
@@ -86,12 +87,12 @@ public class Select {
             cursor = database.rawQuery(sql, null);
         }
 
-        return cursor;
+        return (cursor == null) ? null : readable(cursor);
     }
 
     @NonNull
-    public final Cursor execute(@NonNull final SQLiteDatabase database) {
-        return database.rawQuery(toSQL(null, mTable, mWhere, mOrder, mLimit, mOffset), null);
+    public final Readable execute(@NonNull final SQLiteDatabase database) {
+        return readable(database.rawQuery(toSQL(null, mTable, mWhere, mOrder, mLimit, mOffset), null));
     }
 
     @NonNull
@@ -110,42 +111,6 @@ public class Select {
         return ((value != null) && escape(name).equals(value)) ?
                 Projection.Base.create(Collections.<String, String>singletonMap(name, null)) :
                 Projection.Base.create(singletonMap(name, value));
-    }
-
-    @NonNull
-    public static <V> Where.Part<V> where(@NonNull final Column<V> column) {
-        return where(column.getName(), column.getType());
-    }
-
-    @NonNull
-    public static <V> Where.Part<V> where(@NonNls @NonNull final String name,
-                                          @NonNull final Type<V> type) {
-        return new Where.Part<>(name, type);
-    }
-
-    @NonNull
-    public static Where.TextPart whereText(@NonNull final Column<String> column) {
-        return whereText(column.getName());
-    }
-
-    @NonNull
-    public static Where.TextPart whereText(@NonNls @NonNull final String name) {
-        return new Where.TextPart(name);
-    }
-
-    @NonNull
-    public static <V> Order order(@NonNull final Column<V> column, @NonNull final OrderType type) {
-        return new Order(escape(column.getName()) + ' ' + type.toSQL());
-    }
-
-    @NonNull
-    public static Limit limit(final int amount) {
-        return new Limit(String.valueOf(amount));
-    }
-
-    @NonNull
-    public static Offset offset(final int amount) {
-        return new Offset(String.valueOf(amount));
     }
 
     public static class Builder {
@@ -196,6 +161,45 @@ public class Select {
         public final Select build() {
             return new Select(mTable, mWhere, mOrder, mLimit, mOffset);
         }
+    }
+
+    @NonNls
+    @NonNull
+    private static <K> String toSQL(@Nullable final Projection projection,
+                                    @NonNull final Table<K> from,
+                                    @NonNull final Where where,
+                                    @Nullable final Order order,
+                                    @Nullable final Limit limit,
+                                    @Nullable final Offset offset) {
+        @NonNls final StringBuilder result = new StringBuilder();
+
+        result.append("select ");
+        if (projection == null) {
+            result.append('*');
+        } else {
+            for (final String element : projection.asArray()) {
+                result.append(element).append(", ");
+            }
+            final int length = result.length();
+            result.delete(length - 2, length);
+        }
+        result.append('\n');
+
+        result.append("from ").append(escape(from.getName()));
+        if (!where.isEmpty()) {
+            result.append('\n').append("where ").append(where.toSQL());
+        }
+        if (order != null) {
+            result.append('\n').append("order by ").append(order.toSQL());
+        }
+        if (limit != null) {
+            result.append('\n').append("limit ").append(limit.toSQL());
+        }
+        if (offset != null) {
+            result.append('\n').append("offset ").append(offset.toSQL());
+        }
+
+        return result.toString();
     }
 
     public interface Projection {
@@ -392,393 +396,5 @@ public class Select {
                 };
             }
         }
-    }
-
-    public static class Where implements Fragment {
-
-        @NonNls
-        private static final MessageFormat NOT = new MessageFormat("not ({0})");
-        @NonNls
-        private static final MessageFormat AND = new MessageFormat("({0}) and ({1})");
-        @NonNls
-        private static final MessageFormat OR = new MessageFormat("({0}) or ({1})");
-
-        public static final Where None = new Where(null);
-
-        @NonNls
-        @Nullable
-        private final String mSQL;
-
-        public Where(@NonNls @Nullable final String selection) {
-            super();
-
-            mSQL = selection;
-        }
-
-        public final boolean isEmpty() {
-            return mSQL == null;
-        }
-
-        @NonNull
-        public final Where not() {
-            return (mSQL == null) ? None : new Where(NOT.format(new String[]{mSQL}));
-        }
-
-        @NonNull
-        public final Where and(@NonNull final Where other) {
-            final Where result;
-
-            if (mSQL == null) {
-                result = (other.mSQL == null) ? None : other;
-            } else {
-                result = (other.mSQL == null) ?
-                        this :
-                        new Where(AND.format(new String[]{mSQL, other.mSQL}));
-            }
-
-            return result;
-        }
-
-        @NonNull
-        public final Where or(@NonNull final Where other) {
-            final Where result;
-
-            if (mSQL == null) {
-                result = (other.mSQL == null) ? None : other;
-            } else {
-                result = (other.mSQL == null) ?
-                        this :
-                        new Where(OR.format(new String[]{mSQL, other.mSQL}));
-            }
-
-            return result;
-        }
-
-        @NonNls
-        @Nullable
-        @Override
-        public final String toSQL() {
-            return mSQL;
-        }
-
-        public static class Part<V> {
-
-            @NonNull
-            private final Type<V> mType;
-            @NonNls
-            @NonNull
-            private final String mEscapedName;
-
-            public Part(@NonNls @NonNull final String name, @NonNull final Type<V> type) {
-                super();
-
-                mType = type;
-                mEscapedName = Helper.escape(name);
-            }
-
-            @NonNull
-            public final Where isNull() {
-                return new Where(mEscapedName + " is null");
-            }
-
-            @NonNull
-            public final Where isNotNull() {
-                return new Where(mEscapedName + " is not null");
-            }
-
-            @NonNull
-            public final Where isEqualTo(@NonNull final V value) {
-                return new Where(mEscapedName + " = " + escape(value));
-            }
-
-            @NonNull
-            public final Where isNotEqualTo(@NonNull final V value) {
-                return new Where(mEscapedName + " <> " + escape(value));
-            }
-
-            @NonNull
-            public final Where isLessThan(@NonNull final V value) {
-                return new Where(mEscapedName + " < " + escape(value));
-            }
-
-            @NonNull
-            public final Where isLessOrEqualThan(@NonNull final V value) {
-                return new Where(mEscapedName + " <= " + escape(value));
-            }
-
-            @NonNull
-            public final Where isGreaterThan(@NonNull final V value) {
-                return new Where(mEscapedName + " > " + escape(value));
-            }
-
-            @NonNull
-            public final Where isGreaterOrEqualThan(@NonNull final V value) {
-                return new Where(mEscapedName + " >= " + escape(value));
-            }
-
-            @NonNull
-            public final Where isBetween(@NonNull final V min, @NonNull final V max) {
-                return new Where(mEscapedName + " between " + escape(min) + " and " + escape(max));
-            }
-
-            @NonNull
-            public final Where isNotBetween(@NonNull final V min, @NonNull final V max) {
-                return new Where(mEscapedName + " not between " + escape(min) + " and " + escape(max));
-            }
-
-            @NonNull
-            protected String escape(@NonNull final V value) {
-                return mType.escape(value);
-            }
-        }
-
-        public static class TextPart extends Part<String> {
-
-            @NonNls
-            @NonNull
-            private final String mEscapedName;
-
-            public TextPart(@NonNls @NonNull final String name) {
-                super(name, Text);
-
-                mEscapedName = escape(name);
-            }
-
-            @NonNull
-            public final Where isLike(@NonNull final String pattern) {
-                return new Where(mEscapedName + " like " + escape(pattern));
-            }
-
-            @NonNull
-            public final Where isNotLike(@NonNull final String pattern) {
-                return new Where(mEscapedName + " not like " + escape(pattern));
-            }
-
-            @NonNull
-            public final Where isLikeGlob(@NonNull final String pattern) {
-                return new Where(mEscapedName + " glob " + escape(pattern));
-            }
-
-            @NonNull
-            public final Where isNotLikeGlob(@NonNull final String pattern) {
-                return new Where(mEscapedName + " not glob " + escape(pattern));
-            }
-
-            @NonNull
-            public final Where isLikeRegexp(@NonNull final String pattern) {
-                return new Where(mEscapedName + " regexp " + escape(pattern));
-            }
-
-            @NonNull
-            public final Where isNotLikeRegexp(@NonNull final String pattern) {
-                return new Where(mEscapedName + " not regexp " + escape(pattern));
-            }
-        }
-
-        public interface Builder<V> {
-
-            @NonNull
-            Builder<V> not();
-
-            @NonNull
-            Builder<V> and(@NonNull final Where other);
-
-            @NonNull
-            Builder<V> and(@NonNull final Builder<? super V> other);
-
-            @NonNull
-            Builder<V> or(@NonNull final Where other);
-
-            @NonNull
-            Builder<V> or(@NonNull final Builder<? super V> other);
-
-            @NonNull
-            Where build(@NonNull final V value);
-
-            Builder<Object> None = builder(new Function<Object, Where>() {
-                @NonNull
-                @Override
-                public Where invoke(@NonNull final Object argument) {
-                    return Where.None;
-                }
-            });
-        }
-
-        @NonNull
-        public static <V> Builder<V> builder(@NonNull final Function<V, Where> factory) {
-            return new Builder<V>() {
-
-                @NonNull
-                @Override
-                public Builder<V> not() {
-                    return builder(new Function<V, Where>() {
-                        @NonNull
-                        @Override
-                        public Where invoke(@NonNull final V value) {
-                            return factory.invoke(value).not();
-                        }
-                    });
-                }
-
-                @NonNull
-                @Override
-                public Builder<V> and(@NonNull final Where other) {
-                    return builder(new Function<V, Where>() {
-                        @NonNull
-                        @Override
-                        public Where invoke(@NonNull final V value) {
-                            return factory.invoke(value).and(other);
-                        }
-                    });
-                }
-
-                @NonNull
-                @Override
-                public Builder<V> and(@NonNull final Builder<? super V> other) {
-                    return builder(new Function<V, Where>() {
-                        @NonNull
-                        @Override
-                        public Where invoke(@NonNull final V value) {
-                            return factory.invoke(value).and(other.build(value));
-                        }
-                    });
-                }
-
-                @NonNull
-                @Override
-                public Builder<V> or(@NonNull final Where other) {
-                    return builder(new Function<V, Where>() {
-                        @NonNull
-                        @Override
-                        public Where invoke(@NonNull final V value) {
-                            return factory.invoke(value).or(other);
-                        }
-                    });
-                }
-
-                @NonNull
-                @Override
-                public Builder<V> or(@NonNull final Builder<? super V> other) {
-                    return builder(new Function<V, Where>() {
-                        @NonNull
-                        @Override
-                        public Where invoke(@NonNull final V value) {
-                            return factory.invoke(value).or(other.build(value));
-                        }
-                    });
-                }
-
-                @NonNull
-                @Override
-                public Where build(@NonNull final V value) {
-                    return factory.invoke(value);
-                }
-            };
-        }
-    }
-
-    public static class Order implements Fragment {
-
-        @NonNls
-        @NonNull
-        private final String mSQL;
-
-        private Order(@NonNls @NonNull final String order) {
-            super();
-
-            mSQL = order;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String toSQL() {
-            return mSQL;
-        }
-
-        public final Order andThen(@NonNull final Order other) {
-            return new Order(toSQL() + ", " + other.toSQL());
-        }
-    }
-
-    public static class Limit implements Fragment {
-
-        public static final Limit Single = new Limit(String.valueOf(1));
-
-        @NonNls
-        @NonNull
-        private final String mSQL;
-
-        private Limit(@NonNls @NonNull final String amount) {
-            super();
-
-            mSQL = amount;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String toSQL() {
-            return mSQL;
-        }
-    }
-
-    public static class Offset implements Fragment {
-
-        @NonNls
-        @NonNull
-        private final String mSQL;
-
-        private Offset(@NonNls @NonNull final String amount) {
-            super();
-
-            mSQL = amount;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String toSQL() {
-            return mSQL;
-        }
-    }
-
-    @NonNls
-    @NonNull
-    private static <K> String toSQL(@Nullable final Projection projection,
-                                    @NonNull final Table<K> from,
-                                    @NonNull final Where where,
-                                    @Nullable final Order order,
-                                    @Nullable final Limit limit,
-                                    @Nullable final Offset offset) {
-        @NonNls final StringBuilder result = new StringBuilder();
-
-        result.append("select ");
-        if (projection == null) {
-            result.append('*');
-        } else {
-            for (final String element : projection.asArray()) {
-                result.append(element).append(", ");
-            }
-            final int length = result.length();
-            result.delete(length - 2, length);
-        }
-        result.append('\n');
-
-        result.append("from ").append(escape(from.getName()));
-        if (!where.isEmpty()) {
-            result.append('\n').append("where ").append(where.toSQL());
-        }
-        if (order != null) {
-            result.append('\n').append("order by ").append(order.toSQL());
-        }
-        if (limit != null) {
-            result.append('\n').append("limit ").append(limit.toSQL());
-        }
-        if (offset != null) {
-            result.append('\n').append("offset ").append(offset.toSQL());
-        }
-
-        return result.toString();
     }
 }

@@ -17,10 +17,12 @@
 package android.orm.tasks;
 
 import android.content.res.Resources;
-import android.orm.DAO;
+import android.net.Uri;
+import android.orm.Access;
+import android.orm.Reactive;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
-import android.orm.tasks.data.Provider;
+import android.orm.reactive.Watchers;
 import android.orm.tasks.model.Task;
 import android.orm.tasks.view.Form;
 import android.orm.tasks.view.List;
@@ -37,7 +39,7 @@ import android.widget.Toast;
 
 import java.util.Collection;
 
-import static android.orm.sql.Select.where;
+import static android.orm.sql.fragment.Where.where;
 import static android.orm.tasks.data.Provider.Routes.TaskById;
 import static android.orm.tasks.data.Provider.Routes.Tasks;
 import static android.widget.Toast.LENGTH_SHORT;
@@ -49,8 +51,9 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     private static final Collection<Task> NO_TASKS = emptyList();
     private static final String EDITED_TASK_STATE = "edited_task"; //NON-NLS
 
-    private DAO.Async mDAO;
-    private DAO.Async.Access.Many mTasks;
+    private Reactive.Async mDAO;
+    private Watchers mWatchers;
+    private Access.Async.Many<Uri> mTasks;
     private long mEditedTask = Task.NoId;
 
     private Form mForm;
@@ -109,7 +112,8 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     protected final void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mDAO = DAO.local(this, Provider.DATABASE);
+        mDAO = ((Application) getApplication()).getDAO();
+        mWatchers = mDAO.watchers();
         mDAO.setErrorHandler(LogErrors);
         mTasks = mDAO.at(Tasks);
 
@@ -131,7 +135,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
             mList = (List) fragments.findFragmentById(R.id.tasks_list);
         }
 
-        mTasks.query(Task.Mapper).onChange(mShowTasks);
+        mWatchers.at(Tasks).watch(Task.Mapper).onChange(mShowTasks);
     }
 
     @Override
@@ -185,18 +189,19 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     @Override
     public final void onResume() {
         super.onResume();
-        mDAO.start();
+        mWatchers.start();
     }
 
     @Override
     public final void onPause() {
-        mDAO.pause();
+        mWatchers.pause();
         super.onPause();
     }
 
     @Override
     public final void onDestroy() {
-        mDAO.stop();
+        mWatchers.stop();
+        mWatchers = null;
         mDAO = null;
         super.onDestroy();
     }

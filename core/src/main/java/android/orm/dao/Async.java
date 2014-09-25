@@ -16,162 +16,87 @@
 
 package android.orm.dao;
 
-import android.content.Context;
-import android.database.SQLException;
-import android.net.Uri;
+import android.orm.Access;
 import android.orm.DAO;
-import android.orm.Route;
-import android.orm.dao.async.Observer;
-import android.orm.dao.async.Session;
-import android.orm.util.Cancelable;
+import android.orm.sql.Expression;
+import android.orm.sql.Statement;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
-import android.orm.util.Promise;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
-
-import org.jetbrains.annotations.NonNls;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class Async implements DAO.Async {
+import static android.orm.dao.async.Executors.create;
+import static android.orm.util.Maybes.nothing;
 
-    // TODO logging
-
-    private static final String TAG = DAO.class.getSimpleName();
-
-    private static final Interrupted Interrupted = new Interrupted("Interrupted");
-    @NonNls
-    private static final String ERROR_STOPPED = "DAO is stopped";
+public class Async implements DAO.Async {
 
     @NonNull
-    private final ExecutorService mTasks;
+    private final DAO.Direct mDirectDAO;
     @NonNull
-    private final Session mObservers;
+    private final android.orm.dao.async.Executor mExecutor;
 
-    private final AtomicBoolean mStopped = new AtomicBoolean(false);
-    private final AtomicReference<ErrorHandler> mErrorHandler = new AtomicReference<>();
-
-    protected Async(@NonNull final Context context,
-                    @NonNull final ExecutorService tasks,
-                    @NonNull final Observer.Executor observers) {
+    public Async(@NonNull final DAO.Direct dao, @NonNull final ExecutorService executor) {
         super();
 
-        mTasks = tasks;
-        mObservers = observers.session(context.getContentResolver());
+        mDirectDAO = dao;
+        mExecutor = new android.orm.dao.async.Executor(executor);
     }
 
     @Override
     public final void setErrorHandler(@Nullable final ErrorHandler handler) {
-        if (mStopped.get()) {
-            throw new UnsupportedOperationException(ERROR_STOPPED);
-        }
-
-        mErrorHandler.set(handler);
-    }
-
-    @Override
-    public final void start() {
-        if (mStopped.get()) {
-            throw new UnsupportedOperationException(ERROR_STOPPED);
-        }
-
-        mObservers.start();
-    }
-
-    @Override
-    public final void pause() {
-        if (mStopped.get()) {
-            throw new UnsupportedOperationException(ERROR_STOPPED);
-        }
-
-        mObservers.pause();
-    }
-
-    @Override
-    public final void stop() {
-        if (!mStopped.getAndSet(true)) {
-            mObservers.stop();
-            mErrorHandler.set(null);
-        }
+        mExecutor.setErrorHandler(handler);
     }
 
     @NonNull
-    protected final <V> Result<V> execute(@NonNull final Producer<Maybe<V>> producer) {
-        if (mStopped.get()) {
-            throw new UnsupportedOperationException(ERROR_STOPPED);
-        }
-
-        final Promise<Maybe<V>> promise = new Promise<>();
-        final Cancelable cancelable = cancelable(mTasks.submit(new Task<>(promise, producer)));
-        return new Result<>(promise.getFuture(), cancelable, mErrorHandler.get());
+    @Override
+    public final <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<? super DAO.Direct, K> factory) {
+        final Executor.Async.Single<K> executor = create(mExecutor, factory.create(mDirectDAO));
+        return new android.orm.dao.async.Access.Single<>(executor);
     }
 
     @NonNull
-    protected final Cancelable execute(@NonNull final Route route,
-                                       @NonNull final Uri uri,
-                                       @NonNull final Observer observer) {
-        if (mStopped.get()) {
-            throw new UnsupportedOperationException(ERROR_STOPPED);
-        }
-
-        return mObservers.submit(route, uri, observer);
-    }
-
-    public static void interruptIfNecessary() {
-        if (Thread.interrupted()) {
-            throw Interrupted;
-        }
+    @Override
+    public final <K> Access.Async.Many<K> access(@NonNull final Executor.Direct.Many.Factory<? super DAO.Direct, K> factory) {
+        final Executor.Async.Many<K> executor = create(mExecutor, factory.create(mDirectDAO));
+        return new android.orm.dao.async.Access.Many<>(executor);
     }
 
     @NonNull
-    private static Cancelable cancelable(@NonNull final Future<?> future) {
-        return new Cancelable() {
+    @Override
+    public final Result<Void> execute(@NonNull final Statement statement) {
+        return mExecutor.execute(new Producer<Maybe<Void>>() {
+            @NonNull
             @Override
-            public void cancel() {
-                future.cancel(true);
+            public Maybe<Void> produce() {
+                mDirectDAO.execute(statement);
+                return nothing();
             }
-        };
+        });
     }
 
-    public static class Interrupted extends SQLException {
-
-        private static final long serialVersionUID = 1316911609066835294L;
-
-        private Interrupted(@NonNls @NonNull final String error) {
-            super(error);
-        }
+    @NonNull
+    @Override
+    public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
+        return mExecutor.execute(new Producer<Maybe<V>>() {
+            @NonNull
+            @Override
+            public Maybe<V> produce() {
+                return mDirectDAO.execute(expression);
+            }
+        });
     }
 
-    private static class Task<V> implements Runnable {
-
-        @NonNull
-        private final Promise<Maybe<V>> mPromise;
-        @NonNull
-        private final Producer<Maybe<V>> mProducer;
-
-        private Task(@NonNull final Promise<Maybe<V>> promise,
-                     @NonNull final Producer<Maybe<V>> producer) {
-            super();
-
-            mPromise = promise;
-            mProducer = producer;
-        }
-
-        @Override
-        public final void run() {
-            try {
-                mPromise.success(mProducer.produce());
-            } catch (final Interrupted error) {
-                Log.w(TAG, "DAO operation has been interrupted", error); //NON-NLS
-            } catch (final Throwable error) {
-                Log.e(TAG, "DAO operation has been aborted", error); //NON-NLS
-                mPromise.failure(error);
+    @NonNull
+    @Override
+    public final <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction) {
+        return mExecutor.execute(new Producer<Maybe<V>>() {
+            @NonNull
+            @Override
+            public Maybe<V> produce() {
+                return mDirectDAO.execute(transaction);
             }
-        }
+        });
     }
 }

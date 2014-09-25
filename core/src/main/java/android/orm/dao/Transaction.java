@@ -16,9 +16,7 @@
 
 package android.orm.dao;
 
-import android.content.ContentProviderResult;
 import android.orm.DAO;
-import android.orm.Route;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
@@ -32,28 +30,6 @@ public final class Transaction {
         Maybe<V> run(@NonNull final DAO.Direct dao) throws Rollback;
 
         Rollback Rollback = new Rollback("Rollback");
-    }
-
-    public interface Remote {
-
-        @NonNull
-        Access at(@NonNull final Route route, @NonNull final Object... arguments);
-
-        @NonNull
-        Result<CommitResult> commit();
-
-        interface Access extends DAO.Access.Write<Access, Access, Access> {
-        }
-
-        interface CommitResult {
-
-            @NonNls
-            @NonNull
-            String getAuthority();
-
-            @NonNull
-            ContentProviderResult[] getResults();
-        }
     }
 
     public static class Rollback extends Exception {

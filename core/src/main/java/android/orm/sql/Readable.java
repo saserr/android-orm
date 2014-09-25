@@ -19,9 +19,10 @@ package android.orm.sql;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
+import java.io.Closeable;
 import java.util.Set;
 
-public interface Readable {
+public interface Readable extends Closeable {
 
     @NonNull
     Maybe<String> getAsString(@NonNull final String key);
@@ -41,5 +42,6 @@ public interface Readable {
 
     boolean next();
 
+    @Override
     void close();
 }

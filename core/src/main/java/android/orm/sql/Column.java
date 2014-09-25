@@ -47,8 +47,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     private final List<Constraint<V>> mConstraints;
     @NonNull
     private final Lazy<String> mSQL;
-    @NonNull
-    private final String mWildcard;
     private final boolean mNullable;
     private final boolean mUnique;
     private final boolean mRequired;
@@ -67,7 +65,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         mProjection = Select.projection(name, null);
         mConstraints = constraints;
         mSQL = sql(name, type, constraints);
-        mWildcard = type.getWildcard();
 
         mNullable = !contains(Constraint.NotNull.class);
         mUnique = contains(Constraint.Unique.class);
@@ -90,12 +87,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @Override
     public final Select.Projection getProjection() {
         return mProjection;
-    }
-
-    @NonNls
-    @NonNull
-    public final String getWildcard() {
-        return mWildcard;
     }
 
     public final boolean isNullable() {
@@ -201,7 +192,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @NonNull
-    public final V fromString(@NonNull final String value) {
+    public final V fromString(@NonNls @NonNull final String value) {
         return mType.fromString(value);
     }
 

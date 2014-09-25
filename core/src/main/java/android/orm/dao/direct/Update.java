@@ -19,15 +19,15 @@ package android.orm.dao.direct;
 import android.content.ContentValues;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.net.Uri;
-import android.orm.Route;
 import android.orm.model.Plan;
 import android.orm.sql.Expression;
 import android.orm.sql.Helper;
+import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Table;
 import android.orm.sql.Value;
-import android.orm.sql.Writables;
+import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -35,48 +35,59 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
+import static android.orm.sql.Readables.combine;
+import static android.orm.sql.Readables.readable;
+import static android.orm.sql.Select.select;
+import static android.orm.sql.Value.Write.Operation.Update;
+import static android.orm.sql.Writables.writable;
+import static android.orm.util.Legacy.getKeys;
 import static android.orm.util.Maybes.nothing;
+import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
 public final class Update {
 
     private static final String TAG = Update.class.getSimpleName();
 
-    public static class Single implements Expression<Uri> {
+    public static class Single<K> implements Expression<K> {
 
-        @NonNull
-        private final Route.Item mRoute;
         @NonNls
         @NonNull
-        private final String mTable;
+        private final String mTableName;
         @NonNull
-        private final Select.Where mWhere;
+        private final Where mWhere;
         @NonNull
         private final Plan.Write mPlan;
         @NonNull
         private final ContentValues mAdditional;
+        @NonNull
+        private final Value.Read<K> mKey;
+        @NonNull
+        private final Select mSelect;
 
-        public Single(@NonNull final Route.Item route,
-                      @NonNull final Select.Where where,
+        public Single(@NonNull final Table<?> table,
+                      @NonNull final Where where,
                       @NonNull final Plan.Write plan,
-                      @NonNull final ContentValues additional) {
+                      @NonNull final ContentValues additional,
+                      @NonNull final Value.Read<K> key) {
             super();
 
-            mRoute = route;
-            mTable = Helper.escape(route.getTable().getName());
+            mTableName = Helper.escape(table.getName());
             mWhere = where;
             mPlan = plan;
             mAdditional = additional;
+            mKey = key;
+            mSelect = select(table).with(where).with(Limit.Single).build();
         }
 
         @NonNull
         @Override
-        public final Maybe<Uri> execute(@NonNull final SQLiteDatabase database) {
+        public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
-            mPlan.write(Value.Write.Operation.Update, Writables.writable(values));
-            final int updated = update(database, mTable, mWhere, values);
+            mPlan.write(Update, writable(values));
+            final int updated = update(database, mTableName, mWhere, values);
 
-            final Maybe<Uri> result;
+            final Maybe<K> result;
 
             if (updated > 1) {
                 throw new SQLException("More than one row was updated");
@@ -84,10 +95,24 @@ public final class Update {
 
             if (updated > 0) {
                 values.putAll(mAdditional);
-                result = new ReadUri(mRoute, mWhere, mAdditional).execute(database);
+                final Select.Projection remaining = mKey.getProjection().without(getKeys(values));
+                if (remaining.isEmpty()) {
+                    result = mKey.read(readable(values));
+                } else {
+                    final Readable input = mSelect.execute(remaining, database);
+                    if (input == null) {
+                        result = nothing();
+                    } else {
+                        try {
+                            result = mKey.read(combine(readable(values), input));
+                        } finally {
+                            input.close();
+                        }
+                    }
+                }
 
                 if (result.isNothing()) {
-                    throw new SQLException("Couldn't create item uri after update");
+                    throw new SQLException("Couldn't read row id after update");
                 }
             } else {
                 result = nothing();
@@ -104,12 +129,12 @@ public final class Update {
         private final String mTable;
         @NonNls
         @NonNull
-        private final Select.Where mWhere;
+        private final Where mWhere;
         @NonNull
         private final Plan.Write mPlan;
 
         public Many(@NonNull final Table<?> table,
-                    @NonNull final Select.Where where,
+                    @NonNull final Where where,
                     @NonNull final Plan.Write plan) {
             super();
 
@@ -122,15 +147,15 @@ public final class Update {
         @Override
         public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
-            mPlan.write(Value.Write.Operation.Update, Writables.writable(values));
+            mPlan.write(Update, writable(values));
             final int updated = update(database, mTable, mWhere, values);
-            return (updated > 0) ? Maybes.something(updated) : Maybes.<Integer>nothing();
+            return (updated > 0) ? something(updated) : Maybes.<Integer>nothing();
         }
     }
 
     private static int update(@NonNull final SQLiteDatabase database,
                               @NonNls @NonNull final String table,
-                              @NonNull final Select.Where where,
+                              @NonNull final Where where,
                               @NonNull final ContentValues values) {
         final int updated;
 

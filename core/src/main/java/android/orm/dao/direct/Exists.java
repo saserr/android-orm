@@ -20,8 +20,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Expression;
 import android.orm.sql.Helper;
-import android.orm.sql.Select;
 import android.orm.sql.Table;
+import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -34,9 +35,9 @@ public class Exists implements Expression<Boolean> {
     @NonNull
     private final Table<?> mTable;
     @NonNull
-    private final Select.Where mWhere;
+    private final Where mWhere;
 
-    public Exists(@NonNull final Table<?> table, @NonNull final Select.Where where) {
+    public Exists(@NonNull final Table<?> table, @NonNull final Where where) {
         super();
 
         mTable = table;
@@ -48,7 +49,7 @@ public class Exists implements Expression<Boolean> {
     public final Maybe<Boolean> execute(@NonNull final SQLiteDatabase database) {
         final String table = Helper.escape(mTable.getName());
         final String where = mWhere.toSQL();
-        final Select.Order order = mTable.getOrder();
+        final Order order = mTable.getOrder();
         final Maybe<Boolean> result;
 
         final Cursor cursor = database.query(table, PROJECTION, where, null, null, null, (order == null) ? null : order.toSQL(), SINGLE);

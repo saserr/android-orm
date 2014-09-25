@@ -52,19 +52,19 @@ public final class Types {
     @NonNls
     private static final String FILE_NOT_CLOSED = "Could not close file ";
 
-    public static final Type<String> Text = new Type.Base<String>("text", "*") {
+    public static final Type<String> Text = new Type.Base<String>(Type.Primitive.Text) {
 
         @NonNls
         @NonNull
         @Override
-        public String fromString(@NonNull final String value) {
+        public String fromString(@NonNls @NonNull final String value) {
             return value;
         }
 
         @NonNls
         @NonNull
         @Override
-        public String toString(@NonNull final String value) {
+        public String toString(@NonNls @NonNull final String value) {
             return value;
         }
 
@@ -90,11 +90,11 @@ public final class Types {
         }
     };
 
-    public static final Type<Long> Integer = new Type.Base<Long>("integer", "#") {
+    public static final Type<Long> Integer = new Type.Base<Long>(Type.Primitive.Integer) {
 
         @NonNull
         @Override
-        public Long fromString(@NonNull final String value) {
+        public Long fromString(@NonNls @NonNull final String value) {
             return parseLong(value);
         }
 
@@ -127,11 +127,11 @@ public final class Types {
         }
     };
 
-    public static final Type<Double> Real = new Type.Base<Double>("real", "*") {
+    public static final Type<Double> Real = new Type.Base<Double>(Type.Primitive.Real) {
 
         @NonNull
         @Override
-        public Double fromString(@NonNull final String value) {
+        public Double fromString(@NonNls @NonNull final String value) {
             return parseDouble(value);
         }
 
@@ -404,7 +404,7 @@ public final class Types {
         private final Converter<V, T> mConverter;
 
         private Conversion(@NonNull final Type<T> type, @NonNull final Converter<V, T> converter) {
-            super(type.toSQL(), type.getWildcard());
+            super(type.getPrimitive());
 
             mType = type;
             mConverter = converter;

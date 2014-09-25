@@ -12,6 +12,8 @@
             <option value="$PROJECT_DIR$/gson" />
             <option value="$PROJECT_DIR$/joda" />
             <option value="$PROJECT_DIR$/playground" />
+            <option value="$PROJECT_DIR$/reactive" />
+            <option value="$PROJECT_DIR$/remote" />
             <option value="$PROJECT_DIR$/tasks" />
             <option value="$PROJECT_DIR$/test" />
           </set>

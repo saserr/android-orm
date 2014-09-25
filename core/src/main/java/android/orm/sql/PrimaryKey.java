@@ -17,7 +17,7 @@
 package android.orm.sql;
 
 import android.orm.sql.fragment.ConflictResolution;
-import android.orm.sql.fragment.OrderType;
+import android.orm.sql.fragment.Order;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -40,20 +40,20 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     private final String mSQL;
 
     private PrimaryKey(@NonNull final Column<V> column,
-                       @Nullable final OrderType order,
+                       @Nullable final Order.Type order,
                        @Nullable final ConflictResolution resolution) {
         this(Integer.equals(column.getType()), column, order, resolution);
     }
 
     private PrimaryKey(@NonNull final Value.ReadWrite<V> value,
-                       @Nullable final OrderType order,
+                       @Nullable final Order.Type order,
                        @Nullable final ConflictResolution resolution) {
         this(false, value, order, resolution);
     }
 
     private PrimaryKey(final boolean isAlias,
                        @NonNull final Value.ReadWrite<V> value,
-                       @Nullable final OrderType order,
+                       @Nullable final Order.Type order,
                        @Nullable final ConflictResolution resolution) {
         super();
 
@@ -130,13 +130,13 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
     @NonNull
     public static PrimaryKey<Long> primaryKey(@NonNull final Column<Long> column,
-                                              @NonNull final OrderType order) {
+                                              @NonNull final Order.Type order) {
         return new PrimaryKey<>(column, order, null);
     }
 
     @NonNull
     public static PrimaryKey<Long> primaryKey(@NonNull final Column<Long> column,
-                                              @NonNull final OrderType order,
+                                              @NonNull final Order.Type order,
                                               @NonNull final ConflictResolution resolution) {
         return new PrimaryKey<>(column, order, resolution);
     }

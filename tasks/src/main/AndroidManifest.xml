@@ -20,6 +20,7 @@
     package="android.orm.tasks">
 
     <application
+        android:name=".Application"
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"

@@ -23,6 +23,46 @@ import java.util.Arrays;
 
 public final class Observer {
 
+    public static <M> void beforeRead(@Nullable final M model) {
+        if (model instanceof Read) {
+            ((Read) model).beforeRead();
+        }
+    }
+
+    public static <M> void afterRead(@Nullable final M model) {
+        if (model instanceof Read) {
+            ((Read) model).afterRead();
+        }
+    }
+
+    public static <M> void beforeCreate(@Nullable final M model) {
+        if (model instanceof Write) {
+            ((Write) model).beforeCreate();
+            ((Write) model).beforeSave();
+        }
+    }
+
+    public static <M> void afterCreate(@Nullable final M model) {
+        if (model instanceof Write) {
+            ((Write) model).afterSave();
+            ((Write) model).afterCreate();
+        }
+    }
+
+    public static <M> void afterUpdate(@Nullable final M model) {
+        if (model instanceof Write) {
+            ((Write) model).afterSave();
+            ((Write) model).afterUpdate();
+        }
+    }
+
+    public static <M> void beforeUpdate(@Nullable final M model) {
+        if (model instanceof Write) {
+            ((Write) model).beforeUpdate();
+            ((Write) model).beforeSave();
+        }
+    }
+
     public interface Read {
 
         void beforeRead();
@@ -114,46 +154,6 @@ public final class Observer {
 
             @Override
             public void afterSave() {/* do nothing */}
-        }
-    }
-
-    public static <M> void beforeRead(@Nullable final M model) {
-        if (model instanceof Read) {
-            ((Read) model).beforeRead();
-        }
-    }
-
-    public static <M> void afterRead(@Nullable final M model) {
-        if (model instanceof Read) {
-            ((Read) model).afterRead();
-        }
-    }
-
-    public static <M> void beforeCreate(@Nullable final M model) {
-        if (model instanceof Write) {
-            ((Write) model).beforeCreate();
-            ((Write) model).beforeSave();
-        }
-    }
-
-    public static <M> void afterCreate(@Nullable final M model) {
-        if (model instanceof Write) {
-            ((Write) model).afterSave();
-            ((Write) model).afterCreate();
-        }
-    }
-
-    public static <M> void beforeUpdate(@Nullable final M model) {
-        if (model instanceof Write) {
-            ((Write) model).beforeUpdate();
-            ((Write) model).beforeSave();
-        }
-    }
-
-    public static <M> void afterUpdate(@Nullable final M model) {
-        if (model instanceof Write) {
-            ((Write) model).afterSave();
-            ((Write) model).afterUpdate();
         }
     }
 

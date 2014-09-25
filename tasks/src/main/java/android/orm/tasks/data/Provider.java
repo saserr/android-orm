@@ -16,42 +16,23 @@
 
 package android.orm.tasks.data;
 
-import android.orm.BaseContentProvider;
-import android.orm.Database;
-import android.orm.Route;
-import android.orm.database.IntegrityChecks;
-import android.orm.sql.Table;
+import android.orm.reactive.Route;
+import android.orm.remote.ContentProvider;
 import android.orm.tasks.BuildConfig;
 import android.orm.tasks.model.Task;
 
-import static android.orm.sql.PrimaryKey.primaryKey;
-import static android.orm.sql.Select.order;
-import static android.orm.sql.Table.table;
-import static android.orm.sql.fragment.OrderType.Ascending;
+import static android.orm.tasks.data.Configuration.DATABASE;
 
-public class Provider extends BaseContentProvider {
+public class Provider extends ContentProvider {
 
-    private static final int VERSION = 2;
-    private static final Route.Manager ROUTES = new Route.Manager(BuildConfig.PACKAGE_NAME, "vnd.orm");
-
-    public static final Database DATABASE = new Database("tasks.db", VERSION, IntegrityChecks.Full)
-            .migrate(Tables.Tasks);
-
-    public interface Tables {
-        Table<Long> Tasks = table("tasks", 1)
-                .with(Task.Id)
-                .with(Task.Title)
-                .with(2, Task.Finished)
-                .with(primaryKey(Task.Id))
-                .with(order(Task.Id, Ascending));
-    }
+    private static final Route.Manager ROUTES = new Route.Manager(BuildConfig.APPLICATION_ID);
 
     public interface Routes {
-        Route.Item TaskById = ROUTES.item(Tables.Tasks, Task.Id);
-        Route.Dir Tasks = ROUTES.dir(TaskById);
+        Route.Single TaskById = ROUTES.single(Configuration.Tables.Tasks, Task.Id);
+        Route.Many Tasks = ROUTES.many(TaskById);
     }
 
     public Provider() {
-        super(DATABASE, ROUTES);
+        super(DATABASE, "orm", ROUTES);
     }
 }

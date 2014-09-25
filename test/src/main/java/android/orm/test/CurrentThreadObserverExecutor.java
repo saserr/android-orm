@@ -18,14 +18,15 @@ package android.orm.test;
 
 import android.content.ContentResolver;
 import android.net.Uri;
-import android.orm.Route;
-import android.orm.dao.async.Manager;
-import android.orm.dao.async.Observer;
+import android.orm.reactive.Route;
+import android.orm.reactive.watch.Executor;
+import android.orm.reactive.watch.Manager;
+import android.orm.reactive.watch.Observer;
 import android.orm.util.Cancelable;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 
-public class CurrentThreadObserverExecutor implements Observer.Executor {
+public class CurrentThreadObserverExecutor implements Executor {
 
     @NonNull
     private final Manager.Factory mFactory;
@@ -45,11 +46,11 @@ public class CurrentThreadObserverExecutor implements Observer.Executor {
 
     @NonNull
     @Override
-    public final android.orm.dao.async.Session session(@NonNull final ContentResolver resolver) {
+    public final android.orm.reactive.watch.Session session(@NonNull final ContentResolver resolver) {
         return new Session(resolver, mFactory, mHandler);
     }
 
-    private static class Session implements android.orm.dao.async.Session {
+    private static class Session implements android.orm.reactive.watch.Session {
 
         @NonNull
         private final ContentResolver mResolver;

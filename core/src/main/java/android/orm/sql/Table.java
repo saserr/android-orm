@@ -16,6 +16,7 @@
 
 package android.orm.sql;
 
+import android.orm.sql.fragment.Order;
 import android.orm.util.Lazy;
 import android.orm.util.Legacy;
 import android.support.annotation.NonNull;
@@ -60,7 +61,7 @@ public class Table<K> {
     @NonNull
     private final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> mForeignKeysAtVersion;
     @Nullable
-    private final Select.Order mOrder;
+    private final Order mOrder;
     @Nullable
     private final PrimaryKey<K> mPrimaryKey;
 
@@ -73,7 +74,7 @@ public class Table<K> {
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
                   @NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> foreignKeysAtVersion,
-                  @Nullable final Select.Order order,
+                  @Nullable final Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
         this(name, version, columnsByVersion, new ColumnsAtVersion(columnsByVersion), foreignKeysByVersion, foreignKeysAtVersion, order, primaryKey);
     }
@@ -83,7 +84,7 @@ public class Table<K> {
                   @NonNull final SparseArray<Set<Column<?>>> columnsByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
                   @NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
-                  @Nullable final Select.Order order,
+                  @Nullable final Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
         this(name, version, columnsByVersion, columnsAtVersion, foreignKeysByVersion, new ForeignKeysAtVersion(foreignKeysByVersion), order, primaryKey);
     }
@@ -94,7 +95,7 @@ public class Table<K> {
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<Set<Column<?>>>>> columnsAtVersion,
                   @NonNull final SparseArray<List<ForeignKey<?>>> foreignKeysByVersion,
                   @NonNull final Lazy<Pair<Pair<Integer, Integer>, SparseArray<List<ForeignKey<?>>>>> foreignKeysAtVersion,
-                  @Nullable final Select.Order order,
+                  @Nullable final Order order,
                   @Nullable final PrimaryKey<K> primaryKey) {
         super();
 
@@ -157,7 +158,7 @@ public class Table<K> {
     }
 
     @Nullable
-    public final Select.Order getOrder() {
+    public final Order getOrder() {
         return mOrder;
     }
 
@@ -194,7 +195,7 @@ public class Table<K> {
                 mPrimaryKey);
     }
 
-    public final Table<K> with(@NonNull final Select.Order order) {
+    public final Table<K> with(@NonNull final Order order) {
         return new Table<>(mName,
                 mVersion,
                 mColumnsByVersion,
