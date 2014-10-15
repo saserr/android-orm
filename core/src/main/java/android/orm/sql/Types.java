@@ -164,14 +164,7 @@ public final class Types {
         }
     };
 
-    @NonNull
-    public static <V, T> Type<V> map(@NonNull final Type<T> type,
-                                     @NonNull final Converter<V, T> converter) {
-        return new Conversion<>(type, converter);
-    }
-
-    public static final Type<Boolean> Bool = map(
-            Integer,
+    public static final Type<Boolean> Bool = Integer.map(
             new Converter<Boolean, Long>() {
 
                 private static final long False = 0L;
@@ -191,8 +184,7 @@ public final class Types {
             }
     );
 
-    public static final Type<BigDecimal> Decimal = map(
-            Text,
+    public static final Type<BigDecimal> Decimal = Text.map(
             new Converter<BigDecimal, String>() {
 
                 @NonNull
@@ -209,8 +201,7 @@ public final class Types {
             }
     );
 
-    public static final Type<File> File = map(
-            Text,
+    public static final Type<File> File = Text.map(
             new Converter<File, String>() {
 
                 @NonNull
@@ -227,8 +218,7 @@ public final class Types {
             }
     );
 
-    public static final Type<Uri> Uri = map(
-            Text,
+    public static final Type<Uri> Uri = Text.map(
             new Converter<Uri, String>() {
 
                 @NonNull
@@ -245,8 +235,7 @@ public final class Types {
             }
     );
 
-    public static final Type<Pair<File, byte[]>> Binary = map(
-            File,
+    public static final Type<Pair<File, byte[]>> Binary = File.map(
             new Converter<Pair<File, byte[]>, File>() {
 
                 private static final int KILOBYTE = 1024;
@@ -336,7 +325,7 @@ public final class Types {
 
     @NonNull
     public static <E extends Enum<E>> Type<E> enumName(@NonNull final Class<E> klass) {
-        return map(Text, new Converter<E, String>() {
+        return Text.map(new Converter<E, String>() {
 
             @NonNull
             @Override
@@ -356,8 +345,7 @@ public final class Types {
     public static Type<Pair<File, Bitmap>> bitmap(@NonNull final Bitmap.CompressFormat format,
                                                   final int quality,
                                                   @Nullable final BitmapFactory.Options options) {
-        return map(
-                File,
+        return File.map(
                 new Converter<Pair<File, Bitmap>, File>() {
 
                     @NonNull
@@ -394,6 +382,12 @@ public final class Types {
                     }
                 }
         );
+    }
+
+    @NonNull
+    public static <V, T> Type<V> map(@NonNull final Type<T> type,
+                                     @NonNull final Converter<V, T> converter) {
+        return new Conversion<>(type, converter);
     }
 
     private static class Conversion<V, T> extends Type.Base<V> {

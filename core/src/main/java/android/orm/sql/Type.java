@@ -16,6 +16,7 @@
 
 package android.orm.sql;
 
+import android.orm.util.Converter;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -40,6 +41,9 @@ public interface Type<V> extends Fragment {
 
     @NonNull
     Maybe<V> read(@NonNull final Readable input, @NonNls @NonNull final String name);
+
+    @NonNull
+    <T> Type<T> map(@NonNull final Converter<T, V> converter);
 
     void write(@NonNull final Writable output,
                @NonNls @NonNull final String name,
@@ -69,6 +73,12 @@ public interface Type<V> extends Fragment {
         @Override
         public final Primitive getPrimitive() {
             return mPrimitive;
+        }
+
+        @NonNull
+        @Override
+        public final <T> Type<T> map(@NonNull final Converter<T, V> converter) {
+            return Types.map(this, converter);
         }
 
         @NonNull

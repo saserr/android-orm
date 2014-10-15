@@ -28,12 +28,10 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import static android.orm.sql.Types.Integer;
 import static android.orm.sql.Types.Text;
-import static android.orm.sql.Types.map;
 
 public final class Types {
 
-    public static final Type<LocalTime> Time = map(
-            Integer,
+    public static final Type<LocalTime> Time = Integer.map(
             new Converter<LocalTime, Long>() {
 
                 @NonNull
@@ -50,8 +48,7 @@ public final class Types {
             }
     );
 
-    public static final Type<LocalDate> Date = map(
-            Text,
+    public static final Type<LocalDate> Date = Text.map(
             new Converter<LocalDate, String>() {
 
                 private final DateTimeFormatter mFormatter = ISODateTimeFormat.date();
@@ -70,8 +67,7 @@ public final class Types {
             }
     );
 
-    public static final Type<DateTime> Timestamp = map(
-            Integer,
+    public static final Type<DateTime> Timestamp = Integer.map(
             new Converter<DateTime, Long>() {
 
                 @NonNull
