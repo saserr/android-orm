@@ -17,8 +17,8 @@
 apply plugin: 'com.android.library'
 
 dependencies {
-    compile 'com.intellij:annotations:12.0'
-    compile 'com.android.support:support-annotations:20.0.0'
+    compile 'org.jetbrains:annotations:13.0'
+    compile 'com.android.support:support-annotations:21.0.0'
 }
 
 android {
