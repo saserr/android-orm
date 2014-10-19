@@ -58,7 +58,8 @@ public abstract class Direct implements DAO.Direct {
     }
 
     @NonNull
-    public static DAO.Direct create(@NonNull final Context context, @NonNull final Database database) {
+    public static DAO.Direct create(@NonNull final Context context,
+                                    @NonNull final Database database) {
         return new OutsideTransaction(context, database);
     }
 

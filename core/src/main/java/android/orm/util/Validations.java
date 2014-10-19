@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NonNls;
 import java.math.BigDecimal;
 import java.util.Collection;
 
+import static android.orm.util.Maybes.safeCast;
 import static android.text.TextUtils.isEmpty;
 import static java.math.BigDecimal.ZERO;
 
@@ -169,6 +170,12 @@ public final class Validations {
     }
 
     @NonNull
+    public static <V, T> Validation<T> convert(@NonNull final Validation<V> validation,
+                                               @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+        return new Conversion<>(validation, converter);
+    }
+
+    @NonNull
     public static <V, T extends V> Validation<T> compose(@NonNull final Validation<V> first,
                                                          @NonNull final Validation<T> second) {
         return new Composition<>(first, second);
@@ -286,6 +293,50 @@ public final class Validations {
         @Override
         public final Validation<V> name(@NonNls @NonNull final String name) {
             return new Name<>(name, mValidation);
+        }
+
+        @NonNull
+        @Override
+        public final <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter) {
+            return convert(Maybes.map(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Validation<T> flatMap(@NonNull final Function<? super T, Maybe<V>> converter) {
+            return convert(Maybes.flatMap(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Validation<T> convert(@NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+            return new Conversion<>(this, converter);
+        }
+    }
+
+    private static class Conversion<V, T> extends Validation.Base<T> {
+
+        @NonNull
+        private final Validation<V> mValidation;
+        @NonNull
+        private final Function<Maybe<T>, Maybe<V>> mConverter;
+
+        private Conversion(@NonNull final Validation<V> validation,
+                           @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+            super();
+
+            mValidation = validation;
+            mConverter = converter;
+        }
+
+        @Override
+        public final boolean isValid(@NonNull final Maybe<? extends T> value) {
+            return mValidation.isValid(mConverter.invoke(safeCast(value)));
+        }
+
+        @Override
+        public final void isValidOrThrow(@NonNull final Maybe<? extends T> value) {
+            mValidation.isValidOrThrow(mConverter.invoke(safeCast(value)));
         }
     }
 

@@ -33,6 +33,15 @@ public interface Validation<V> {
     @NonNull
     Validation<V> name(@NonNls @NonNull final String name);
 
+    @NonNull
+    <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter);
+
+    @NonNull
+    <T> Validation<T> flatMap(@NonNull final Function<? super T, Maybe<V>> converter);
+
+    @NonNull
+    <T> Validation<T> convert(@NonNull final Function<Maybe<T>, Maybe<V>> converter);
+
     class Exception extends RuntimeException {
 
         private static final long serialVersionUID = 53893318821367125L;
@@ -58,6 +67,24 @@ public interface Validation<V> {
         @Override
         public final Validation<V> name(@NonNls @NonNull final String name) {
             return Validations.name(name, this);
+        }
+
+        @NonNull
+        @Override
+        public final <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter) {
+            return convert(Maybes.map(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Validation<T> flatMap(@NonNull final Function<? super T, Maybe<V>> converter) {
+            return convert(Maybes.flatMap(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Validation<T> convert(@NonNull final Function<Maybe<T>, Maybe<V>> converter) {
+            return Validations.convert(this, converter);
         }
     }
 
