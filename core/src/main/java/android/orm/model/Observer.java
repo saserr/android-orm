@@ -27,11 +27,23 @@ public final class Observer {
         if (model instanceof Read) {
             ((Read) model).beforeRead();
         }
+
+        if (model instanceof Iterable<?>) {
+            for (final Object element : (Iterable<?>) model) {
+                beforeRead(element);
+            }
+        }
     }
 
     public static <M> void afterRead(@Nullable final M model) {
         if (model instanceof Read) {
             ((Read) model).afterRead();
+        }
+
+        if (model instanceof Iterable<?>) {
+            for (final Object element : (Iterable<?>) model) {
+                afterRead(element);
+            }
         }
     }
 
@@ -40,12 +52,37 @@ public final class Observer {
             ((Write) model).beforeCreate();
             ((Write) model).beforeSave();
         }
+
+        if (model instanceof Iterable<?>) {
+            for (final Object element : (Iterable<?>) model) {
+                beforeCreate(element);
+            }
+        }
     }
 
     public static <M> void afterCreate(@Nullable final M model) {
         if (model instanceof Write) {
             ((Write) model).afterSave();
             ((Write) model).afterCreate();
+        }
+
+        if (model instanceof Iterable<?>) {
+            for (final Object element : (Iterable<?>) model) {
+                afterCreate(element);
+            }
+        }
+    }
+
+    public static <M> void beforeUpdate(@Nullable final M model) {
+        if (model instanceof Write) {
+            ((Write) model).beforeUpdate();
+            ((Write) model).beforeSave();
+        }
+
+        if (model instanceof Iterable<?>) {
+            for (final Object element : (Iterable<?>) model) {
+                beforeUpdate(element);
+            }
         }
     }
 
@@ -54,12 +91,11 @@ public final class Observer {
             ((Write) model).afterSave();
             ((Write) model).afterUpdate();
         }
-    }
 
-    public static <M> void beforeUpdate(@Nullable final M model) {
-        if (model instanceof Write) {
-            ((Write) model).beforeUpdate();
-            ((Write) model).beforeSave();
+        if (model instanceof Iterable<?>) {
+            for (final Object element : (Iterable<?>) model) {
+                afterUpdate(element);
+            }
         }
     }
 
