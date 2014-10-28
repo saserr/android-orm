@@ -24,13 +24,13 @@ import android.orm.Reactive;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.reactive.Route;
 import android.orm.reactive.Watchers;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
-import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -46,7 +46,7 @@ public class Async implements Reactive.Async {
     @NonNull
     private final Direct mDirectDAO;
     @NonNull
-    private final android.orm.dao.async.Executor mExecutor;
+    private final ExecutionContext mExecutionContext;
 
     public Async(@NonNull final DAO.Direct dao,
                  @NonNull final ContentResolver resolver,
@@ -55,12 +55,12 @@ public class Async implements Reactive.Async {
 
         mResolver = resolver;
         mDirectDAO = new Direct.OutsideTransaction(dao, resolver);
-        mExecutor = new android.orm.dao.async.Executor(executor);
+        mExecutionContext = new ExecutionContext(executor);
     }
 
     @Override
     public final void setErrorHandler(@Nullable final ErrorHandler handler) {
-        mExecutor.setErrorHandler(handler);
+        mExecutionContext.setErrorHandler(handler);
     }
 
     @NonNull
@@ -83,7 +83,7 @@ public class Async implements Reactive.Async {
                                                  @NonNull final Executor.Direct.Single.Factory<? super Reactive.Direct, Uri> factory) {
         final Notifier notifier = mDirectDAO.getNotifier();
         final Executor.Direct.Single<Uri> executor = create(factory.create(mDirectDAO), notifier, uri);
-        return new android.orm.dao.async.Access.Single<>(create(mExecutor, executor));
+        return new android.orm.dao.async.Access.Single<>(create(mExecutionContext, executor));
     }
 
     @NonNull
@@ -92,16 +92,16 @@ public class Async implements Reactive.Async {
                                                @NonNull final Executor.Direct.Many.Factory<? super Reactive.Direct, Uri> factory) {
         final Notifier notifier = mDirectDAO.getNotifier();
         final Executor.Direct.Many<Uri> executor = create(factory.create(mDirectDAO), notifier, uri);
-        return new android.orm.dao.async.Access.Many<>(create(mExecutor, executor));
+        return new android.orm.dao.async.Access.Many<>(create(mExecutionContext, executor));
     }
 
     @NonNull
     @Override
     public final Result<Void> execute(@NonNull final Statement statement) {
-        return mExecutor.execute(new Producer<Maybe<Void>>() {
+        return mExecutionContext.execute(new ExecutionContext.Task<Void>() {
             @NonNull
             @Override
-            public Maybe<Void> produce() {
+            public Maybe<Void> run() {
                 mDirectDAO.execute(statement);
                 return Maybes.nothing();
             }
@@ -111,10 +111,10 @@ public class Async implements Reactive.Async {
     @NonNull
     @Override
     public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
-        return mExecutor.execute(new Producer<Maybe<V>>() {
+        return mExecutionContext.execute(new ExecutionContext.Task<V>() {
             @NonNull
             @Override
-            public Maybe<V> produce() {
+            public Maybe<V> run() {
                 return mDirectDAO.execute(expression);
             }
         });
@@ -123,10 +123,10 @@ public class Async implements Reactive.Async {
     @NonNull
     @Override
     public final <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction) {
-        return mExecutor.execute(new Producer<Maybe<V>>() {
+        return mExecutionContext.execute(new ExecutionContext.Task<V>() {
             @NonNull
             @Override
-            public Maybe<V> produce() {
+            public Maybe<V> run() {
                 return mDirectDAO.execute(transaction);
             }
         });

@@ -31,53 +31,53 @@ import android.support.annotation.Nullable;
 public final class Executors {
 
     @NonNull
-    public static <K> Executor.Async.Single<K> create(@NonNull final android.orm.dao.async.Executor executor,
+    public static <K> Executor.Async.Single<K> create(@NonNull final ExecutionContext context,
                                                       @NonNull final Executor.Direct.Single<K> direct) {
-        return new Single<>(executor, direct);
+        return new Single<>(context, direct);
     }
 
     @NonNull
-    public static <K> Executor.Async.Many<K> create(@NonNull final android.orm.dao.async.Executor executor,
+    public static <K> Executor.Async.Many<K> create(@NonNull final ExecutionContext context,
                                                     @NonNull final Executor.Direct.Many<K> direct) {
-        return new Many<>(executor, direct);
+        return new Many<>(context, direct);
     }
 
     private static class Single<K> extends Some<K, K> implements Executor.Async.Single<K> {
-        private Single(@NonNull final android.orm.dao.async.Executor executor,
+        private Single(@NonNull final ExecutionContext context,
                        @NonNull final Executor.Direct.Single<K> direct) {
-            super(executor, direct);
+            super(context, direct);
         }
     }
 
     private static class Many<K> extends Some<K, Integer> implements Executor.Async.Many<K> {
-        private Many(@NonNull final android.orm.dao.async.Executor executor,
+        private Many(@NonNull final ExecutionContext context,
                      @NonNull final Executor.Direct.Many<K> direct) {
-            super(executor, direct);
+            super(context, direct);
         }
     }
 
     private abstract static class Some<I, U> implements Executor.Async<I, U> {
 
         @NonNull
-        private final android.orm.dao.async.Executor mExecutor;
+        private final ExecutionContext mExecutionContext;
         @NonNull
         private final Executor.Direct<I, U> mDirect;
 
-        private Some(@NonNull final android.orm.dao.async.Executor executor,
+        private Some(@NonNull final ExecutionContext context,
                      @NonNull final Executor.Direct<I, U> direct) {
             super();
 
-            mExecutor = executor;
+            mExecutionContext = context;
             mDirect = direct;
         }
 
         @NonNull
         @Override
         public final Result<Boolean> exists(@NonNull final Where where) {
-            return mExecutor.execute(new Producer<Maybe<Boolean>>() {
+            return mExecutionContext.execute(new ExecutionContext.Task<Boolean>() {
                 @NonNull
                 @Override
-                public Maybe<Boolean> produce() {
+                public Maybe<Boolean> run() {
                     return mDirect.exists(where);
                 }
             });
@@ -90,10 +90,10 @@ public final class Executors {
                                                           @Nullable final Order order,
                                                           @Nullable final Limit limit,
                                                           @Nullable final Offset offset) {
-            return mExecutor.execute(new Producer<Maybe<Producer<Maybe<M>>>>() {
+            return mExecutionContext.execute(new ExecutionContext.Task<Producer<Maybe<M>>>() {
                 @NonNull
                 @Override
-                public Maybe<Producer<Maybe<M>>> produce() {
+                public Maybe<Producer<Maybe<M>>> run() {
                     return mDirect.query(plan, where, order, limit, offset);
                 }
             });
@@ -102,10 +102,10 @@ public final class Executors {
         @NonNull
         @Override
         public final Result<I> insert(@NonNull final Plan.Write plan) {
-            return mExecutor.execute(new Producer<Maybe<I>>() {
+            return mExecutionContext.execute(new ExecutionContext.Task<I>() {
                 @NonNull
                 @Override
-                public Maybe<I> produce() {
+                public Maybe<I> run() {
                     return mDirect.insert(plan);
                 }
             });
@@ -114,10 +114,10 @@ public final class Executors {
         @NonNull
         @Override
         public final Result<Integer> delete(@NonNull final Where where) {
-            return mExecutor.execute(new Producer<Maybe<Integer>>() {
+            return mExecutionContext.execute(new ExecutionContext.Task<Integer>() {
                 @NonNull
                 @Override
-                public Maybe<Integer> produce() {
+                public Maybe<Integer> run() {
                     return mDirect.delete(where);
                 }
             });
@@ -126,10 +126,10 @@ public final class Executors {
         @NonNull
         @Override
         public final Result<U> update(@NonNull final Where where, @NonNull final Plan.Write plan) {
-            return mExecutor.execute(new Producer<Maybe<U>>() {
+            return mExecutionContext.execute(new ExecutionContext.Task<U>() {
                 @NonNull
                 @Override
-                public Maybe<U> produce() {
+                public Maybe<U> run() {
                     return mDirect.update(where, plan);
                 }
             });

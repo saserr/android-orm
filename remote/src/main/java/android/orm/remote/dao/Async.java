@@ -24,6 +24,7 @@ import android.orm.Remote;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.reactive.Route;
 import android.orm.reactive.Watchers;
 import android.orm.remote.dao.direct.Apply;
@@ -45,7 +46,7 @@ public class Async implements Remote.Async {
     @NonNull
     private final ContentResolver mResolver;
     @NonNull
-    private final android.orm.dao.async.Executor mExecutor;
+    private final ExecutionContext mExecutionContext;
     @NonNull
     private final Apply mApply;
 
@@ -54,13 +55,13 @@ public class Async implements Remote.Async {
         super();
 
         mResolver = resolver;
-        mExecutor = new android.orm.dao.async.Executor(executor);
+        mExecutionContext = new ExecutionContext(executor);
         mApply = new Apply(resolver);
     }
 
     @Override
     public final void setErrorHandler(@Nullable final ErrorHandler handler) {
-        mExecutor.setErrorHandler(handler);
+        mExecutionContext.setErrorHandler(handler);
     }
 
     @NonNull
@@ -80,14 +81,14 @@ public class Async implements Remote.Async {
     @NonNull
     @Override
     public final <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory) {
-        final Executor.Async.Single<K> executor = create(mExecutor, factory.create(mResolver));
+        final Executor.Async.Single<K> executor = create(mExecutionContext, factory.create(mResolver));
         return new android.orm.dao.async.Access.Single<>(executor);
     }
 
     @NonNull
     @Override
     public final <K> Access.Async.Many<K> access(@NonNull final Executor.Direct.Many.Factory<ContentResolver, K> factory) {
-        final Executor.Async.Many<K> executor = create(mExecutor, factory.create(mResolver));
+        final Executor.Async.Many<K> executor = create(mExecutionContext, factory.create(mResolver));
         return new android.orm.dao.async.Access.Many<>(executor);
     }
 
@@ -101,10 +102,10 @@ public class Async implements Remote.Async {
                                                               @NonNull final Collection<Producer<ContentProviderOperation>> batch) {
                 return ((authority == null) || batch.isEmpty()) ?
                         Result.<Transaction.CommitResult>nothing() :
-                        mExecutor.execute(new Producer<Maybe<Transaction.CommitResult>>() {
+                        mExecutionContext.execute(new ExecutionContext.Task<Transaction.CommitResult>() {
                             @NonNull
                             @Override
-                            public Maybe<Transaction.CommitResult> produce() {
+                            public Maybe<Transaction.CommitResult> run() {
                                 return mApply.invoke(Pair.create(authority, batch));
                             }
                         });

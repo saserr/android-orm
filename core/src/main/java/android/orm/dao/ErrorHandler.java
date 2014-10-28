@@ -19,11 +19,5 @@ package android.orm.dao;
 import android.support.annotation.NonNull;
 
 public interface ErrorHandler {
-
     void onError(@NonNull final Throwable error);
-
-    interface Factory<V> {
-        @NonNull
-        ErrorHandler create(@NonNull final V v);
-    }
 }

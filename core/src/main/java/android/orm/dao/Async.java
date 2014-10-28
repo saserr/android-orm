@@ -18,10 +18,10 @@ package android.orm.dao;
 
 import android.orm.Access;
 import android.orm.DAO;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
 import android.orm.util.Maybe;
-import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -35,41 +35,41 @@ public class Async implements DAO.Async {
     @NonNull
     private final DAO.Direct mDirectDAO;
     @NonNull
-    private final android.orm.dao.async.Executor mExecutor;
+    private final ExecutionContext mExecutionContext;
 
     public Async(@NonNull final DAO.Direct dao, @NonNull final ExecutorService executor) {
         super();
 
         mDirectDAO = dao;
-        mExecutor = new android.orm.dao.async.Executor(executor);
+        mExecutionContext = new ExecutionContext(executor);
     }
 
     @Override
     public final void setErrorHandler(@Nullable final ErrorHandler handler) {
-        mExecutor.setErrorHandler(handler);
+        mExecutionContext.setErrorHandler(handler);
     }
 
     @NonNull
     @Override
     public final <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<? super DAO.Direct, K> factory) {
-        final Executor.Async.Single<K> executor = create(mExecutor, factory.create(mDirectDAO));
+        final Executor.Async.Single<K> executor = create(mExecutionContext, factory.create(mDirectDAO));
         return new android.orm.dao.async.Access.Single<>(executor);
     }
 
     @NonNull
     @Override
     public final <K> Access.Async.Many<K> access(@NonNull final Executor.Direct.Many.Factory<? super DAO.Direct, K> factory) {
-        final Executor.Async.Many<K> executor = create(mExecutor, factory.create(mDirectDAO));
+        final Executor.Async.Many<K> executor = create(mExecutionContext, factory.create(mDirectDAO));
         return new android.orm.dao.async.Access.Many<>(executor);
     }
 
     @NonNull
     @Override
     public final Result<Void> execute(@NonNull final Statement statement) {
-        return mExecutor.execute(new Producer<Maybe<Void>>() {
+        return mExecutionContext.execute(new ExecutionContext.Task<Void>() {
             @NonNull
             @Override
-            public Maybe<Void> produce() {
+            public Maybe<Void> run() {
                 mDirectDAO.execute(statement);
                 return nothing();
             }
@@ -79,10 +79,10 @@ public class Async implements DAO.Async {
     @NonNull
     @Override
     public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
-        return mExecutor.execute(new Producer<Maybe<V>>() {
+        return mExecutionContext.execute(new ExecutionContext.Task<V>() {
             @NonNull
             @Override
-            public Maybe<V> produce() {
+            public Maybe<V> run() {
                 return mDirectDAO.execute(expression);
             }
         });
@@ -91,12 +91,13 @@ public class Async implements DAO.Async {
     @NonNull
     @Override
     public final <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction) {
-        return mExecutor.execute(new Producer<Maybe<V>>() {
+        return mExecutionContext.execute(new ExecutionContext.Task<V>() {
             @NonNull
             @Override
-            public Maybe<V> produce() {
+            public Maybe<V> run() {
                 return mDirectDAO.execute(transaction);
             }
         });
     }
+
 }

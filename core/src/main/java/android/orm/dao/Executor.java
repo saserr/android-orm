@@ -21,10 +21,17 @@ import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
 import android.orm.sql.fragment.Where;
+import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
+import android.orm.util.Promise;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 public interface Executor<E, I, U, D> {
 

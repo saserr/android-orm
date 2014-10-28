@@ -21,7 +21,6 @@ import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
 import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
-import android.orm.util.Producer;
 import android.orm.util.Promise;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -31,16 +30,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Executor {
+public class ExecutionContext {
 
-    private static final String TAG = Executor.class.getSimpleName();
+    private static final String TAG = ExecutionContext.class.getSimpleName();
 
     @NonNull
     private final ExecutorService mExecutor;
 
     private final AtomicReference<ErrorHandler> mErrorHandler = new AtomicReference<>();
 
-    public Executor(@NonNull final ExecutorService executor) {
+    public ExecutionContext(@NonNull final ExecutorService executor) {
         super();
 
         mExecutor = executor;
@@ -51,10 +50,29 @@ public class Executor {
     }
 
     @NonNull
-    public final <V> Result<V> execute(@NonNull final Producer<Maybe<V>> producer) {
-        final Task<V> task = new Task<>(producer);
-        final Cancelable cancelable = cancelable(mExecutor.submit(task));
-        return new Result<>(task.getFuture(), cancelable, mErrorHandler.get());
+    public final <V> Result<V> execute(@NonNull final Task<V> task) {
+        final Promise<Maybe<V>> promise = new Promise<>();
+        final Runnable runnable = runnable(promise, task);
+        final Cancelable cancelable = cancelable(mExecutor.submit(runnable));
+        return new Result<>(promise.getFuture(), cancelable, mErrorHandler.get());
+    }
+
+    @NonNull
+    private static <V> Runnable runnable(@NonNull final Promise<Maybe<V>> promise,
+                                         @NonNull final Task<V> task) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    promise.success(task.run());
+                } catch (final Direct.Interrupted error) {
+                    Log.w(TAG, "Async task has been interrupted", error); //NON-NLS
+                } catch (final Throwable error) {
+                    Log.e(TAG, "Async task has been aborted", error); //NON-NLS
+                    promise.failure(error);
+                }
+            }
+        };
     }
 
     @NonNull
@@ -67,35 +85,8 @@ public class Executor {
         };
     }
 
-    private static class Task<V> implements Runnable {
-
+    public interface Task<V> {
         @NonNull
-        private final Producer<Maybe<V>> mProducer;
-
-        @NonNull
-        private final Promise<Maybe<V>> mPromise = new Promise<>();
-
-        private Task(@NonNull final Producer<Maybe<V>> producer) {
-            super();
-
-            mProducer = producer;
-        }
-
-        @NonNull
-        public final android.orm.util.Future<Maybe<V>> getFuture() {
-            return mPromise.getFuture();
-        }
-
-        @Override
-        public final void run() {
-            try {
-                mPromise.success(mProducer.produce());
-            } catch (final Direct.Interrupted error) {
-                Log.w(TAG, "Async operation has been interrupted", error); //NON-NLS
-            } catch (final Throwable error) {
-                Log.e(TAG, "Async operation has been aborted", error); //NON-NLS
-                mPromise.failure(error);
-            }
-        }
+        Maybe<V> run();
     }
 }
