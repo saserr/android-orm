@@ -118,8 +118,7 @@ public class ContentProvider extends android.content.ContentProvider {
         final Route route = mRoutes.get(uri);
         if (route != null) {
             @NonNls final String type = (route instanceof Route.Single) ? "item" : "dir";
-            final String table = route.getTable().getName();
-            result = CONTENT_TYPE_FORMAT.format(new String[]{type, mName, table});
+            result = CONTENT_TYPE_FORMAT.format(new String[]{type, mName, route.getTable()});
         }
 
         return result;

@@ -14,27 +14,31 @@
  * limitations under the License.
  */
 
-package android.orm.playground.annotation;
+package android.orm.database.table;
 
+import android.orm.database.Table;
+import android.orm.sql.Column;
+import android.orm.sql.ForeignKey;
+import android.orm.sql.PrimaryKey;
+import android.orm.sql.Statement;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+public interface Schema {
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+    void rename(@NonNls @NonNull final String name);
 
-@Retention(RUNTIME)
-@Target(FIELD)
-public @interface Column {
+    void update(@Nullable final Column<?> before, @Nullable final Column<?> after);
 
-    @NonNls @NonNull String name();
+    void update(@Nullable final ForeignKey<?> before, @Nullable final ForeignKey<?> after);
 
-    boolean unique() default false;
+    void with(@Nullable final PrimaryKey<?> primaryKey);
 
-    boolean nullable() default true;
+    @NonNull
+    Table<?> table();
 
-    boolean readOnly() default false;
+    @NonNull
+    Statement statement(final int version);
 }

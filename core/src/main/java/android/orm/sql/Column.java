@@ -165,25 +165,6 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         return new Column<>(mName, mType, constraints);
     }
 
-    @Override
-    public final boolean equals(@Nullable final Object object) {
-        boolean result = this == object;
-
-        if (!result && (object != null) && (getClass() == object.getClass())) {
-            final Column<?> other = (Column<?>) object;
-            result = mName.equals(other.mName) &&
-                    mType.equals(other.mType) &&
-                    mConstraints.equals(other.mConstraints);
-        }
-
-        return result;
-    }
-
-    @Override
-    public final int hashCode() {
-        return (31 * mName.hashCode()) + mType.hashCode();
-    }
-
     @NonNls
     @NonNull
     @Override
@@ -206,6 +187,32 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @NonNull
     public final String escape(@NonNull final V value) {
         return mType.escape(value);
+    }
+
+    @Override
+    public final boolean equals(@Nullable final Object object) {
+        boolean result = this == object;
+
+        if (!result && (object != null) && (getClass() == object.getClass())) {
+            final Column<?> other = (Column<?>) object;
+            result = mName.equals(other.mName) &&
+                    mType.equals(other.mType) &&
+                    mConstraints.equals(other.mConstraints);
+        }
+
+        return result;
+    }
+
+    @Override
+    public final int hashCode() {
+        return (31 * mName.hashCode()) + mType.hashCode();
+    }
+
+    @NonNls
+    @NonNull
+    @Override
+    public final String toString() {
+        return mName;
     }
 
     private <C extends Constraint<?>> boolean contains(@NonNull final Class<C> klass) {

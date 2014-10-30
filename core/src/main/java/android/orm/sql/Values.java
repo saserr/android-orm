@@ -25,12 +25,15 @@ import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
+import static android.orm.sql.Types.Integer;
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
 public final class Values {
+
+    public static final Value.ReadWrite<Long> RowId = value("_ROWID_", Integer);
 
     @NonNull
     public static <V> Value.ReadWrite<V> value(@NonNls @NonNull final String name,

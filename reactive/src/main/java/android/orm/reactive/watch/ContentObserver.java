@@ -18,7 +18,6 @@ package android.orm.reactive.watch;
 
 import android.net.Uri;
 import android.orm.reactive.Route;
-import android.orm.sql.Table;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -33,13 +32,14 @@ public abstract class ContentObserver extends android.database.ContentObserver {
 
     private static final String TAG = ContentObserver.class.getSimpleName();
 
+    @NonNls
     @NonNull
-    private final Table<?> mTable;
+    private final String mTable;
     @NonNull
     private final Route.Manager mRouteManager;
 
     protected ContentObserver(@NonNull final Handler handler,
-                              @NonNull final Table<?> table,
+                              @NonNls @NonNull final String table,
                               @NonNull final Route.Manager manager) {
         super(handler);
 
@@ -73,7 +73,7 @@ public abstract class ContentObserver extends android.database.ContentObserver {
         private final Observer mObserver;
 
         public SingleDispatch(@NonNull final Handler handler,
-                              @NonNull final Table<?> table,
+                              @NonNls @NonNull final String table,
                               @NonNull final Route.Manager manager,
                               @NonNull final Observer observer) {
             super(handler, table, manager);
@@ -92,7 +92,7 @@ public abstract class ContentObserver extends android.database.ContentObserver {
         private final Collection<Observer> mObservers = new ArrayList<>();
 
         public MultiDispatch(@NonNull final Handler handler,
-                             @NonNull final Table<?> table,
+                             @NonNls @NonNull final String table,
                              @NonNull final Route.Manager manager) {
             super(handler, table, manager);
         }

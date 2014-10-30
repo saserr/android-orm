@@ -20,7 +20,6 @@ import android.content.ContentValues;
 import android.orm.dao.Executor;
 import android.orm.model.Plan;
 import android.orm.sql.Select;
-import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -32,6 +31,8 @@ import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.jetbrains.annotations.NonNls;
+
 import static android.orm.sql.Select.select;
 
 public final class Executors {
@@ -40,7 +41,7 @@ public final class Executors {
 
     @NonNull
     public static <K> Executor.Direct.Single<K> single(@NonNull final android.orm.sql.Executor executor,
-                                                       @NonNull final Table<?> table,
+                                                       @NonNls @NonNull final String table,
                                                        @NonNull final Where where,
                                                        @NonNull final ContentValues onInsert,
                                                        @NonNull final Value.Read<K> key) {
@@ -49,14 +50,14 @@ public final class Executors {
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
-                                                   @NonNull final Table<?> table,
+                                                   @NonNls @NonNull final String table,
                                                    @NonNull final Value.Read<K> key) {
         return many(executor, table, Where.None, EMPTY, key);
     }
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
-                                                   @NonNull final Table<?> table,
+                                                   @NonNls @NonNull final String table,
                                                    @NonNull final Where where,
                                                    @NonNull final ContentValues onInsert,
                                                    @NonNull final Value.Read<K> key) {
@@ -67,8 +68,9 @@ public final class Executors {
 
         @NonNull
         private final android.orm.sql.Executor mExecutor;
+        @NonNls
         @NonNull
-        private final Table<?> mTable;
+        private final String mTable;
         @NonNull
         private final Where mWhere;
         @NonNull
@@ -77,7 +79,7 @@ public final class Executors {
         private final Value.Read<K> mKey;
 
         private Single(@NonNull final android.orm.sql.Executor executor,
-                       @NonNull final Table<?> table,
+                       @NonNls @NonNull final String table,
                        @NonNull final Where where,
                        @NonNull final ContentValues onInsert,
                        @NonNull final Value.Read<K> key) {
@@ -117,13 +119,14 @@ public final class Executors {
 
         @NonNull
         private final android.orm.sql.Executor mExecutor;
+        @NonNls
         @NonNull
-        private final Table<?> mTable;
+        private final String mTable;
         @NonNull
         private final Where mWhere;
 
         private Many(@NonNull final android.orm.sql.Executor executor,
-                     @NonNull final Table<?> table,
+                     @NonNls @NonNull final String table,
                      @NonNull final Where where,
                      @NonNull final ContentValues onInsert,
                      @NonNull final Value.Read<K> key) {
@@ -163,8 +166,9 @@ public final class Executors {
 
         @NonNull
         private final android.orm.sql.Executor mExecutor;
+        @NonNls
         @NonNull
-        private final Table<?> mTable;
+        private final String mTable;
         @NonNull
         private final Where mWhere;
         @NonNull
@@ -173,7 +177,7 @@ public final class Executors {
         private final Value.Read<K> mKey;
 
         private Some(@NonNull final android.orm.sql.Executor executor,
-                     @NonNull final Table<?> table,
+                     @NonNls @NonNull final String table,
                      @NonNull final Where where,
                      @NonNull final ContentValues onInsert,
                      @NonNull final Value.Read<K> key) {

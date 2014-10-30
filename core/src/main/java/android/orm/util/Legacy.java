@@ -19,20 +19,35 @@ package android.orm.util;
 import android.content.ContentValues;
 import android.database.SQLException;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.SparseArray;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.KITKAT;
 
 public final class Legacy {
+
+    public static boolean equals(@Nullable final Object first, @Nullable final Object second) {
+        final boolean result;
+
+        if (SDK_INT >= KITKAT) {
+            result = Objects.equals(first, second);
+        } else {
+            result = (first == null) ? (second == null) : first.equals(second);
+        }
+
+        return result;
+    }
 
     @NonNull
     public static SQLException wrap(@NonNls @NonNull final String message,

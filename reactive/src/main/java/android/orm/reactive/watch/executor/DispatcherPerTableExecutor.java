@@ -21,7 +21,6 @@ import android.net.Uri;
 import android.orm.reactive.Route;
 import android.orm.reactive.watch.Dispatcher;
 import android.orm.reactive.watch.Manager;
-import android.orm.sql.Table;
 import android.support.annotation.NonNull;
 
 import java.util.HashMap;
@@ -36,7 +35,7 @@ public class DispatcherPerTableExecutor extends DispatcherExecutor {
     private final Manager.Factory mFactory;
 
     private final Lock mLock = new ReentrantLock();
-    private final Map<Table<?>, Dispatcher> mDispatchers = new HashMap<>();
+    private final Map<String, Dispatcher> mDispatchers = new HashMap<>();
 
     public DispatcherPerTableExecutor() {
         this(Manager.Factory.Default);
@@ -65,7 +64,7 @@ public class DispatcherPerTableExecutor extends DispatcherExecutor {
     protected final Dispatcher get(@NonNull final ContentResolver resolver,
                                    @NonNull final Route route,
                                    @NonNull final Uri uri) {
-        final Table<?> table = route.getTable();
+        final String table = route.getTable();
         final Dispatcher dispatcher;
 
         mLock.lock();

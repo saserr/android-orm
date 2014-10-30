@@ -29,10 +29,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target(TYPE)
 public @interface Table {
-
-    @NonNls
-    @NonNull String name();
-
-    int version();
+    @NonNls @NonNull String name();
 }
-

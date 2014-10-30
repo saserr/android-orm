@@ -26,12 +26,11 @@ import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
 import static android.util.Log.DEBUG;
-import static java.util.Collections.singleton;
 
 public final class Statements {
 
@@ -42,16 +41,14 @@ public final class Statements {
 
     private static final String TAG = Statement.class.getSimpleName();
     @NonNls
-    private static final String ALTER_TABLE = "alter table ";
-    @NonNls
     private static final String NO_COLUMNS = "Columns cannot be empty";
 
     @NonNull
-    public static <K> Statement createTable(@NonNls @NonNull final String name,
-                                            @NonNull final Collection<Column<?>> columns,
-                                            @Nullable final PrimaryKey<K> primaryKey,
-                                            @NonNull final Collection<ForeignKey<?>> foreignKeys) {
-        if (columns.isEmpty()) {
+    public static Statement createTable(@NonNls @NonNull final String name,
+                                        @Nullable final PrimaryKey<?> primaryKey,
+                                        @NonNull final Set<ForeignKey<?>> foreignKeys,
+                                        @NonNull final Set<Column<?>> columns) {
+        if (columns.size() < 1) {
             throw new IllegalArgumentException(NO_COLUMNS);
         }
 
@@ -75,34 +72,14 @@ public final class Statements {
     }
 
     @NonNull
-    public static <V> Statement createIndex(@NonNls @NonNull final String table,
-                                            @NonNull final Column<V> column) {
-        @NonNls final String name = table + '_' + column.getName() + "_index";
-        return createIndex(name, table, column);
+    public static Statement renameTable(@NonNls @NonNull final String oldName,
+                                        @NonNls @NonNull final String newName) {
+        return new RenameTable(oldName, newName);
     }
 
     @NonNull
-    public static <V> Statement createIndex(@NonNls @NonNull final String name,
-                                            @NonNls @NonNull final String table,
-                                            @NonNull final Column<V> column) {
-        return createIndex(column.isUnique(), name, table, column);
-    }
-
-    @NonNull
-    public static Statement createIndex(final boolean isUnique,
-                                        @NonNls @NonNull final String name,
-                                        @NonNls @NonNull final String table,
-                                        @NonNull final Column<?>... columns) {
-        final StringBuilder projection = new StringBuilder().append('(');
-
-        for (final Column<?> column : columns) {
-            projection.append(escape(column.getName())).append(", ");
-        }
-        final int length = projection.length();
-        projection.replace(length - 2, length, ")");
-
-        return statement("create " + (isUnique ? "unique " : "") + "index " + escape(name)
-                + "\non " + escape(table) + ' ' + projection + ';');
+    public static Statement dropTable(@NonNls @NonNull final String name) {
+        return statement("drop table " + escape(name) + ';');
     }
 
     @NonNull
@@ -129,68 +106,25 @@ public final class Statements {
     }
 
     @NonNull
-    public static Statement renameTable(@NonNls @NonNull final String oldName,
-                                        @NonNls @NonNull final String newName) {
-        return new RenameTable(oldName, newName);
-    }
+    public static Statement createIndex(final boolean isUnique,
+                                        @NonNls @NonNull final String name,
+                                        @NonNls @NonNull final String table,
+                                        @NonNull final Column<?>... columns) {
+        final StringBuilder projection = new StringBuilder().append('(');
 
-    @NonNull
-    public static <V> Statement addColumn(@NonNls @NonNull final String name,
-                                          @NonNull final Column<V> column) {
-        return statement(ALTER_TABLE + escape(name) + " add column " + column.toSQL() + ';');
-    }
-
-    @NonNull
-    public static <K, V> Statement renameColumn(@NonNull final Table<K> table,
-                                                @NonNls @NonNull final String oldName,
-                                                @NonNull final Column<V> column,
-                                                @NonNull final Collection<ForeignKey<?>> foreignKeys) {
-        return new RenameColumn<>(table, oldName, column, foreignKeys);
-    }
-
-    @NonNull
-    public static <K> Statement alterColumns(@NonNull final Table<K> table,
-                                             @NonNull final Collection<Pair<String, Column<?>>> columns,
-                                             @NonNull final Collection<ForeignKey<?>> foreignKeys) {
-        if (columns.isEmpty()) {
-            throw new IllegalArgumentException(NO_COLUMNS);
+        for (final Column<?> column : columns) {
+            projection.append(escape(column.getName())).append(", ");
         }
+        final int length = projection.length();
+        projection.replace(length - 2, length, ")");
 
-        final String original = table.getName();
-        final PrimaryKey<K> primaryKey = table.getPrimaryKey();
-        final Collection<Column<?>> remaining = new ArrayList<>(columns.size());
-        final Collection<Pair<String, String>> toTemporary = new ArrayList<>(columns.size());
-        final Collection<Pair<String, String>> fromTemporary = new ArrayList<>(columns.size());
-        for (final Pair<String, Column<?>> pair : columns) {
-            final Column<?> column = pair.second;
-            remaining.add(column);
-            toTemporary.add(Pair.create(pair.first, column.getName()));
-            fromTemporary.add(Pair.create(column.getName(), column.getName()));
-        }
-
-        @NonNls final String temporary = "temp." + original;
-
-        return compose(
-                // defer foreign keys integrity check until end of the transaction
-                statement("pragma defer_foreign_keys=on;"),
-                // create a temporary table
-                createTable(temporary, remaining, primaryKey, foreignKeys),
-                // copy data to temporary table
-                copyData(original, temporary, toTemporary),
-                // drop the original table
-                dropTable(original),
-                // recreate the original table with remaining columns
-                createTable(original, remaining, primaryKey, foreignKeys),
-                // copy data from temporary table
-                copyData(temporary, original, fromTemporary),
-                // drop the temporary table
-                dropTable(temporary)
-        );
+        return statement("create " + (isUnique ? "unique " : "") + "index " + escape(name)
+                + "\non " + escape(table) + ' ' + projection + ';');
     }
 
     @NonNull
-    public static Statement dropTable(@NonNls @NonNull final String name) {
-        return statement("drop table " + escape(name) + ';');
+    public static Statement dropIndex(@NonNls @NonNull final String name) {
+        return statement("drop index " + escape(name) + ';');
     }
 
     @NonNull
@@ -240,7 +174,7 @@ public final class Statements {
             mOldName = oldName;
             mNewName = newName;
 
-            mStatement = statement(ALTER_TABLE + escape(mOldName) + " rename to " + escape(mNewName) + ';');
+            mStatement = statement("alter table " + escape(mOldName) + " rename to " + escape(mNewName) + ';');
         }
 
         @Override
@@ -261,68 +195,6 @@ public final class Statements {
             final Cursor cursor = database.rawQuery(TABLE_CHECK, new String[]{name});
             try {
                 exists = cursor.getCount() > 0;
-            } finally {
-                cursor.close();
-            }
-
-            return exists;
-        }
-    }
-
-    private static class RenameColumn<K, V> implements Statement {
-
-        @NonNls
-        private static final String TABLE_INFO = "pragma table_info(?);";
-
-        @NonNull
-        private final Table<K> mTable;
-        @NonNls
-        @NonNull
-        private final String mOldName;
-        @NonNull
-        private final Column<V> mColumn;
-        @NonNull
-        private final Statement mStatement;
-
-        private RenameColumn(@NonNls @NonNull final Table<K> table,
-                             @NonNls @NonNull final String oldName,
-                             @NonNull final Column<V> column,
-                             @NonNull final Collection<ForeignKey<?>> foreignKeys) {
-            super();
-
-            mTable = table;
-            mOldName = oldName;
-            mColumn = column;
-
-            mStatement = alterColumns(mTable, singleton(Pair.<String, Column<?>>create(mOldName, mColumn)), foreignKeys);
-        }
-
-        @Override
-        public final void execute(@NonNull final SQLiteDatabase database) {
-            final String table = mTable.getName();
-            final String newName = mColumn.getName();
-
-            if (containsColumn(database, table, mOldName)) {
-                mStatement.execute(database);
-            } else if (containsColumn(database, table, newName)) {
-                Log.w(TAG, "Column '" + mOldName + "' in table '" + table + "' is probably already renamed to '" + newName + "! Skipping column rename"); //NON-NLS
-            } else {
-                throw new SQLException("Column '" + mOldName + "' in table '" + table + "' is missing! Cannot rename it to '" + newName + '\'');
-            }
-        }
-
-        private static boolean containsColumn(@NonNull final SQLiteDatabase database,
-                                              @NonNls @NonNull final String table,
-                                              @NonNls @NonNull final String name) {
-            boolean exists = false;
-
-            final Cursor cursor = database.rawQuery(TABLE_INFO, new String[]{table});
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        exists = name.equals(cursor.getString(cursor.getColumnIndex("name"))); //NON-NLS
-                    } while (!exists && cursor.moveToNext());
-                }
             } finally {
                 cursor.close();
             }

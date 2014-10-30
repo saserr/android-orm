@@ -19,11 +19,12 @@ package android.orm.reactive.watch;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.orm.reactive.Route;
-import android.orm.sql.Table;
 import android.orm.util.Cancelable;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
+import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -302,8 +303,9 @@ public abstract class Manager implements Dispatcher.Callback {
 
     private static class Registration {
 
+        @NonNls
         @NonNull
-        private final Table<?> mTable;
+        private final String mTable;
         @NonNull
         private final Route.Manager mRouteManager;
         @NonNull

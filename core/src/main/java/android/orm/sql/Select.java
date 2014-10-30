@@ -47,8 +47,9 @@ public class Select {
 
     private static final String TAG = Select.class.getSimpleName();
 
+    @NonNls
     @NonNull
-    private final Table<?> mTable;
+    private final String mTable;
     @NonNull
     private final Where mWhere;
     @Nullable
@@ -58,11 +59,11 @@ public class Select {
     @Nullable
     private final Offset mOffset;
 
-    private <K> Select(@NonNull final Table<K> table,
-                       @NonNull final Where where,
-                       @Nullable final Order order,
-                       @Nullable final Limit limit,
-                       @Nullable final Offset offset) {
+    private Select(@NonNls @NonNull final String table,
+                   @NonNull final Where where,
+                   @Nullable final Order order,
+                   @Nullable final Limit limit,
+                   @Nullable final Offset offset) {
         super();
 
         mTable = table;
@@ -96,7 +97,7 @@ public class Select {
     }
 
     @NonNull
-    public static <K> Builder select(@NonNull final Table<K> table) {
+    public static Builder select(@NonNls @NonNull final String table) {
         return new Builder(table);
     }
 
@@ -115,8 +116,9 @@ public class Select {
 
     public static class Builder {
 
+        @NonNls
         @NonNull
-        private final Table<?> mTable;
+        private final String mTable;
         @NonNull
         private Where mWhere;
         @Nullable
@@ -126,7 +128,7 @@ public class Select {
         @Nullable
         private Offset mOffset;
 
-        public <K> Builder(@NonNull final Table<K> table) {
+        private Builder(@NonNls @NonNull final String table) {
             super();
 
             mTable = table;
@@ -165,12 +167,12 @@ public class Select {
 
     @NonNls
     @NonNull
-    private static <K> String toSQL(@Nullable final Projection projection,
-                                    @NonNull final Table<K> from,
-                                    @NonNull final Where where,
-                                    @Nullable final Order order,
-                                    @Nullable final Limit limit,
-                                    @Nullable final Offset offset) {
+    private static String toSQL(@Nullable final Projection projection,
+                                @NonNls @NonNull final String table,
+                                @NonNull final Where where,
+                                @Nullable final Order order,
+                                @Nullable final Limit limit,
+                                @Nullable final Offset offset) {
         @NonNls final StringBuilder result = new StringBuilder();
 
         result.append("select ");
@@ -185,7 +187,7 @@ public class Select {
         }
         result.append('\n');
 
-        result.append("from ").append(escape(from.getName()));
+        result.append("from ").append(escape(table));
         if (!where.isEmpty()) {
             result.append('\n').append("where ").append(where.toSQL());
         }

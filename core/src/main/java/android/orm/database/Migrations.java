@@ -16,36 +16,24 @@
 
 package android.orm.database;
 
-import android.database.SQLException;
 import android.orm.DAO;
 import android.orm.sql.Column;
-import android.orm.sql.ForeignKey;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
-import android.orm.sql.Table;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
-import android.util.Log;
-import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import static android.orm.sql.Statements.addColumn;
-import static android.orm.sql.Statements.alterColumns;
 import static android.orm.sql.Statements.createTable;
 import static android.orm.sql.Statements.dropTable;
-import static android.util.Log.INFO;
 
 public final class Migrations {
-
-    private static final String TAG = Migration.class.getSimpleName();
 
     @NonNull
     public static Migration atVersion(final int version,
@@ -55,47 +43,52 @@ public final class Migrations {
     }
 
     @NonNull
-    public static <K> Migration migrate(@NonNull final Table<K> table) {
-        return new TableMigration<>(table);
+    public static Migration create(final int version, @NonNls @NonNull final Table<?> table) {
+        final String name = table.getName();
+        return atVersion(
+                version,
+                createTable(name, table.getPrimaryKey(), table.getForeignKeys(), table.getColumns()),
+                dropTable(name)
+        );
     }
 
     @NonNull
-    public static <K> Migration renameTable(final int version,
-                                            @NonNls @NonNull final String oldName,
-                                            @NonNull final Table<K> table) {
-        final String newName = table.getName();
+    public static Migration renameTable(final int version,
+                                        @NonNls @NonNull final String oldName,
+                                        @NonNls @NonNull final String newName) {
         return atVersion(
                 version,
                 Statements.renameTable(oldName, newName),
-                Statements.NOTHING
+                Statements.renameTable(newName, oldName)
         );
     }
 
     @NonNull
-    public static <K, V> Migration renameColumn(final int version,
-                                                @NonNull final Table<K> table,
-                                                @NonNls @NonNull final String oldName,
-                                                @NonNull final Column<V> column) {
-        return atVersion(
-                version,
-                Statements.renameColumn(table, oldName, column, table.getForeignKeys(version)),
-                Statements.NOTHING
-        );
+    public static <V> Migration createIndex(final int version,
+                                            @NonNls @NonNull final String table,
+                                            @NonNull final Column<V> column) {
+        @NonNls final String name = table + '_' + column.getName() + "_index";
+        return createIndex(version, name, table, column);
     }
 
     @NonNull
-    public static <K> Migration recreateAt(final int version, @NonNull final Table<K> table) {
-        final Set<Column<?>> columns = table.getColumns(version);
-        final List<Pair<String, Column<?>>> pairs = new ArrayList<>(columns.size());
+    public static <V> Migration createIndex(final int version,
+                                            @NonNls @NonNull final String name,
+                                            @NonNls @NonNull final String table,
+                                            @NonNull final Column<V> column) {
+        return createIndex(version, column.isUnique(), name, table, column);
+    }
 
-        for (final Column<?> column : table.getColumns(version)) {
-            pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
-        }
-
+    @NonNull
+    public static Migration createIndex(final int version,
+                                        final boolean isUnique,
+                                        @NonNls @NonNull final String name,
+                                        @NonNls @NonNull final String table,
+                                        @NonNull final Column<?>... columns) {
         return atVersion(
                 version,
-                alterColumns(table, pairs, table.getForeignKeys(version)),
-                Statements.NOTHING
+                Statements.createIndex(isUnique, name, table, columns),
+                Statements.dropIndex(name)
         );
     }
 
@@ -190,121 +183,6 @@ public final class Migrations {
                     return result;
                 }
             };
-        }
-    }
-
-    private static class TableMigration<K> implements Migration {
-
-        @NonNull
-        private final Table<K> mTable;
-
-        private TableMigration(@NonNull final Table<K> table) {
-            super();
-
-            mTable = table;
-        }
-
-        @Override
-        public final void create(@NonNull final DAO.Direct dao, final int version) {
-            final int createdAt = mTable.getVersion();
-
-            if ((createdAt > 0) && (createdAt <= version)) {
-                @NonNls final String name = mTable.getName();
-
-                if (Log.isLoggable(TAG, INFO)) {
-                    Log.i(TAG, "Creating table " + name); //NON-NLS
-                }
-
-                final Set<Column<?>> columns = mTable.getColumns(version);
-
-                if (columns.isEmpty()) {
-                    throw new SQLException(
-                            name + " table cannot be created because it has no columns at version " + version
-                    );
-                }
-
-                dao.execute(createTable(name, columns, mTable.getPrimaryKey(), mTable.getForeignKeys(version)));
-            }
-        }
-
-        @Override
-        public final void upgrade(@NonNull final DAO.Direct dao,
-                                  final int oldVersion,
-                                  final int newVersion) {
-            final int createdAt = mTable.getVersion();
-
-            if ((createdAt > 0) && (createdAt <= newVersion)) {
-                if (oldVersion < createdAt) {
-                    create(dao, newVersion);
-                } else {
-                    @NonNls final String name = mTable.getName();
-
-                    // find all columns that were added to table between old version (exclusive) and new version (inclusive)
-                    final Collection<Column<?>> columns = new HashSet<>(mTable.getColumns(newVersion));
-                    columns.removeAll(mTable.getColumns(oldVersion));
-
-                    if (!columns.isEmpty()) {
-                        if (Log.isLoggable(TAG, INFO)) {
-                            Log.i(TAG, "Upgrading table " + name); //NON-NLS
-                        }
-
-                        // table is created
-                        for (final Column<?> column : columns) {
-                            dao.execute(addColumn(name, column));
-                        }
-                    }
-                }
-            }
-        }
-
-        @Override
-        public final void downgrade(@NonNull final DAO.Direct dao,
-                                    final int oldVersion,
-                                    final int newVersion) {
-            final int createdAt = mTable.getVersion();
-
-            if ((createdAt > 0) && (createdAt <= oldVersion)) {
-                @NonNls final String name = mTable.getName();
-
-                if (newVersion < createdAt) {
-                    if (Log.isLoggable(TAG, INFO)) {
-                        Log.i(TAG, "Dropping table " + name); //NON-NLS
-                    }
-
-                    // table must be dropped
-                    dao.execute(dropTable(name));
-                } else {
-                    final Set<Column<?>> columns = mTable.getColumns(newVersion);
-                    final List<ForeignKey<?>> foreignKeys = mTable.getForeignKeys(newVersion);
-
-                    // find all columns and foreign keys that were added to table between old version (inclusive) and new version (exclusive)
-                    final Set<Column<?>> oldColumns = mTable.getColumns(oldVersion);
-                    final List<ForeignKey<?>> oldForeignKeys = mTable.getForeignKeys(oldVersion);
-                    final Collection<Object> difference = new ArrayList<>(oldColumns.size() + oldForeignKeys.size());
-                    difference.addAll(oldColumns);
-                    difference.removeAll(columns);
-                    difference.addAll(oldForeignKeys);
-                    difference.removeAll(foreignKeys);
-
-                    if (!difference.isEmpty()) {
-                        if (Log.isLoggable(TAG, INFO)) {
-                            Log.i(TAG, "Downgrading table " + name); //NON-NLS
-                        }
-
-                        if (columns.isEmpty()) {
-                            throw new SQLException(
-                                    name + " table cannot be downgraded because it has no columns at version " + newVersion
-                            );
-                        }
-
-                        final List<Pair<String, Column<?>>> pairs = new ArrayList<>(columns.size());
-                        for (final Column<?> column : columns) {
-                            pairs.add(Pair.<String, Column<?>>create(column.getName(), column));
-                        }
-                        dao.execute(alterColumns(mTable, pairs, foreignKeys));
-                    }
-                }
-            }
         }
     }
 

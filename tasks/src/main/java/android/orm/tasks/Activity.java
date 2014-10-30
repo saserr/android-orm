@@ -19,7 +19,7 @@ package android.orm.tasks;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.orm.Access;
-import android.orm.Reactive;
+import android.orm.Remote;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
 import android.orm.reactive.Watchers;
@@ -51,7 +51,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     private static final Collection<Task> NO_TASKS = emptyList();
     private static final String EDITED_TASK_STATE = "edited_task"; //NON-NLS
 
-    private Reactive.Async mDAO;
+    private Remote.Async mDAO;
     private Watchers mWatchers;
     private Access.Async.Many<Uri> mTasks;
     private long mEditedTask = Task.NoId;

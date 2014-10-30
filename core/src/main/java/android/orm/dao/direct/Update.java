@@ -21,10 +21,8 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.model.Plan;
 import android.orm.sql.Expression;
-import android.orm.sql.Helper;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
-import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Where;
@@ -35,6 +33,7 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
+import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Readables.combine;
 import static android.orm.sql.Readables.readable;
 import static android.orm.sql.Select.select;
@@ -53,7 +52,7 @@ public final class Update {
 
         @NonNls
         @NonNull
-        private final String mTableName;
+        private final String mTable;
         @NonNull
         private final Where mWhere;
         @NonNull
@@ -65,14 +64,14 @@ public final class Update {
         @NonNull
         private final Select mSelect;
 
-        public Single(@NonNull final Table<?> table,
+        public Single(@NonNls @NonNull final String table,
                       @NonNull final Where where,
                       @NonNull final Plan.Write plan,
                       @NonNull final ContentValues additional,
                       @NonNull final Value.Read<K> key) {
             super();
 
-            mTableName = Helper.escape(table.getName());
+            mTable = escape(table);
             mWhere = where;
             mPlan = plan;
             mAdditional = additional;
@@ -85,7 +84,7 @@ public final class Update {
         public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
             mPlan.write(Update, writable(values));
-            final int updated = update(database, mTableName, mWhere, values);
+            final int updated = update(database, mTable, mWhere, values);
 
             final Maybe<K> result;
 
@@ -133,12 +132,12 @@ public final class Update {
         @NonNull
         private final Plan.Write mPlan;
 
-        public Many(@NonNull final Table<?> table,
+        public Many(@NonNls @NonNull final String table,
                     @NonNull final Where where,
                     @NonNull final Plan.Write plan) {
             super();
 
-            mTable = Helper.escape(table.getName());
+            mTable = escape(table);
             mWhere = where;
             mPlan = plan;
         }

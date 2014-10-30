@@ -14,27 +14,32 @@
  * limitations under the License.
  */
 
-package android.orm.playground.annotation;
+package android.orm.tasks.data;
 
-import android.support.annotation.NonNull;
+import android.orm.database.Table;
+import android.orm.tasks.model.Task;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import static android.orm.sql.PrimaryKey.primaryKey;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+public final class Migrations {
 
-@Retention(RUNTIME)
-@Target(FIELD)
-public @interface Column {
+    @NonNls
+    public static final Table.Migration Tasks;
 
-    @NonNls @NonNull String name();
+    /* tasks table migrations */
+    static {
+        Tasks = new Table.Migration("tasks");
+        Tasks.at(1)
+                .add(Task.Id)
+                .add(Task.Title)
+                .with(primaryKey(Task.Id));
+        Tasks.at(2)
+                .add(Task.Finished);
+    }
 
-    boolean unique() default false;
-
-    boolean nullable() default true;
-
-    boolean readOnly() default false;
+    private Migrations() {
+        super();
+    }
 }

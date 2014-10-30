@@ -16,17 +16,16 @@
 
 package android.orm.tasks;
 
-import android.orm.Reactive;
-import android.orm.tasks.data.Configuration;
+import android.orm.Remote;
 import android.support.annotation.NonNull;
 
 public class Application extends android.app.Application {
 
     @NonNull
-    private Reactive.Async mDAO;
+    private Remote.Async mDAO;
 
     @NonNull
-    public final Reactive.Async getDAO() {
+    public final Remote.Async getDAO() {
         return mDAO;
     }
 
@@ -34,6 +33,6 @@ public class Application extends android.app.Application {
     public final void onCreate() {
         super.onCreate();
 
-        mDAO = Reactive.create(getApplicationContext(), Configuration.DATABASE);
+        mDAO = Remote.create(getContentResolver());
     }
 }

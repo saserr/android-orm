@@ -21,18 +21,18 @@ import android.orm.remote.ContentProvider;
 import android.orm.tasks.BuildConfig;
 import android.orm.tasks.model.Task;
 
-import static android.orm.tasks.data.Configuration.DATABASE;
+import static android.orm.tasks.data.Configuration.Database;
 
 public class Provider extends ContentProvider {
 
     private static final Route.Manager ROUTES = new Route.Manager(BuildConfig.APPLICATION_ID);
 
     public interface Routes {
-        Route.Single TaskById = ROUTES.single(Configuration.Tables.Tasks, Task.Id);
+        Route.Single TaskById = ROUTES.single(Tables.Tasks.getName(), Task.Id);
         Route.Many Tasks = ROUTES.many(TaskById);
     }
 
     public Provider() {
-        super(DATABASE, "orm", ROUTES);
+        super(Database, "orm", ROUTES);
     }
 }

@@ -18,6 +18,8 @@ package android.orm.playground.annotation;
 
 import android.support.annotation.NonNull;
 
+import org.jetbrains.annotations.NonNls;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -29,11 +31,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(TYPE)
 public @interface ForeignKey {
 
-    @NonNull String[] childKey();
+    @NonNls @NonNull String[] childKey();
 
     @NonNull Class<?> parent();
 
-    @NonNull String[] parentKey();
+    @NonNls @NonNull String[] parentKey();
 
     @NonNull android.orm.sql.ForeignKey.Action onDelete() default NoAction;
 

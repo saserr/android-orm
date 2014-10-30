@@ -32,6 +32,7 @@ import java.math.BigDecimal;
 
 import static android.graphics.Bitmap.CompressFormat.PNG;
 import static android.orm.sql.Column.column;
+import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Types.Binary;
 import static android.orm.sql.Types.Bool;
 import static android.orm.sql.Types.Decimal;
@@ -43,9 +44,7 @@ import static android.orm.sql.Types.Uri;
 
 public final class Columns {
 
-    public static final Column<Long> Id = column(BaseColumns._ID, Integer)
-            .asUnique()
-            .asNotNull();
+    public static final Column<Long> Id = number(BaseColumns._ID).asUnique().asNotNull();
 
     @NonNull
     public static <V> Value.Read<V> readAs(@NonNls @NonNull final String name,
@@ -137,7 +136,7 @@ public final class Columns {
 
             mName = newName;
             mType = column.getType();
-            mProjection = Select.projection(newName, Helper.escape(column.getName()));
+            mProjection = Select.projection(newName, escape(column.getName()));
         }
 
         @NonNls

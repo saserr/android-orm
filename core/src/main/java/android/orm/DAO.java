@@ -26,20 +26,20 @@ import android.orm.sql.Column;
 import android.orm.sql.Expression;
 import android.orm.sql.PrimaryKey;
 import android.orm.sql.Statement;
-import android.orm.sql.Table;
-import android.orm.sql.Value;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.jetbrains.annotations.NonNls;
+
 import java.util.concurrent.ExecutorService;
 
 import static android.orm.dao.direct.Executors.many;
 import static android.orm.dao.direct.Executors.single;
-import static android.orm.sql.Table.ROW_ID;
 import static android.orm.sql.Value.Write.Operation.Insert;
+import static android.orm.sql.Values.RowId;
 import static android.orm.sql.Writables.writable;
 import static android.orm.sql.fragment.Where.where;
 import static android.orm.util.Maybes.something;
@@ -47,99 +47,88 @@ import static java.lang.Runtime.getRuntime;
 
 public final class DAO {
 
-    private static final Where.SimplePart<Long> WHERE_ROW_ID = where(ROW_ID);
+    private static final Where.ComplexPart.WithNull<Long> WHERE_ROW_ID = where(RowId);
 
     @NonNull
-    public static Executor.Direct.Single.Factory<android.orm.sql.Executor, Long> byRowId(@NonNull final Table<?> table,
+    public static Executor.Direct.Single.Factory<android.orm.sql.Executor, Long> byRowId(@NonNls @NonNull final String table,
                                                                                          final long rowId) {
+        final Where where = WHERE_ROW_ID.isEqualTo(rowId);
+        final ContentValues onInsert = new ContentValues();
+        RowId.write(Insert, something(rowId), writable(onInsert));
+
         return new Executor.Direct.Single.Factory<android.orm.sql.Executor, Long>() {
             @NonNull
             @Override
             public Executor.Direct.Single<Long> create(@NonNull final android.orm.sql.Executor executor) {
-                final Where where = WHERE_ROW_ID.isEqualTo(rowId);
-                final ContentValues onInsert = new ContentValues();
-                ROW_ID.write(Insert, something(rowId), writable(onInsert));
-                return single(executor, table, where, onInsert, ROW_ID);
+                return single(executor, table, where, onInsert, RowId);
             }
         };
     }
 
     @NonNull
-    public static Executor.Direct.Many.Factory<android.orm.sql.Executor, Long> byRowId(@NonNull final Table<?> table) {
+    public static Executor.Direct.Many.Factory<android.orm.sql.Executor, Long> byRowId(@NonNls @NonNull final String table) {
         return new Executor.Direct.Many.Factory<android.orm.sql.Executor, Long>() {
             @NonNull
             @Override
             public Executor.Direct.Many<Long> create(@NonNull final android.orm.sql.Executor executor) {
-                return many(executor, table, ROW_ID);
+                return many(executor, table, RowId);
             }
         };
     }
 
     @NonNull
-    public static <K> Executor.Direct.Single.Factory<android.orm.sql.Executor, K> byPrimaryKey(@NonNull final Table<K> table,
-                                                                                               @NonNull final K key) {
+    public static <K> Executor.Direct.Single.Factory<android.orm.sql.Executor, K> byPrimaryKey(@NonNls @NonNull final String table,
+                                                                                               @NonNull final PrimaryKey<K> key,
+                                                                                               @Nullable final K value) {
+        final Where where = (value == null) ? where(key).isNull() : where(key).isEqualTo(value);
+        final ContentValues onInsert = new ContentValues();
+        key.write(Insert, something(value), writable(onInsert));
+
         return new Executor.Direct.Single.Factory<android.orm.sql.Executor, K>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
             public Executor.Direct.Single<K> create(@NonNull final android.orm.sql.Executor executor) {
-                final PrimaryKey<K> primaryKey = table.getPrimaryKey();
-                final Executor.Direct.Single<K> result;
-
-                if (primaryKey == null) {
-                    final Where where = where((Column<K>) ROW_ID).isEqualTo(key);
-                    final ContentValues onInsert = new ContentValues();
-                    ((Value.Write<K>) ROW_ID).write(Insert, something(key), writable(onInsert));
-                    result = single(executor, table, where, onInsert, (Value.Read<K>) ROW_ID);
-                } else {
-                    final Where where = where(primaryKey).isEqualTo(key);
-                    final ContentValues onInsert = new ContentValues();
-                    primaryKey.write(Insert, something(key), writable(onInsert));
-                    result = single(executor, table, where, onInsert, primaryKey);
-                }
-
-                return result;
+                return single(executor, table, where, onInsert, key);
             }
         };
     }
 
     @NonNull
-    public static <K> Executor.Direct.Many.Factory<android.orm.sql.Executor, K> byPrimaryKey(@NonNull final Table<K> table) {
+    public static <K> Executor.Direct.Many.Factory<android.orm.sql.Executor, K> byPrimaryKey(@NonNls @NonNull final String table,
+                                                                                             @NonNull final PrimaryKey<K> key) {
         return new Executor.Direct.Many.Factory<android.orm.sql.Executor, K>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
             public Executor.Direct.Many<K> create(@NonNull final android.orm.sql.Executor executor) {
-                final PrimaryKey<K> primaryKey = table.getPrimaryKey();
-                final Value.Read<K> key = (primaryKey == null) ? (Value.Read<K>) ROW_ID : primaryKey;
                 return many(executor, table, key);
             }
         };
     }
 
     @NonNull
-    public static <K, V> Executor.Direct.Single.Factory<android.orm.sql.Executor, V> byUniqueColumn(@NonNull final Table<K> table,
-                                                                                                    @NonNull final Column<V> column,
-                                                                                                    @NonNull final V value) {
+    public static <V> Executor.Direct.Single.Factory<android.orm.sql.Executor, V> byUniqueColumn(@NonNls @NonNull final String table,
+                                                                                                 @NonNull final Column<V> column,
+                                                                                                 @Nullable final V value) {
         if (!column.isUnique()) {
             throw new IllegalArgumentException("Column must be unique");
         }
+
+        final Where where = (value == null) ? where(column).isNull() : where(column).isEqualTo(value);
+        final ContentValues onInsert = new ContentValues();
+        column.write(Insert, something(value), writable(onInsert));
 
         return new Executor.Direct.Single.Factory<android.orm.sql.Executor, V>() {
             @NonNull
             @Override
             public Executor.Direct.Single<V> create(@NonNull final android.orm.sql.Executor executor) {
-                final Where where = where(column).isEqualTo(value);
-                final ContentValues onInsert = new ContentValues();
-                column.write(Insert, something(value), writable(onInsert));
                 return single(executor, table, where, onInsert, column);
             }
         };
     }
 
     @NonNull
-    public static <K, V> Executor.Direct.Many.Factory<android.orm.sql.Executor, V> byUniqueColumn(@NonNull final Table<K> table,
-                                                                                                  @NonNull final Column<V> column) {
+    public static <V> Executor.Direct.Many.Factory<android.orm.sql.Executor, V> byUniqueColumn(@NonNls @NonNull final String table,
+                                                                                               @NonNull final Column<V> column) {
         if (!column.isUnique()) {
             throw new IllegalArgumentException("Column must be unique");
         }

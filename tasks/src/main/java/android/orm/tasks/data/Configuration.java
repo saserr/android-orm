@@ -18,29 +18,13 @@ package android.orm.tasks.data;
 
 import android.orm.Database;
 import android.orm.database.IntegrityChecks;
-import android.orm.sql.Table;
-import android.orm.tasks.model.Task;
-
-import static android.orm.sql.PrimaryKey.primaryKey;
-import static android.orm.sql.Table.table;
-import static android.orm.sql.fragment.Order.Type.Ascending;
-import static android.orm.sql.fragment.Order.order;
 
 public final class Configuration {
 
     private static final int VERSION = 2;
 
-    public static final Database DATABASE = new Database("tasks.db", VERSION, IntegrityChecks.Full)
-            .migrate(Tables.Tasks);
-
-    public interface Tables {
-        Table<Long> Tasks = table("tasks", 1)
-                .with(Task.Id)
-                .with(Task.Title)
-                .with(2, Task.Finished)
-                .with(primaryKey(Task.Id))
-                .with(order(Task.Id, Ascending));
-    }
+    public static final Database Database = new Database("tasks.db", VERSION, IntegrityChecks.Full)
+            .migrate(Migrations.Tasks);
 
     private Configuration() {
         super();

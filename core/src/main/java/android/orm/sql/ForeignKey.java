@@ -31,8 +31,9 @@ public class ForeignKey<V> implements Fragment {
 
     @NonNull
     private final Value.Read<V> mChildKey;
+    @NonNls
     @NonNull
-    private final Table<?> mParentTable;
+    private final String mParentTable;
     @Nullable
     private final Value.Read<V> mParentKey;
     @Nullable
@@ -44,17 +45,10 @@ public class ForeignKey<V> implements Fragment {
     private final Lazy<String> mSQL;
 
     private ForeignKey(@NonNull final Value.Read<V> childKey,
-                       @NonNull final Table<V> parentTable,
+                       @NonNls @NonNull final String parentTable,
+                       @Nullable final Value.Read<V> parentKey,
                        @Nullable final Action onDelete,
                        @Nullable final Action onUpdate) {
-        this(childKey, parentTable, parentTable.getPrimaryKey(), onDelete, onUpdate);
-    }
-
-    private <K> ForeignKey(@NonNull final Value.Read<V> childKey,
-                           @NonNull final Table<K> parentTable,
-                           @Nullable final Value.Read<V> parentKey,
-                           @Nullable final Action onDelete,
-                           @Nullable final Action onUpdate) {
         super();
 
         mChildKey = childKey;
@@ -71,9 +65,15 @@ public class ForeignKey<V> implements Fragment {
         return mChildKey;
     }
 
+    @NonNls
     @NonNull
-    public final Table<?> getParentTable() {
+    public final String getParentTable() {
         return mParentTable;
+    }
+
+    @Nullable
+    public final Value.Read<V> getParentKey() {
+        return mParentKey;
     }
 
     @NonNull
@@ -86,6 +86,23 @@ public class ForeignKey<V> implements Fragment {
         return new ForeignKey<>(mChildKey, mParentTable, mParentKey, mOnDelete, action);
     }
 
+    @Override
+    public final boolean equals(@Nullable final Object object) {
+        boolean result = this == object;
+
+        if (!result && (object != null) && (getClass() == object.getClass())) {
+            final ForeignKey<?> other = (ForeignKey<?>) object;
+            result = mSQL.get().equals(other.mSQL.get());
+        }
+
+        return result;
+    }
+
+    @Override
+    public final int hashCode() {
+        return mSQL.get().hashCode();
+    }
+
     @NonNls
     @NonNull
     @Override
@@ -93,17 +110,19 @@ public class ForeignKey<V> implements Fragment {
         return mSQL.get();
     }
 
+    @NonNls
     @NonNull
-    public static <V> ForeignKey<V> foreignKey(@NonNull final Value.Read<V> child,
-                                               @NonNull final Table<V> table) {
-        return new ForeignKey<>(child, table, null, null);
+    @Override
+    public final String toString() {
+        return mChildKey.getName() + " -> " + mParentTable +
+                ((mParentKey == null) ? "" : ('(' + mParentKey.getName() + ')'));
     }
 
     @NonNull
-    public static <K, V> ForeignKey<V> foreignKey(@NonNull final Value.Read<V> child,
-                                                  @NonNull final Table<K> table,
-                                                  @NonNull final Value.Read<V> parent) {
-        return new ForeignKey<>(child, table, parent, null, null);
+    public static <V> ForeignKey<V> foreignKey(@NonNull final Value.Read<V> childKey,
+                                               @NonNls @NonNull final String parentTable,
+                                               @NonNull final Value.Read<V> parentKey) {
+        return new ForeignKey<>(childKey, parentTable, parentKey, null, null);
     }
 
     public enum Action implements Fragment {
@@ -134,8 +153,9 @@ public class ForeignKey<V> implements Fragment {
 
         @NonNull
         private final Set<String> mChildKey;
+        @NonNls
         @NonNull
-        private final Table<?> mParentTable;
+        private final String mParentTable;
         @Nullable
         private final Set<String> mParentKey;
         @Nullable
@@ -143,14 +163,14 @@ public class ForeignKey<V> implements Fragment {
         @Nullable
         private final Action mOnUpdate;
 
-        private <V, K> SQL(@NonNull final Value.Read<V> childKey,
-                           @NonNull final Table<K> parentTable,
-                           @Nullable final Value.Read<V> parentKey,
-                           @Nullable final Action onDelete,
-                           @Nullable final Action onUpdate) {
+        private <V> SQL(@NonNull final Value.Read<V> childKey,
+                        @NonNull final String parentTable,
+                        @Nullable final Value.Read<V> parentKey,
+                        @Nullable final Action onDelete,
+                        @Nullable final Action onUpdate) {
             super();
 
-            mParentTable = parentTable;
+            mParentTable = escape(parentTable);
             mOnDelete = onDelete;
             mOnUpdate = onUpdate;
 
@@ -171,7 +191,7 @@ public class ForeignKey<V> implements Fragment {
         @Override
         protected final String produce() {
             return "foreign key (" + PrimaryKey.toSQL(mChildKey) +
-                    ") references " + escape(mParentTable.getName()) +
+                    ") references " + mParentTable +
                     ((mParentKey == null) ? "" : ('(' + PrimaryKey.toSQL(mParentKey) + ')')) +
                     ((mOnDelete == null) ? "" : (" on delete " + mOnDelete.toSQL())) +
                     ((mOnUpdate == null) ? "" : (" on update " + mOnUpdate.toSQL()));

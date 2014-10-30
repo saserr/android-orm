@@ -25,7 +25,6 @@ import android.orm.database.IntegrityCheck;
 import android.orm.database.IntegrityChecks;
 import android.orm.database.Migration;
 import android.orm.database.Migrations;
-import android.orm.sql.Table;
 import android.orm.util.Legacy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -102,11 +101,6 @@ public class Database {
         }
 
         return result;
-    }
-
-    @NonNull
-    public final <K> Database migrate(@NonNull final Table<K> table) {
-        return migrate(Migrations.migrate(table));
     }
 
     @NonNull

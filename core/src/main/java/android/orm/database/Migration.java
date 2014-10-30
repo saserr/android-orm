@@ -48,29 +48,4 @@ public interface Migration {
             /* do nothing */
         }
     }
-
-    abstract class StepWise extends Base {
-
-        protected abstract void upgrade(@NonNull final DAO.Direct dao, final int version);
-
-        protected abstract void downgrade(@NonNull final DAO.Direct dao, final int version);
-
-        @Override
-        public final void upgrade(@NonNull final DAO.Direct dao,
-                                  final int oldVersion,
-                                  final int newVersion) {
-            for (int version = oldVersion + 1; version <= newVersion; version++) {
-                upgrade(dao, version);
-            }
-        }
-
-        @Override
-        public final void downgrade(@NonNull final DAO.Direct dao,
-                                    final int oldVersion,
-                                    final int newVersion) {
-            for (int version = oldVersion; version > newVersion; version--) {
-                downgrade(dao, version);
-            }
-        }
-    }
 }

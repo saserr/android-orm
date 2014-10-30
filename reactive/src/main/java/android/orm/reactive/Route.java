@@ -24,7 +24,6 @@ import android.orm.sql.Column;
 import android.orm.sql.ForeignKey;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
-import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
@@ -51,8 +50,9 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
     @NonNull
     private final Manager mManager;
+    @NonNls
     @NonNull
-    private final Table<?> mTable;
+    private final String mTable;
     @NonNull
     private final Where mWhere;
     @NonNull
@@ -75,7 +75,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
     };
 
     private Route(@NonNull final Manager manager,
-                  @NonNull final Table<?> table,
+                  @NonNls @NonNull final String table,
                   @NonNull final Where where,
                   @NonNull final Path path) {
         super();
@@ -98,8 +98,9 @@ public abstract class Route extends Value.Read.Base<Uri> {
         return mManager;
     }
 
+    @NonNls
     @NonNull
-    public final Table<?> getTable() {
+    public final String getTable() {
         return mTable;
     }
 
@@ -175,10 +176,10 @@ public abstract class Route extends Value.Read.Base<Uri> {
         @NonNull
         private final Single mSingleRoute;
 
-        public <K> Single(@NonNull final Manager manager,
-                          @NonNull final Table<K> table,
-                          @NonNull final Where where,
-                          @NonNull final Path path) {
+        public Single(@NonNull final Manager manager,
+                      @NonNls @NonNull final String table,
+                      @NonNull final Where where,
+                      @NonNull final Path path) {
             super(manager, table, where, path);
 
             mSingleRoute = this;
@@ -225,7 +226,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute) {
-            return many(singleRoute, path(singleRoute.getTable().getName()));
+            return many(singleRoute, path(singleRoute.getTable()));
         }
 
         @NonNull
@@ -237,9 +238,9 @@ public abstract class Route extends Value.Read.Base<Uri> {
             }
             final Column<R> reference = (Column<R>) child;
 
-            final Path path = path(foreignKey.getParentTable().getName())
+            final Path path = path(foreignKey.getParentTable())
                     .slash(reference)
-                    .slash(singleRoute.getTable().getName());
+                    .slash(singleRoute.getTable());
             return many(singleRoute, path);
         }
 
@@ -259,8 +260,8 @@ public abstract class Route extends Value.Read.Base<Uri> {
         }
 
         @NonNull
-        public final <R, K> Single single(@NonNull final ForeignKey<R> foreignKey,
-                                          @NonNull final Table<K> table) {
+        public final <R> Single single(@NonNull final ForeignKey<R> foreignKey,
+                                       @NonNls @NonNull final String table) {
             final Value.Read<R> child = foreignKey.getChildKey();
             if (!(child instanceof Column)) {
                 throw new IllegalArgumentException("Foreign key must be a single column");
@@ -270,16 +271,16 @@ public abstract class Route extends Value.Read.Base<Uri> {
                 throw new IllegalArgumentException("Foreign key must be unique");
             }
 
-            final Path path = path(foreignKey.getParentTable().getName())
+            final Path path = path(foreignKey.getParentTable())
                     .slash(reference)
-                    .slash(table.getName());
+                    .slash(table);
             return single(table, path);
         }
 
         @NonNull
-        public final <R, K, V> Single single(@NonNull final ForeignKey<R> foreignKey,
-                                             @NonNull final Table<K> table,
-                                             @NonNull final Column<V> column) {
+        public final <R, V> Single single(@NonNull final ForeignKey<R> foreignKey,
+                                          @NonNls @NonNull final String table,
+                                          @NonNull final Column<V> column) {
             final Value.Read<R> child = foreignKey.getChildKey();
             if (!(child instanceof Column)) {
                 throw new IllegalArgumentException("Foreign key must be a single column");
@@ -295,9 +296,9 @@ public abstract class Route extends Value.Read.Base<Uri> {
                     throw new IllegalArgumentException("Column must be unique");
                 }
 
-                final Path path = path(foreignKey.getParentTable().getName())
+                final Path path = path(foreignKey.getParentTable())
                         .slash(reference)
-                        .slash(table.getName())
+                        .slash(table)
                         .slash(column);
 
                 route = single(table, path);
@@ -307,24 +308,24 @@ public abstract class Route extends Value.Read.Base<Uri> {
         }
 
         @NonNull
-        public final <K, V> Single single(@NonNull final Table<K> table,
-                                          @NonNull final Column<V> column) {
+        public final <V> Single single(@NonNls @NonNull final String table,
+                                       @NonNull final Column<V> column) {
             if (!column.isUnique()) {
                 throw new IllegalArgumentException("Column must be unique");
             }
 
-            return single(table, path(table.getName()).slash(column.getName()).slash(column));
+            return single(table, path(table).slash(column.getName()).slash(column));
         }
 
         @NonNull
-        public final <K> Single single(@NonNull final Table<K> table, @NonNull final Path path) {
+        public final Single single(@NonNls @NonNull final String table, @NonNull final Path path) {
             return single(table, Where.None, path);
         }
 
         @NonNull
-        public final <K> Single single(@NonNull final Table<K> table,
-                                       @NonNull final Where where,
-                                       @NonNull final Path path) {
+        public final Single single(@NonNls @NonNull final String table,
+                                   @NonNull final Where where,
+                                   @NonNull final Path path) {
             final Single route = new Single(this, table, where, path);
             with(route);
             return route;
@@ -337,7 +338,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
                 throw new IllegalArgumentException("Column must be unique");
             }
 
-            final Path path = path(singleRoute.getTable().getName()).slash(column.getName()).slash(column);
+            final Path path = path(singleRoute.getTable()).slash(column.getName()).slash(column);
             return single(singleRoute, path);
         }
 

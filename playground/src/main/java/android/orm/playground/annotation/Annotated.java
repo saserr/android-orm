@@ -16,12 +16,12 @@
 
 package android.orm.playground.annotation;
 
+import android.orm.database.Migration;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.sql.Column;
 import android.orm.sql.ForeignKey;
 import android.orm.sql.PrimaryKey;
-import android.orm.sql.Table;
 import android.orm.sql.Type;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
@@ -37,9 +37,15 @@ import org.jetbrains.annotations.NonNls;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
+import static android.orm.database.Migrations.create;
+import static android.orm.database.Table.table;
 import static java.lang.reflect.Modifier.isFinal;
 import static java.lang.reflect.Modifier.isStatic;
+import static java.util.Collections.emptyList;
 
 public class Annotated {
 
@@ -52,35 +58,6 @@ public class Annotated {
         super();
 
         mTypes = types;
-    }
-
-    @NonNull
-    public final <M> Table<?> table(@NonNull final Class<M> klass) {
-        final android.orm.playground.annotation.Table annotation = klass.getAnnotation(android.orm.playground.annotation.Table.class);
-        if (annotation == null) {
-            @NonNls final String error = "Class " + klass.getSimpleName() + " is not annotated with @Table";
-            throw new IllegalArgumentException(error);
-        }
-
-        Table<?> table = Table.table(annotation.name(), annotation.version());
-
-        for (final Field field : klass.getDeclaredFields()) {
-            if (!isStatic(field.getModifiers())) {
-                final Pair<android.orm.playground.annotation.Column, Column<Object>> column = column(klass, field);
-                if (column != null) {
-                    table = (column.first.version() > 0) ?
-                            table.with(column.first.version(), column.second) :
-                            table.with(column.second);
-                }
-            }
-        }
-
-        final PrimaryKey<?> primaryKey = primaryKey(klass);
-        if (primaryKey != null) {
-            table = table.with(primaryKey);
-        }
-
-        return references(klass, table);
     }
 
     @NonNull
@@ -125,6 +102,102 @@ public class Annotated {
     }
 
     @NonNull
+    public final <M> Migration migration(final int version, @NonNull final Class<M> klass) {
+        final Table annotation = klass.getAnnotation(Table.class);
+        if (annotation == null) {
+            @NonNls final String error = "Class " + klass.getSimpleName() + " is not annotated with @Table";
+            throw new IllegalArgumentException(error);
+        }
+
+        final String name = annotation.name();
+        final PrimaryKey<?> primaryKey = primaryKey(klass);
+        final ForeignKey<?>[] foreignKeys = foreignKeys(klass);
+        final Column<?>[] columns = columns(klass);
+
+        return (primaryKey == null) ?
+                create(version, table(name, foreignKeys, columns)) :
+                create(version, table(name, primaryKey, foreignKeys, columns));
+    }
+
+    @Nullable
+    public final <M> PrimaryKey<?> primaryKey(@NonNull final Class<M> klass) {
+        PrimaryKey<?> result = null;
+
+        final android.orm.playground.annotation.PrimaryKey annotation = klass.getAnnotation(android.orm.playground.annotation.PrimaryKey.class);
+        if (annotation != null) {
+            final Value.ReadWrite<?> value = value(annotation.columns());
+            if (value == null) {
+                @NonNls final String error = "@PrimaryKey must have non-empty columns " +
+                        " (class " + klass.getSimpleName() + ')';
+                throw new IllegalArgumentException(error);
+            }
+
+            final ConflictResolution resolution = annotation.resolution();
+            result = (resolution == null) ?
+                    PrimaryKey.primaryKey(value) :
+                    PrimaryKey.primaryKey(value, resolution);
+        }
+
+        return result;
+    }
+
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public final <M> ForeignKey<?>[] foreignKeys(@NonNull final Class<M> klass) {
+        final ForeignKeys foreignKeys = klass.getAnnotation(ForeignKeys.class);
+        final Collection<ForeignKey<?>> result;
+
+        if (foreignKeys == null) {
+            result = emptyList();
+        } else {
+            result = new ArrayList<>(foreignKeys.value().length);
+            for (final android.orm.playground.annotation.ForeignKey annotation : foreignKeys.value()) {
+                final Value.ReadWrite<Object> childKey = (Value.ReadWrite<Object>) value(annotation.childKey());
+                if (childKey == null) {
+                    @NonNls final String error = "@ForeignKey must have non-empty child key columns " +
+                            " (class " + klass.getSimpleName() + ')';
+                    throw new IllegalArgumentException(error);
+                }
+                final Value.ReadWrite<Object> parentKey = (Value.ReadWrite<Object>) value(annotation.parentKey());
+                if (parentKey == null) {
+                    @NonNls final String error = "@ForeignKey must have non-empty parent key columns " +
+                            " (class " + klass.getSimpleName() + ')';
+                    throw new IllegalArgumentException(error);
+                }
+
+                final Class<?> parent = annotation.parent();
+                final Table table = parent.getAnnotation(Table.class);
+                if (table == null) {
+                    @NonNls final String error = "@ForeignKey must point to parent class that is annotated with @Table " +
+                            " (class " + klass.getSimpleName() + ", parent " + parent.getSimpleName() + ')';
+                    throw new IllegalArgumentException(error);
+                }
+                result.add(ForeignKey.foreignKey(childKey, table.name(), parentKey)
+                        .onDelete(annotation.onDelete())
+                        .onUpdate(annotation.onUpdate()));
+            }
+        }
+
+        return result.toArray(new ForeignKey[result.size()]);
+    }
+
+    @NonNull
+    public final <M> Column<?>[] columns(@NonNull final Class<M> klass) {
+        final List<Column<?>> result = new ArrayList<>();
+
+        for (final Field field : klass.getDeclaredFields()) {
+            if (!isStatic(field.getModifiers())) {
+                final Pair<android.orm.playground.annotation.Column, Column<Object>> column = column(klass, field);
+                if (column != null) {
+                    result.add(column.second);
+                }
+            }
+        }
+
+        return result.toArray(new Column[result.size()]);
+    }
+
+    @NonNull
     @SuppressWarnings("unchecked")
     private <M, V> Type<V> type(@NonNull final Class<M> klass, @NonNull final Field field) {
         final Type<V> type = (Type<V>) mTypes.get(field.getType());
@@ -155,61 +228,6 @@ public class Annotated {
                 column = column.asNotNull();
             }
             result = Pair.create(annotation, column);
-        }
-
-        return result;
-    }
-
-    @Nullable
-    private <M> PrimaryKey<?> primaryKey(@NonNull final Class<M> klass) {
-        PrimaryKey<?> result = null;
-
-        final android.orm.playground.annotation.PrimaryKey annotation = klass.getAnnotation(android.orm.playground.annotation.PrimaryKey.class);
-        if (annotation != null) {
-            final Value.ReadWrite<?> value = value(annotation.columns());
-            if (value == null) {
-                @NonNls final String error = "@PrimaryKey must have non-empty columns " +
-                        " (class " + klass.getSimpleName() + ')';
-                throw new IllegalArgumentException(error);
-            }
-
-            final ConflictResolution resolution = annotation.resolution();
-            result = (resolution == null) ?
-                    PrimaryKey.primaryKey(value) :
-                    PrimaryKey.primaryKey(value, resolution);
-        }
-
-        return result;
-    }
-
-    @NonNull
-    @SuppressWarnings("unchecked")
-    private <M, K> Table<K> references(@NonNull final Class<M> klass,
-                                       @NonNull final Table<K> table) {
-        Table<K> result = table;
-
-        final ForeignKeys foreignKeys = klass.getAnnotation(ForeignKeys.class);
-        if (foreignKeys != null) {
-            for (final android.orm.playground.annotation.ForeignKey annotation : foreignKeys.value()) {
-                final Value.ReadWrite<Object> childKey = (Value.ReadWrite<Object>) value(annotation.childKey());
-                if (childKey == null) {
-                    @NonNls final String error = "@ForeignKey must have non-empty child key columns " +
-                            " (class " + klass.getSimpleName() + ')';
-                    throw new IllegalArgumentException(error);
-                }
-                final Value.ReadWrite<Object> parentKey = (Value.ReadWrite<Object>) value(annotation.parentKey());
-                if (parentKey == null) {
-                    @NonNls final String error = "@ForeignKey must have non-empty parent key columns " +
-                            " (class " + klass.getSimpleName() + ')';
-                    throw new IllegalArgumentException(error);
-                }
-
-                final Table<Object> parent = (Table<Object>) table(annotation.parent());
-                final ForeignKey<Object> foreignKey = ForeignKey.foreignKey(childKey, parent, parentKey)
-                        .onDelete(annotation.onDelete())
-                        .onUpdate(annotation.onUpdate());
-                result = result.with(foreignKey);
-            }
         }
 
         return result;

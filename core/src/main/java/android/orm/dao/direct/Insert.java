@@ -19,13 +19,9 @@ package android.orm.dao.direct;
 import android.content.ContentValues;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.sql.Column;
 import android.orm.sql.Expression;
-import android.orm.sql.Helper;
-import android.orm.sql.PrimaryKey;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
-import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
@@ -33,18 +29,16 @@ import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.Iterator;
-
+import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Readables.combine;
 import static android.orm.sql.Readables.readable;
 import static android.orm.sql.Select.select;
-import static android.orm.sql.Table.ROW_ID;
 import static android.orm.sql.Value.Write.Operation.Insert;
+import static android.orm.sql.Values.RowId;
 import static android.orm.sql.Writables.writable;
 import static android.orm.sql.fragment.Where.where;
 import static android.orm.util.Legacy.getKeys;
@@ -55,67 +49,48 @@ import static android.util.Log.INFO;
 public class Insert<K> implements Expression<K> {
 
     private static final String TAG = Insert.class.getSimpleName();
-    private static final Where.SimplePart<Long> WHERE_ROW_ID = where(ROW_ID);
+    private static final Where.ComplexPart.WithNull<Long> WHERE_ROW_ID = where(RowId);
 
+    @NonNls
     @NonNull
-    private final Table<?> mTable;
+    private final String mTable;
     @NonNull
     private final Writer mWriter;
     @NonNull
-    private final Value.Read<K> mKey;
-    @NonNull
     private final ContentValues mAdditional;
-    @NonNls
     @NonNull
-    private final String mTableName;
-    @Nullable
-    private final PrimaryKey<?> mPrimaryKey;
+    private final Value.Read<K> mKey;
 
-    public Insert(@NonNull final Table<?> table,
+    public Insert(@NonNls @NonNull final String table,
                   @NonNull final Writer plan,
                   @NonNull final ContentValues additional,
                   @NonNull final Value.Read<K> key) {
         super();
 
-        mTable = table;
+        mTable = escape(table);
         mWriter = plan;
         mAdditional = additional;
         mKey = key;
-        mTableName = Helper.escape(table.getName());
-        mPrimaryKey = table.getPrimaryKey();
     }
 
     @NonNull
     @Override
-    @SuppressWarnings("unchecked")
     public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
         final ContentValues values = new ContentValues(mAdditional);
         final Writable output = writable(values);
         mWriter.write(Insert, output);
-        String nullColumn = null;
         if (values.size() <= 0) {
             if (Log.isLoggable(TAG, INFO)) {
                 Log.i(TAG, "An empty row will be written"); //NON-NLS
             }
-
-            final Iterator<Column<?>> columns = mTable.getColumns(database.getVersion()).iterator();
-            while (columns.hasNext() && (nullColumn == null)) {
-                final Column<?> column = columns.next();
-                if (column.isNullable()) {
-                    nullColumn = Helper.escape(column.getName());
-                }
-            }
         }
 
-        final long id = database.insertOrThrow(mTableName, nullColumn, values);
+        final long id = database.insertOrThrow(mTable, null, values);
         final Maybe<K> result;
 
         if (id > 0L) {
             final Maybe<Long> someId = something(id);
-            ROW_ID.write(Insert, someId, output);
-            if ((mPrimaryKey != null) && mPrimaryKey.isAliasForRowId()) {
-                ((Value.Write<Long>) mPrimaryKey).write(Insert, someId, output);
-            }
+            RowId.write(Insert, someId, output);
 
             final Select.Projection remaining = mKey.getProjection().without(getKeys(values));
             if (remaining.isEmpty()) {

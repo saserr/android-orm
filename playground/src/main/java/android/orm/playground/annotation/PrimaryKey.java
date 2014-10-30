@@ -20,6 +20,8 @@ import android.orm.sql.fragment.ConflictResolution;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.jetbrains.annotations.NonNls;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -30,7 +32,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(TYPE)
 public @interface PrimaryKey {
 
-    @NonNull String[] columns();
+    @NonNls @NonNull String[] columns();
 
     @Nullable ConflictResolution resolution() default ConflictResolution.Abort;
 }

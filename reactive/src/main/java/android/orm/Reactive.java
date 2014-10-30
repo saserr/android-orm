@@ -28,7 +28,6 @@ import android.orm.reactive.Watchers;
 import android.orm.reactive.dao.Transaction;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
-import android.orm.sql.Table;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -49,7 +48,7 @@ public final class Reactive {
             @NonNull
             @Override
             public Executor.Direct.Single<Uri> create(@NonNull final android.orm.sql.Executor executor) {
-                final Table<?> table = route.getTable();
+                final String table = route.getTable();
                 final Where where = route.createWhere(arguments);
                 final ContentValues onInsert = route.createValues(arguments);
                 final Route.Single key = route.getSingleRoute();
@@ -65,7 +64,7 @@ public final class Reactive {
             @NonNull
             @Override
             public Executor.Direct.Many<Uri> create(@NonNull final android.orm.sql.Executor executor) {
-                final Table<?> table = route.getTable();
+                final String table = route.getTable();
                 final Where where = route.createWhere(arguments);
                 final ContentValues onInsert = route.createValues(arguments);
                 final Route.Single key = route.getSingleRoute();

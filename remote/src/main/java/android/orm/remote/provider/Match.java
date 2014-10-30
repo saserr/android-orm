@@ -25,8 +25,6 @@ import android.orm.dao.direct.Insert;
 import android.orm.model.Plans;
 import android.orm.reactive.Route;
 import android.orm.reactive.route.Path;
-import android.orm.sql.Table;
-import android.orm.sql.fragment.Order;
 import android.orm.sql.fragment.Where;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -43,13 +41,9 @@ public class Match {
     private final ContentValues mOnInsert;
     @NonNull
     private final Where mWhere;
-    @NonNull
-    private final Table<?> mTable;
     @NonNls
     @NonNull
-    private final String mTableName;
-    @Nullable
-    private final String mOrder;
+    private final String mTable;
 
     public Match(@NonNull final Route route, @NonNull final Uri uri) {
         super();
@@ -58,16 +52,7 @@ public class Match {
         final Path path = route.getPath();
         mWhere = path.getWhere(uri);
         mOnInsert = path.parseValues(uri);
-        mTable = route.getTable();
-        mTableName = escape(mTable.getName());
-
-        final Order order = mTable.getOrder();
-        mOrder = (order == null) ? null : order.toSQL();
-    }
-
-    @NonNull
-    public final Table<?> getTable() {
-        return mTable;
+        mTable = escape(route.getTable());
     }
 
     @Nullable
@@ -75,11 +60,10 @@ public class Match {
                               @Nullable final String[] projection,
                               @Nullable final String selection,
                               @Nullable final String[] arguments,
-                              @Nullable final String sortOrder) {
+                              @Nullable final String order) {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
-        builder.setTables(mTableName);
+        builder.setTables(mTable);
         final String where = mWhere.and(new Where(selection)).toSQL();
-        final String order = (sortOrder == null) ? mOrder : sortOrder;
         return builder.query(database, projection, where, arguments, null, null, order);
     }
 
@@ -95,13 +79,13 @@ public class Match {
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
         final String where = mWhere.and(new Where(selection)).toSQL();
-        return database.update(mTableName, values, where, arguments);
+        return database.update(mTable, values, where, arguments);
     }
 
     public final int delete(@NonNull final SQLiteDatabase database,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
         final String where = mWhere.and(new Where(selection)).toSQL();
-        return database.delete(mTableName, where, arguments);
+        return database.delete(mTable, where, arguments);
     }
 }

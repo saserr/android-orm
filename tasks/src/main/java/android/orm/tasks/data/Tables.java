@@ -14,27 +14,12 @@
  * limitations under the License.
  */
 
-package android.orm.playground.annotation;
+package android.orm.tasks.data;
 
-import android.support.annotation.NonNull;
+import android.orm.database.Table;
 
-import org.jetbrains.annotations.NonNls;
+import static android.orm.tasks.data.Configuration.Database;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
-@Retention(RUNTIME)
-@Target(FIELD)
-public @interface Column {
-
-    @NonNls @NonNull String name();
-
-    boolean unique() default false;
-
-    boolean nullable() default true;
-
-    boolean readOnly() default false;
+public interface Tables {
+    Table<?> Tasks = Migrations.Tasks.getTableFor(Database);
 }

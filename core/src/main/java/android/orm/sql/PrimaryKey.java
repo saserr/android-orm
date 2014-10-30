@@ -28,31 +28,16 @@ import java.util.Map;
 import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
-import static android.orm.sql.Types.Integer;
 
 public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
-    private final boolean mIsAlias;
     @NonNull
     private final Value.ReadWrite<V> mValue;
     @NonNls
     @NonNull
     private final String mSQL;
 
-    private PrimaryKey(@NonNull final Column<V> column,
-                       @Nullable final Order.Type order,
-                       @Nullable final ConflictResolution resolution) {
-        this(Integer.equals(column.getType()), column, order, resolution);
-    }
-
     private PrimaryKey(@NonNull final Value.ReadWrite<V> value,
-                       @Nullable final Order.Type order,
-                       @Nullable final ConflictResolution resolution) {
-        this(false, value, order, resolution);
-    }
-
-    private PrimaryKey(final boolean isAlias,
-                       @NonNull final Value.ReadWrite<V> value,
                        @Nullable final Order.Type order,
                        @Nullable final ConflictResolution resolution) {
         super();
@@ -62,15 +47,10 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
             throw new IllegalArgumentException("Value must reference something");
         }
 
-        mIsAlias = isAlias;
         mValue = value;
         mSQL = "primary key (" + toSQL(projection.keySet()) +
                 ((order == null) ? "" : order.toSQL()) + ')' +
                 ((resolution == null) ? "" : (" on conflict " + resolution.toSQL()));
-    }
-
-    public final boolean isAliasForRowId() {
-        return mIsAlias;
     }
 
     @NonNls
@@ -106,6 +86,30 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
         return mSQL;
     }
 
+    @Override
+    public final boolean equals(@Nullable final Object object) {
+        boolean result = this == object;
+
+        if (!result && (object != null) && (getClass() == object.getClass())) {
+            final PrimaryKey<?> other = (PrimaryKey<?>) object;
+            result = mSQL.equals(other.mSQL);
+        }
+
+        return result;
+    }
+
+    @Override
+    public final int hashCode() {
+        return mSQL.hashCode();
+    }
+
+    @NonNls
+    @NonNull
+    @Override
+    public final String toString() {
+        return mValue.getName();
+    }
+
     @NonNull
     public static <V> PrimaryKey<V> primaryKey(@NonNull final Value.ReadWrite<V> value) {
         return new PrimaryKey<>(value, null, null);
@@ -115,30 +119,6 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     public static <V> PrimaryKey<V> primaryKey(@NonNull final Value.ReadWrite<V> value,
                                                @NonNull final ConflictResolution resolution) {
         return new PrimaryKey<>(value, null, resolution);
-    }
-
-    @NonNull
-    public static <V> PrimaryKey<V> primaryKey(@NonNull final Column<V> column) {
-        return new PrimaryKey<>(column, null, null);
-    }
-
-    @NonNull
-    public static <V> PrimaryKey<V> primaryKey(@NonNull final Column<V> column,
-                                               @NonNull final ConflictResolution resolution) {
-        return new PrimaryKey<>(column, null, resolution);
-    }
-
-    @NonNull
-    public static PrimaryKey<Long> primaryKey(@NonNull final Column<Long> column,
-                                              @NonNull final Order.Type order) {
-        return new PrimaryKey<>(column, order, null);
-    }
-
-    @NonNull
-    public static PrimaryKey<Long> primaryKey(@NonNull final Column<Long> column,
-                                              @NonNull final Order.Type order,
-                                              @NonNull final ConflictResolution resolution) {
-        return new PrimaryKey<>(column, order, resolution);
     }
 
     @NonNls
