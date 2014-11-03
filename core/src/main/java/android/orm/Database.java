@@ -25,6 +25,7 @@ import android.orm.database.IntegrityCheck;
 import android.orm.database.IntegrityChecks;
 import android.orm.database.Migration;
 import android.orm.database.Migrations;
+import android.orm.util.Function;
 import android.orm.util.Legacy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -47,6 +48,14 @@ import static android.util.Log.INFO;
 public class Database {
 
     private static final String TAG = Database.class.getSimpleName();
+    private static final Function<SQLiteDatabase, DAO.Direct> DEFAULT_FACTORY =
+            new Function<SQLiteDatabase, DAO.Direct>() {
+                @NonNull
+                @Override
+                public DAO.Direct invoke(@NonNull final SQLiteDatabase database) {
+                    return new Direct.InsideTransaction(database);
+                }
+            };
 
     private static final Semaphore sSemaphore = new Semaphore(1);
     private static final Map<String, Helper> sHelpers = new HashMap<>();
@@ -57,21 +66,37 @@ public class Database {
     private final int mVersion;
     @NonNull
     private final IntegrityCheck mCheck;
+    @NonNull
+    private final Function<SQLiteDatabase, DAO.Direct> mFactory;
 
     private final Collection<Migration> mMigrations = new ArrayList<>();
 
     public Database(@NonNls @Nullable final String name, final int version) {
-        this(name, version, IntegrityChecks.None);
+        this(name, version, IntegrityChecks.None, DEFAULT_FACTORY);
     }
 
     public Database(@NonNls @Nullable final String name,
                     final int version,
                     @NonNull final IntegrityCheck check) {
+        this(name, version, check, DEFAULT_FACTORY);
+    }
+
+    public Database(@NonNls @Nullable final String name,
+                    final int version,
+                    @NonNull final Function<SQLiteDatabase, DAO.Direct> factory) {
+        this(name, version, IntegrityChecks.None, factory);
+    }
+
+    public Database(@NonNls @Nullable final String name,
+                    final int version,
+                    @NonNull final IntegrityCheck check,
+                    @NonNull final Function<SQLiteDatabase, DAO.Direct> factory) {
         super();
 
         mName = isEmpty(name) ? null : name;
         mVersion = version;
         mCheck = check;
+        mFactory = factory;
     }
 
     @NonNls
@@ -92,7 +117,7 @@ public class Database {
         try {
             if (!sHelpers.containsKey(mName)) {
                 final Migration migration = Migrations.compose(mMigrations);
-                final Helper helper = new Helper(context, this, mCheck, mVersion, migration);
+                final Helper helper = new Helper(context, this, mCheck, mVersion, migration, mFactory);
                 sHelpers.put(mName, helper);
             }
             result = sHelpers.get(mName);
@@ -147,6 +172,8 @@ public class Database {
         private final int mVersion;
         @NonNull
         private final Migration mMigration;
+        @NonNull
+        private final Function<SQLiteDatabase, DAO.Direct> mFactory;
         @NonNls
         @NonNull
         private final String mName;
@@ -155,12 +182,14 @@ public class Database {
                        @NonNull final Database database,
                        @NonNull final IntegrityCheck check,
                        final int version,
-                       @NonNull final Migration migration) {
+                       @NonNull final Migration migration,
+                       @NonNull final Function<SQLiteDatabase, DAO.Direct> factory) {
             super(context, database.getName(), null, database.getVersion());
 
             mCheck = check;
             mVersion = version;
             mMigration = migration;
+            mFactory = factory;
 
             final String name = database.getName();
             mName = (name == null) ? "<memory>" : name;
@@ -189,7 +218,7 @@ public class Database {
             }
 
             try {
-                mMigration.create(new Direct.InsideTransaction(database), mVersion);
+                mMigration.create(mFactory.invoke(database), mVersion);
             } catch (final SQLException cause) {
                 @NonNls final String message = "There was a problem creating database " + mName + " at version " + mVersion;
                 Log.e(TAG, message, cause);
@@ -209,7 +238,7 @@ public class Database {
                 }
 
                 try {
-                    mMigration.upgrade(new Direct.InsideTransaction(database), oldVersion, newVersion);
+                    mMigration.upgrade(mFactory.invoke(database), oldVersion, newVersion);
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem updating database " + mName +
                             " from version " + oldVersion + " to version " + newVersion;
@@ -231,7 +260,7 @@ public class Database {
                 }
 
                 try {
-                    mMigration.downgrade(new Direct.InsideTransaction(database), oldVersion, newVersion);
+                    mMigration.downgrade(mFactory.invoke(database), oldVersion, newVersion);
                 } catch (final SQLException cause) {
                     @NonNls final String message = "There was a problem downgrading database " + mName +
                             " from version " + oldVersion + " to version " + newVersion;
