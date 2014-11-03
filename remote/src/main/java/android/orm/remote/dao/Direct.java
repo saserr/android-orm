@@ -65,6 +65,12 @@ public class Direct implements Remote.Direct {
 
     @NonNull
     @Override
+    public final Access.Direct.Many<Uri> at(@NonNull final Uri uri) {
+        return access(Remote.at(uri));
+    }
+
+    @NonNull
+    @Override
     public final <K> Access.Direct.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory) {
         return new android.orm.dao.direct.Access.Single<>(factory.create(mResolver));
     }

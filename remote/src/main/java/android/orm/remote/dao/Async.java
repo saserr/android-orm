@@ -80,6 +80,12 @@ public class Async implements Remote.Async {
 
     @NonNull
     @Override
+    public final Access.Async.Many<Uri> at(@NonNull final Uri uri) {
+        return access(Remote.at(uri));
+    }
+
+    @NonNull
+    @Override
     public final <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory) {
         final Executor.Async.Single<K> executor = create(mExecutionContext, factory.create(mResolver));
         return new android.orm.dao.async.Access.Single<>(executor);

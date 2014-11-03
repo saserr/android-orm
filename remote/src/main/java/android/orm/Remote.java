@@ -92,6 +92,9 @@ public final class Remote {
                                    @NonNull final Object... arguments);
 
         @NonNull
+        Access.Direct.Many<Uri> at(@NonNull final Uri uri);
+
+        @NonNull
         <K> Access.Direct.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory);
 
         @NonNull
@@ -112,6 +115,9 @@ public final class Remote {
         @NonNull
         Access.Async.Many<Uri> at(@NonNull final Route.Many route,
                                   @NonNull final Object... arguments);
+
+        @NonNull
+        Access.Async.Many<Uri> at(@NonNull final Uri uri);
 
         @NonNull
         <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory);
