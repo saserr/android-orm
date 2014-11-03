@@ -41,6 +41,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 
 import static android.util.Log.DEBUG;
+import static java.lang.System.arraycopy;
 
 public class ContentProvider extends android.content.ContentProvider {
 
@@ -48,14 +49,13 @@ public class ContentProvider extends android.content.ContentProvider {
     @NonNls
     private static final MessageFormat CONTENT_TYPE_FORMAT = new MessageFormat("vnd.android.cursor.{0}/vnd.{1}.{2}");
 
-
     @NonNull
     private final Database mDatabase;
     @NonNls
     @NonNull
     private final String mName;
     @NonNull
-    private final Route.Manager mRoutes;
+    private final Route.Manager[] mManagers;
 
     @NonNull
     private SQLiteOpenHelper mHelper;
@@ -64,12 +64,13 @@ public class ContentProvider extends android.content.ContentProvider {
 
     public ContentProvider(@NonNull final Database database,
                            @NonNls @NonNull final String name,
-                           @NonNull final Route.Manager manager) {
+                           @NonNull final Route.Manager... managers) {
         super();
 
         mDatabase = database;
         mName = name;
-        mRoutes = manager;
+        mManagers = new Route.Manager[managers.length];
+        arraycopy(managers, 0, mManagers, 0, mManagers.length);
     }
 
     @Override
@@ -116,7 +117,7 @@ public class ContentProvider extends android.content.ContentProvider {
     public final String getType(@NonNull final Uri uri) {
         String result = null;
 
-        final Route route = mRoutes.get(uri);
+        final Route route = route(uri);
         if (route != null) {
             final Limit limit = route.getLimit();
             @NonNls final String type = ((limit == null) || (limit.getAmount() > 1)) ? "dir" : "item";
@@ -220,9 +221,21 @@ public class ContentProvider extends android.content.ContentProvider {
         return results;
     }
 
+    @Nullable
+    private Route route(@NonNls @NonNull final Uri uri) {
+        Route route = null;
+
+        final int length = mManagers.length;
+        for (int i = 0; (i < length) && (route == null); i++) {
+            route = mManagers[i].get(uri);
+        }
+
+        return route;
+    }
+
     @NonNull
     private Match match(@NonNls @NonNull final Uri uri) {
-        final Route route = mRoutes.get(uri);
+        final Route route = route(uri);
         if (route == null) {
             throw new SQLException("Unknown URI " + uri);
         }
