@@ -25,6 +25,8 @@ import android.orm.sql.ForeignKey;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Order;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -65,6 +67,10 @@ public abstract class Route extends Value.Read.Base<Uri> {
     private final String mName;
     @NonNull
     private final Select.Projection mProjection;
+    @Nullable
+    private final Order mOrder;
+    @Nullable
+    private final Limit mLimit;
 
     private final Function<String, Uri> mUriFormat = new Function<String, Uri>() {
         @NonNull
@@ -77,12 +83,16 @@ public abstract class Route extends Value.Read.Base<Uri> {
     private Route(@NonNull final Manager manager,
                   @NonNls @NonNull final String table,
                   @NonNull final Where where,
+                  @Nullable final Order order,
+                  @Nullable final Limit limit,
                   @NonNull final Path path) {
         super();
 
         mManager = manager;
         mTable = table;
         mWhere = where;
+        mOrder = order;
+        mLimit = limit;
         mPath = path;
 
         mAuthority = manager.getAuthority();
@@ -102,6 +112,16 @@ public abstract class Route extends Value.Read.Base<Uri> {
     @NonNull
     public final String getTable() {
         return mTable;
+    }
+
+    @Nullable
+    public final Order getOrder() {
+        return mOrder;
+    }
+
+    @Nullable
+    public final Limit getLimit() {
+        return mLimit;
     }
 
     @NonNls
@@ -158,8 +178,10 @@ public abstract class Route extends Value.Read.Base<Uri> {
         public Many(@NonNull final Manager manager,
                     @NonNull final Single singleRoute,
                     @NonNull final Where where,
+                    @Nullable final Order order,
+                    @Nullable final Limit limit,
                     @NonNull final Path path) {
-            super(manager, singleRoute.getTable(), where, path);
+            super(manager, singleRoute.getTable(), where, order, limit, path);
 
             mSingleRoute = singleRoute;
         }
@@ -180,7 +202,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
                       @NonNls @NonNull final String table,
                       @NonNull final Where where,
                       @NonNull final Path path) {
-            super(manager, table, where, path);
+            super(manager, table, where, null, Limit.Single, path);
 
             mSingleRoute = this;
         }
@@ -189,7 +211,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
                       @NonNull final Single singleRoute,
                       @NonNull final Where where,
                       @NonNull final Path path) {
-            super(manager, singleRoute.getTable(), where, path);
+            super(manager, singleRoute.getTable(), where, singleRoute.getOrder(), Limit.Single, path);
 
             mSingleRoute = singleRoute;
         }
@@ -226,11 +248,51 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute) {
-            return many(singleRoute, path(singleRoute.getTable()));
+            return many(singleRoute, null, (Limit) null);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute, @NonNull final Order order) {
+            return many(singleRoute, order, (Limit) null);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @NonNull final Limit limit) {
+            return many(singleRoute, null, limit);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @Nullable final Order order,
+                               @Nullable final Limit limit) {
+            return many(singleRoute, order, limit, path(singleRoute.getTable()));
         }
 
         @NonNull
         public final <R> Many many(@NonNull final Single singleRoute,
+                                   @NonNull final ForeignKey<R> foreignKey) {
+            return many(singleRoute, null, null, foreignKey);
+        }
+
+        @NonNull
+        public final <R> Many many(@NonNull final Single singleRoute,
+                                   @NonNull final Order order,
+                                   @NonNull final ForeignKey<R> foreignKey) {
+            return many(singleRoute, order, null, foreignKey);
+        }
+
+        @NonNull
+        public final <R> Many many(@NonNull final Single singleRoute,
+                                   @NonNull final Limit limit,
+                                   @NonNull final ForeignKey<R> foreignKey) {
+            return many(singleRoute, null, limit, foreignKey);
+        }
+
+        @NonNull
+        public final <R> Many many(@NonNull final Single singleRoute,
+                                   @Nullable final Order order,
+                                   @Nullable final Limit limit,
                                    @NonNull final ForeignKey<R> foreignKey) {
             final Value.Read<R> child = foreignKey.getChildKey();
             if (!(child instanceof Column)) {
@@ -241,20 +303,67 @@ public abstract class Route extends Value.Read.Base<Uri> {
             final Path path = path(foreignKey.getParentTable())
                     .slash(reference)
                     .slash(singleRoute.getTable());
-            return many(singleRoute, path);
+            return many(singleRoute, order, limit, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
                                @NonNull final Path path) {
-            return many(singleRoute, Where.None, path);
+            return many(singleRoute, (Order) null, null, path);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @NonNull final Order order,
+                               @NonNull final Path path) {
+            return many(singleRoute, order, null, path);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @NonNull final Limit limit,
+                               @NonNull final Path path) {
+            return many(singleRoute, (Order) null, limit, path);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @Nullable final Order order,
+                               @Nullable final Limit limit,
+                               @NonNull final Path path) {
+            return many(singleRoute, Where.None, order, limit, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
                                @NonNull final Where where,
                                @NonNull final Path path) {
-            final Many route = new Many(this, singleRoute, where, path);
+            return many(singleRoute, where, null, null, path);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @NonNull final Where where,
+                               @NonNull final Order order,
+                               @NonNull final Path path) {
+            return many(singleRoute, where, order, null, path);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @NonNull final Where where,
+                               @NonNull final Limit limit,
+                               @NonNull final Path path) {
+            return many(singleRoute, where, null, limit, path);
+        }
+
+        @NonNull
+        public final Many many(@NonNull final Single singleRoute,
+                               @NonNull final Where where,
+                               @Nullable final Order order,
+                               @Nullable final Limit limit,
+                               @NonNull final Path path) {
+            final Many route = new Many(this, singleRoute, where, order, limit, path);
             with(route);
             return route;
         }

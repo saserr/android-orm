@@ -30,6 +30,7 @@ import android.net.Uri;
 import android.orm.Database;
 import android.orm.reactive.Route;
 import android.orm.remote.provider.Match;
+import android.orm.sql.fragment.Limit;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -117,7 +118,8 @@ public class ContentProvider extends android.content.ContentProvider {
 
         final Route route = mRoutes.get(uri);
         if (route != null) {
-            @NonNls final String type = (route instanceof Route.Single) ? "item" : "dir";
+            final Limit limit = route.getLimit();
+            @NonNls final String type = ((limit == null) || (limit.getAmount() > 1)) ? "dir" : "item";
             result = CONTENT_TYPE_FORMAT.format(new String[]{type, mName, route.getTable()});
         }
 

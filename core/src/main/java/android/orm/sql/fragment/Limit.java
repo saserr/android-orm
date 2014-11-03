@@ -33,8 +33,8 @@ public class Limit implements Fragment {
     public Limit(final int amount) {
         super();
 
-        if (amount < 0) {
-            throw new IllegalArgumentException("Limit must be non-negative number");
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Limit must be positive integer");
         }
 
         mAmount = amount;

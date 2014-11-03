@@ -21,6 +21,8 @@ import android.orm.remote.ContentProvider;
 import android.orm.tasks.BuildConfig;
 import android.orm.tasks.model.Task;
 
+import static android.orm.sql.fragment.Order.Type.Ascending;
+import static android.orm.sql.fragment.Order.order;
 import static android.orm.tasks.data.Configuration.Database;
 
 public class Provider extends ContentProvider {
@@ -29,7 +31,7 @@ public class Provider extends ContentProvider {
 
     public interface Routes {
         Route.Single TaskById = ROUTES.single(Tables.Tasks.getName(), Task.Id);
-        Route.Many Tasks = ROUTES.many(TaskById);
+        Route.Many Tasks = ROUTES.many(TaskById, order(Task.Id, Ascending));
     }
 
     public Provider() {
