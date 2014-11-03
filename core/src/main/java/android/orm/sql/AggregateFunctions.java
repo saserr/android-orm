@@ -24,9 +24,11 @@ import android.util.Pair;
 import org.jetbrains.annotations.NonNls;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import static android.orm.sql.Helper.escape;
-import static android.orm.sql.Types.Decimal;
+import static android.orm.sql.Types.BigDecimal;
+import static android.orm.sql.Types.BigInteger;
 
 public final class AggregateFunctions {
 
@@ -47,16 +49,16 @@ public final class AggregateFunctions {
         @NonNull
         @Override
         public AggregateFunction<Long> as(@NonNls @NonNull final String name) {
-            return new OnNumber.BaseFunction(name, Select.projection(name, COUNT + "(*)"));
+            return new OnInteger.BaseFunction(name, Select.projection(name, COUNT + "(*)"));
         }
     };
 
     @NonNull
     public static <V> AggregateFunction.Builder<Long> count(@NonNull final Column<V> column) {
-        return new OnNumber.Builder<>(COUNT, column);
+        return new OnInteger.Builder<>(COUNT, column);
     }
 
-    public static final class OnNumber {
+    public static final class OnInteger {
 
         @NonNull
         public static AggregateFunction.Builder<Long> min(@NonNull final Column<Long> column) {
@@ -102,7 +104,7 @@ public final class AggregateFunctions {
             @NonNull
             @Override
             public final AggregateFunction<Long> as(@NonNls @NonNull final String name) {
-                return new OnNumber.BaseFunction(mFunction, mColumn, name);
+                return new OnInteger.BaseFunction(mFunction, mColumn, name);
             }
         }
 
@@ -134,7 +136,7 @@ public final class AggregateFunctions {
             }
         }
 
-        private OnNumber() {
+        private OnInteger() {
             super();
         }
     }
@@ -215,43 +217,126 @@ public final class AggregateFunctions {
         }
     }
 
-    public static final class OnDecimal {
+    public static final class OnBigInteger {
 
         @NonNull
-        public static AggregateFunction.Builder<BigDecimal> min(@NonNull final Column<BigDecimal> column) {
-            return new Builder(MIN, column);
+        public static AggregateFunction.Builder<BigInteger> min(@NonNull final Column<BigInteger> column) {
+            return new Builder<>(MIN, column);
         }
 
         @NonNull
-        public static AggregateFunction.Builder<BigDecimal> max(@NonNull final Column<BigDecimal> column) {
-            return new Builder(MAX, column);
+        public static AggregateFunction.Builder<BigInteger> max(@NonNull final Column<BigInteger> column) {
+            return new Builder<>(MAX, column);
         }
 
         @NonNull
-        public static AggregateFunction.Builder<BigDecimal> sum(@NonNull final Column<BigDecimal> column) {
-            return new Builder(SUM, column);
+        public static AggregateFunction.Builder<BigInteger> sum(@NonNull final Column<BigInteger> column) {
+            return new Builder<>(SUM, column);
         }
 
         @NonNull
-        public static AggregateFunction.Builder<BigDecimal> total(@NonNull final Column<BigDecimal> column) {
-            return new Builder(TOTAL, column);
+        public static AggregateFunction.Builder<BigInteger> total(@NonNull final Column<BigInteger> column) {
+            return new Builder<>(TOTAL, column);
         }
 
         @NonNull
-        public static AggregateFunction.Builder<BigDecimal> average(@NonNull final Column<BigDecimal> column) {
-            return new Builder(AVERAGE, column);
+        public static AggregateFunction.Builder<BigDecimal> average(@NonNull final Column<BigInteger> column) {
+            return new OnBigDecimal.Builder<>(AVERAGE, column);
         }
 
-        private static class Builder implements AggregateFunction.Builder<BigDecimal> {
+        private static class Builder<V> implements AggregateFunction.Builder<BigInteger> {
 
             @NonNls
             @NonNull
             private final String mFunction;
             @NonNull
-            private final Column<BigDecimal> mColumn;
+            private final Column<V> mColumn;
 
             private Builder(@NonNls @NonNull final String function,
-                            @NonNull final Column<BigDecimal> column) {
+                            @NonNull final Column<V> column) {
+                super();
+
+                mFunction = function;
+                mColumn = column;
+            }
+
+            @NonNull
+            @Override
+            public final AggregateFunction<BigInteger> as(@NonNls @NonNull final String name) {
+                return new OnBigInteger.BaseFunction(mFunction, mColumn, name);
+            }
+        }
+
+        private static class BaseFunction extends AggregateFunctions.BaseFunction<BigInteger> {
+
+            @NonNls
+            @NonNull
+            private final String mName;
+
+            private <V> BaseFunction(@NonNls @NonNull final String function,
+                                     @NonNull final Column<V> column,
+                                     @NonNls @NonNull final String name) {
+                super(function, column, name);
+
+                mName = name;
+            }
+
+            private BaseFunction(@NonNls @NonNull final String name,
+                                 @NonNull final Select.Projection projection) {
+                super(name, projection);
+
+                mName = name;
+            }
+
+            @NonNull
+            @Override
+            public final Maybe<BigInteger> read(@NonNull final Readable input) {
+                return BigInteger.read(input, mName);
+            }
+        }
+
+        private OnBigInteger() {
+            super();
+        }
+    }
+
+    public static final class OnBigDecimal {
+
+        @NonNull
+        public static AggregateFunction.Builder<BigDecimal> min(@NonNull final Column<BigDecimal> column) {
+            return new Builder<>(MIN, column);
+        }
+
+        @NonNull
+        public static AggregateFunction.Builder<BigDecimal> max(@NonNull final Column<BigDecimal> column) {
+            return new Builder<>(MAX, column);
+        }
+
+        @NonNull
+        public static AggregateFunction.Builder<BigDecimal> sum(@NonNull final Column<BigDecimal> column) {
+            return new Builder<>(SUM, column);
+        }
+
+        @NonNull
+        public static AggregateFunction.Builder<BigDecimal> total(@NonNull final Column<BigDecimal> column) {
+            return new Builder<>(TOTAL, column);
+        }
+
+        @NonNull
+        public static AggregateFunction.Builder<BigDecimal> average(@NonNull final Column<BigDecimal> column) {
+            return new Builder<>(AVERAGE, column);
+        }
+
+        private static class Builder<V> implements AggregateFunction.Builder<BigDecimal> {
+
+            @NonNls
+            @NonNull
+            private final String mFunction;
+            @NonNull
+            private final Column<V> mColumn;
+
+            private Builder(@NonNls @NonNull final String function,
+                            @NonNull final Column<V> column) {
                 super();
 
                 mFunction = function;
@@ -261,7 +346,7 @@ public final class AggregateFunctions {
             @NonNull
             @Override
             public final AggregateFunction<BigDecimal> as(@NonNls @NonNull final String name) {
-                return new OnDecimal.BaseFunction(mFunction, mColumn, name);
+                return new OnBigDecimal.BaseFunction(mFunction, mColumn, name);
             }
         }
 
@@ -282,11 +367,11 @@ public final class AggregateFunctions {
             @NonNull
             @Override
             public final Maybe<BigDecimal> read(@NonNull final Readable input) {
-                return Decimal.read(input, mName);
+                return BigDecimal.read(input, mName);
             }
         }
 
-        private OnDecimal() {
+        private OnBigDecimal() {
             super();
         }
     }

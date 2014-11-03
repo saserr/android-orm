@@ -37,6 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import static android.database.DatabaseUtils.sqlEscapeString;
 import static android.orm.util.Maybes.nothing;
@@ -184,7 +185,24 @@ public final class Types {
             }
     );
 
-    public static final Type<BigDecimal> Decimal = Text.map(
+    public static final Type<BigInteger> BigInteger = Text.map(
+            new Converter<BigInteger, String>() {
+
+                @NonNull
+                @Override
+                public String from(@NonNull final BigInteger value) {
+                    return value.toString();
+                }
+
+                @NonNull
+                @Override
+                public BigInteger to(@NonNull final String value) {
+                    return new BigInteger(value);
+                }
+            }
+    );
+
+    public static final Type<BigDecimal> BigDecimal = Text.map(
             new Converter<BigDecimal, String>() {
 
                 @NonNull

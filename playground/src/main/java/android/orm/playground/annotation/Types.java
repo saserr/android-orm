@@ -25,12 +25,14 @@ import org.jetbrains.annotations.NonNls;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
+import static android.orm.sql.Types.BigDecimal;
+import static android.orm.sql.Types.BigInteger;
 import static android.orm.sql.Types.Bool;
-import static android.orm.sql.Types.Decimal;
 import static android.orm.sql.Types.File;
 import static android.orm.sql.Types.Integer;
 import static android.orm.sql.Types.Real;
@@ -78,7 +80,8 @@ public class Types {
         result.register(Long.class, Integer);
         result.register(Double.class, Real);
         result.register(Boolean.class, Bool);
-        result.register(BigDecimal.class, Decimal);
+        result.register(BigInteger.class, BigInteger);
+        result.register(BigDecimal.class, BigDecimal);
         result.register(File.class, File);
         result.register(Uri.class, Uri);
 

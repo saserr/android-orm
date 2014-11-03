@@ -29,13 +29,15 @@ import org.jetbrains.annotations.NonNls;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import static android.graphics.Bitmap.CompressFormat.PNG;
 import static android.orm.sql.Column.column;
 import static android.orm.sql.Helper.escape;
+import static android.orm.sql.Types.BigDecimal;
+import static android.orm.sql.Types.BigInteger;
 import static android.orm.sql.Types.Binary;
 import static android.orm.sql.Types.Bool;
-import static android.orm.sql.Types.Decimal;
 import static android.orm.sql.Types.File;
 import static android.orm.sql.Types.Integer;
 import static android.orm.sql.Types.Real;
@@ -73,8 +75,13 @@ public final class Columns {
     }
 
     @NonNull
-    public static Column<BigDecimal> decimal(@NonNls @NonNull final String name) {
-        return column(name, Decimal);
+    public static Column<BigInteger> bigInteger(@NonNls @NonNull final String name) {
+        return column(name, BigInteger);
+    }
+
+    @NonNull
+    public static Column<BigDecimal> bigDecimal(@NonNls @NonNull final String name) {
+        return column(name, BigDecimal);
     }
 
     @NonNull
