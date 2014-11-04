@@ -21,8 +21,7 @@ import android.content.ContentResolver;
 import android.net.Uri;
 import android.orm.Access;
 import android.orm.Remote;
-import android.orm.dao.Executor;
-import android.orm.reactive.Route;
+import android.orm.remote.Route;
 import android.orm.remote.dao.direct.Apply;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -53,32 +52,20 @@ public class Direct implements Remote.Direct {
     @Override
     public final Access.Direct.Single<Uri> at(@NonNull final Route.Single route,
                                               @NonNull final Object... arguments) {
-        return access(Remote.at(route, arguments));
+        return new android.orm.dao.direct.Access.Single<>(Executors.create(mResolver, route, arguments));
     }
 
     @NonNull
     @Override
     public final Access.Direct.Many<Uri> at(@NonNull final Route.Many route,
                                             @NonNull final Object... arguments) {
-        return access(Remote.at(route, arguments));
+        return new android.orm.dao.direct.Access.Many<>(Executors.create(mResolver, route, arguments));
     }
 
     @NonNull
     @Override
     public final Access.Direct.Many<Uri> at(@NonNull final Uri uri) {
-        return access(Remote.at(uri));
-    }
-
-    @NonNull
-    @Override
-    public final <K> Access.Direct.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory) {
-        return new android.orm.dao.direct.Access.Single<>(factory.create(mResolver));
-    }
-
-    @NonNull
-    @Override
-    public final <K> Access.Direct.Many<K> access(@NonNull final Executor.Direct.Many.Factory<ContentResolver, K> factory) {
-        return new android.orm.dao.direct.Access.Many<>(factory.create(mResolver));
+        return new android.orm.dao.direct.Access.Many<>(Executors.create(mResolver, uri));
     }
 
     @NonNull

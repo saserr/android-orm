@@ -1,1 +1,1 @@
-include ':core', ':reactive', ':remote', ':joda', ':gson', ':playground', ':test', ':tasks'
+include ':core', ':remote', ':joda', ':gson', ':playground', ':test', ':tasks'

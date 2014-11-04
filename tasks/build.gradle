@@ -17,8 +17,6 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile(project(':core'))
-    compile(project(':reactive'))
     compile(project(':remote'))
     compile 'com.android.support:support-v4:21.0.0'
     compile 'com.android.support:appcompat-v7:21.0.0'

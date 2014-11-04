@@ -85,8 +85,6 @@
     <orderEntry type="library" exported="" name="support-v4-21.0.0" level="project" />
     <orderEntry type="library" exported="" name="annotations-13.0" level="project" />
     <orderEntry type="library" exported="" name="appcompat-v7-21.0.0" level="project" />
-    <orderEntry type="module" module-name="reactive" exported="" />
-    <orderEntry type="module" module-name="core" exported="" />
     <orderEntry type="module" module-name="remote" exported="" />
   </component>
 </module>

@@ -24,7 +24,7 @@ import android.orm.Model;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
-import android.orm.reactive.Route;
+import android.orm.remote.Route;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Where;

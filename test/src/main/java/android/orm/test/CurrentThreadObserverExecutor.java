@@ -18,10 +18,10 @@ package android.orm.test;
 
 import android.content.ContentResolver;
 import android.net.Uri;
-import android.orm.reactive.Route;
-import android.orm.reactive.watch.Executor;
-import android.orm.reactive.watch.Manager;
-import android.orm.reactive.watch.Observer;
+import android.orm.remote.Route;
+import android.orm.remote.watch.Executor;
+import android.orm.remote.watch.Manager;
+import android.orm.remote.watch.Observer;
 import android.orm.util.Cancelable;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -46,11 +46,11 @@ public class CurrentThreadObserverExecutor implements Executor {
 
     @NonNull
     @Override
-    public final android.orm.reactive.watch.Session session(@NonNull final ContentResolver resolver) {
+    public final android.orm.remote.watch.Session session(@NonNull final ContentResolver resolver) {
         return new Session(resolver, mFactory, mHandler);
     }
 
-    private static class Session implements android.orm.reactive.watch.Session {
+    private static class Session implements android.orm.remote.watch.Session {
 
         @NonNull
         private final ContentResolver mResolver;

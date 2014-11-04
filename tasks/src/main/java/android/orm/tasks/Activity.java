@@ -22,7 +22,7 @@ import android.orm.Access;
 import android.orm.Remote;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
-import android.orm.reactive.Watchers;
+import android.orm.remote.Watchers;
 import android.orm.tasks.model.Task;
 import android.orm.tasks.view.Form;
 import android.orm.tasks.view.List;
@@ -113,7 +113,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
         super.onCreate(savedInstanceState);
 
         mDAO = ((Application) getApplication()).getDAO();
-        mWatchers = mDAO.watchers();
+        mWatchers = new Watchers(getContentResolver());
         mDAO.setErrorHandler(LogErrors);
         mTasks = mDAO.at(Tasks);
 

@@ -19,7 +19,7 @@ package android.orm.playground;
 import android.content.Context;
 import android.orm.DAO;
 import android.orm.dao.Result;
-import android.orm.reactive.watch.Watchable;
+import android.orm.remote.watch.Watchable;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 

@@ -14,28 +14,12 @@
  * limitations under the License.
  */
 
-apply plugin: 'com.android.library'
+package android.orm.remote.watch;
 
-dependencies {
-    compile(project(':core'))
-}
+import android.content.ContentResolver;
+import android.support.annotation.NonNull;
 
-android {
-
-    compileSdkVersion project.compileSdkVersion
-    buildToolsVersion project.buildToolsVersion
-    resourcePrefix project.resourcePrefix
-
-    defaultConfig {
-        versionCode project.versionCode
-        versionName project.versionName
-        minSdkVersion project.minSdkVersion
-        targetSdkVersion project.targetSdkVersion
-        applicationId project.rootPackage + ".remote"
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
-    }
+public interface Executor {
+    @NonNull
+    Session session(@NonNull final ContentResolver resolver);
 }

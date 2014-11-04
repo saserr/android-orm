@@ -25,8 +25,7 @@ import android.orm.dao.ErrorHandler;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.dao.async.ExecutionContext;
-import android.orm.reactive.Route;
-import android.orm.reactive.Watchers;
+import android.orm.remote.Route;
 import android.orm.remote.dao.direct.Apply;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -68,34 +67,23 @@ public class Async implements Remote.Async {
     @Override
     public final Access.Async.Single<Uri> at(@NonNull final Route.Single route,
                                              @NonNull final Object... arguments) {
-        return access(Remote.at(route, arguments));
+        final Executor.Direct.Single<Uri> executor = Executors.create(mResolver, route, arguments);
+        return new android.orm.dao.async.Access.Single<>(create(mExecutionContext, executor));
     }
 
     @NonNull
     @Override
     public final Access.Async.Many<Uri> at(@NonNull final Route.Many route,
                                            @NonNull final Object... arguments) {
-        return access(Remote.at(route, arguments));
+        final Executor.Direct.Many<Uri> executor = Executors.create(mResolver, route, arguments);
+        return new android.orm.dao.async.Access.Many<>(create(mExecutionContext, executor));
     }
 
     @NonNull
     @Override
     public final Access.Async.Many<Uri> at(@NonNull final Uri uri) {
-        return access(Remote.at(uri));
-    }
-
-    @NonNull
-    @Override
-    public final <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory) {
-        final Executor.Async.Single<K> executor = create(mExecutionContext, factory.create(mResolver));
-        return new android.orm.dao.async.Access.Single<>(executor);
-    }
-
-    @NonNull
-    @Override
-    public final <K> Access.Async.Many<K> access(@NonNull final Executor.Direct.Many.Factory<ContentResolver, K> factory) {
-        final Executor.Async.Many<K> executor = create(mExecutionContext, factory.create(mResolver));
-        return new android.orm.dao.async.Access.Many<>(executor);
+        final Executor.Direct.Many<Uri> executor = Executors.create(mResolver, uri);
+        return new android.orm.dao.async.Access.Many<>(create(mExecutionContext, executor));
     }
 
     @NonNull
@@ -115,33 +103,6 @@ public class Async implements Remote.Async {
                                 return mApply.invoke(Pair.create(authority, batch));
                             }
                         });
-            }
-        };
-    }
-
-    @NonNull
-    @Override
-    public final Watchers watchers() {
-        return watchers(Watchers.Executors.Default.get());
-    }
-
-    @NonNull
-    @Override
-    public final Watchers watchers(@NonNull final android.orm.reactive.watch.Executor executor) {
-        return new Watchers(mResolver, executor) {
-
-            @NonNull
-            @Override
-            protected Executor.Direct.Single<?> executor(@NonNull final Route.Single route,
-                                                         @NonNull final Object... arguments) {
-                return Remote.at(route, arguments).create(mResolver);
-            }
-
-            @NonNull
-            @Override
-            protected Executor.Direct.Many<?> executor(@NonNull final Route.Many route,
-                                                       @NonNull final Object... arguments) {
-                return Remote.at(route, arguments).create(mResolver);
             }
         };
     }

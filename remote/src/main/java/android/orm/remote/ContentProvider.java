@@ -28,7 +28,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.orm.Database;
-import android.orm.reactive.Route;
 import android.orm.remote.provider.Match;
 import android.orm.sql.fragment.Limit;
 import android.support.annotation.NonNull;

@@ -19,7 +19,7 @@ package android.orm.playground;
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.content.Context;
-import android.orm.reactive.Watchers;
+import android.orm.remote.Watchers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 

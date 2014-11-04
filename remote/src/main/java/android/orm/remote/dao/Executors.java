@@ -20,7 +20,7 @@ import android.content.ContentResolver;
 import android.net.Uri;
 import android.orm.dao.Executor;
 import android.orm.model.Plan;
-import android.orm.reactive.Route;
+import android.orm.remote.Route;
 import android.orm.remote.dao.direct.Delete;
 import android.orm.remote.dao.direct.Exists;
 import android.orm.remote.dao.direct.Insert;

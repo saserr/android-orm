@@ -14,29 +14,23 @@
  * limitations under the License.
  */
 
-apply plugin: 'com.android.library'
+package android.orm.playground.reactive;
 
-dependencies {
-    compile(project(':core'))
-    compile(project(':remote'))
-}
+import android.orm.playground.Reactive;
+import android.orm.util.Maybe;
+import android.support.annotation.NonNull;
 
-android {
+public final class Transaction {
 
-    compileSdkVersion project.compileSdkVersion
-    buildToolsVersion project.buildToolsVersion
-    resourcePrefix project.resourcePrefix
+    public interface Direct<V> {
 
-    defaultConfig {
-        versionCode project.versionCode
-        versionName project.versionName
-        minSdkVersion 11
-        targetSdkVersion project.targetSdkVersion
-        applicationId project.rootPackage + ".playground"
+        @NonNull
+        Maybe<V> run(@NonNull final Reactive.Direct dao) throws android.orm.dao.Transaction.Rollback;
+
+        android.orm.dao.Transaction.Rollback Rollback = android.orm.dao.Transaction.Direct.Rollback;
     }
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+    private Transaction() {
+        super();
     }
 }

@@ -19,11 +19,8 @@ package android.orm;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.orm.dao.ErrorHandler;
-import android.orm.dao.Executor;
 import android.orm.dao.Result;
-import android.orm.reactive.Route;
-import android.orm.reactive.Watchers;
-import android.orm.remote.dao.Executors;
+import android.orm.remote.Route;
 import android.orm.remote.dao.Transaction;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -34,41 +31,6 @@ import java.util.concurrent.ExecutorService;
 import static android.orm.DAO.Executors.Default;
 
 public final class Remote {
-
-    @NonNull
-    public static Executor.Direct.Single.Factory<ContentResolver, Uri> at(@NonNull final Route.Single route,
-                                                                          @NonNull final Object... arguments) {
-        return new Executor.Direct.Single.Factory<ContentResolver, Uri>() {
-            @NonNull
-            @Override
-            public Executor.Direct.Single<Uri> create(@NonNull final ContentResolver resolver) {
-                return Executors.create(resolver, route, arguments);
-            }
-        };
-    }
-
-    @NonNull
-    public static Executor.Direct.Many.Factory<ContentResolver, Uri> at(@NonNull final Route.Many route,
-                                                                        @NonNull final Object... arguments) {
-        return new Executor.Direct.Many.Factory<ContentResolver, Uri>() {
-            @NonNull
-            @Override
-            public Executor.Direct.Many<Uri> create(@NonNull final ContentResolver resolver) {
-                return Executors.create(resolver, route, arguments);
-            }
-        };
-    }
-
-    @NonNull
-    public static Executor.Direct.Many.Factory<ContentResolver, Uri> at(@NonNull final Uri uri) {
-        return new Executor.Direct.Many.Factory<ContentResolver, Uri>() {
-            @NonNull
-            @Override
-            public Executor.Direct.Many<Uri> create(@NonNull final ContentResolver resolver) {
-                return Executors.create(resolver, uri);
-            }
-        };
-    }
 
     @NonNull
     public static Async create(@NonNull final ContentResolver resolver) {
@@ -95,12 +57,6 @@ public final class Remote {
         Access.Direct.Many<Uri> at(@NonNull final Uri uri);
 
         @NonNull
-        <K> Access.Direct.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory);
-
-        @NonNull
-        <K> Access.Direct.Many<K> access(@NonNull final Executor.Direct.Many.Factory<ContentResolver, K> factory);
-
-        @NonNull
         Transaction<Maybe<Transaction.CommitResult>> transaction();
     }
 
@@ -120,19 +76,7 @@ public final class Remote {
         Access.Async.Many<Uri> at(@NonNull final Uri uri);
 
         @NonNull
-        <K> Access.Async.Single<K> access(@NonNull final Executor.Direct.Single.Factory<ContentResolver, K> factory);
-
-        @NonNull
-        <K> Access.Async.Many<K> access(@NonNull final Executor.Direct.Many.Factory<ContentResolver, K> factory);
-
-        @NonNull
         Transaction<Result<Transaction.CommitResult>> transaction();
-
-        @NonNull
-        Watchers watchers();
-
-        @NonNull
-        Watchers watchers(@NonNull final android.orm.reactive.watch.Executor executor);
     }
 
     private Remote() {
