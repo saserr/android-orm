@@ -33,6 +33,7 @@ import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
+import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Select.select;
 
 public final class Executors {
@@ -45,14 +46,14 @@ public final class Executors {
                                                        @NonNull final Where where,
                                                        @NonNull final ContentValues onInsert,
                                                        @NonNull final Value.Read<K> key) {
-        return new Single<>(executor, table, where, onInsert, key);
+        return new Single<>(executor, escape(table), where, onInsert, key);
     }
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
                                                    @NonNls @NonNull final String table,
                                                    @NonNull final Value.Read<K> key) {
-        return many(executor, table, Where.None, EMPTY, key);
+        return new Many<>(executor, escape(table), Where.None, EMPTY, key);
     }
 
     @NonNull
@@ -61,7 +62,7 @@ public final class Executors {
                                                    @NonNull final Where where,
                                                    @NonNull final ContentValues onInsert,
                                                    @NonNull final Value.Read<K> key) {
-        return new Many<>(executor, table, where, onInsert, key);
+        return new Many<>(executor, escape(table), where, onInsert, key);
     }
 
     private static class Single<K> extends Some<K, K> implements Executor.Direct.Single<K> {
@@ -176,11 +177,11 @@ public final class Executors {
         @NonNull
         private final Value.Read<K> mKey;
 
-        private Some(@NonNull final android.orm.sql.Executor executor,
-                     @NonNls @NonNull final String table,
-                     @NonNull final Where where,
-                     @NonNull final ContentValues onInsert,
-                     @NonNull final Value.Read<K> key) {
+        protected Some(@NonNull final android.orm.sql.Executor executor,
+                       @NonNls @NonNull final String table,
+                       @NonNull final Where where,
+                       @NonNull final ContentValues onInsert,
+                       @NonNull final Value.Read<K> key) {
             super();
 
             mExecutor = executor;

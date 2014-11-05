@@ -33,7 +33,6 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Readables.combine;
 import static android.orm.sql.Readables.readable;
 import static android.orm.sql.Select.select;
@@ -67,7 +66,7 @@ public class Insert<K> implements Expression<K> {
                   @NonNull final Value.Read<K> key) {
         super();
 
-        mTable = escape(table);
+        mTable = table;
         mWriter = plan;
         mAdditional = additional;
         mKey = key;
@@ -99,7 +98,7 @@ public class Insert<K> implements Expression<K> {
                 final Where where = WHERE_ROW_ID.isEqualTo(id);
                 final Select select = select(mTable).with(where).with(Limit.Single).build();
                 final Readable input = select.execute(remaining, database);
-                if (input == null) {
+                if ((input == null) || !input.start()) {
                     result = nothing();
                 } else {
                     try {

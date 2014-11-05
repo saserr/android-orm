@@ -20,7 +20,7 @@ buildscript {
         versionCode = 1
         versionName = "0.8"
         compileSdkVersion = 21
-        buildToolsVersion = "21.0.2"
+        buildToolsVersion = "21.1.0"
         minSdkVersion = 5
         targetSdkVersion = 21
         rootPackage = "android.orm"

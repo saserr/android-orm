@@ -33,7 +33,6 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Readables.combine;
 import static android.orm.sql.Readables.readable;
 import static android.orm.sql.Select.select;
@@ -71,7 +70,7 @@ public final class Update {
                       @NonNull final Value.Read<K> key) {
             super();
 
-            mTable = escape(table);
+            mTable = table;
             mWhere = where;
             mPlan = plan;
             mAdditional = additional;
@@ -99,7 +98,7 @@ public final class Update {
                     result = mKey.read(readable(values));
                 } else {
                     final Readable input = mSelect.execute(remaining, database);
-                    if (input == null) {
+                    if ((input == null) || !input.start()) {
                         result = nothing();
                     } else {
                         try {
@@ -137,7 +136,7 @@ public final class Update {
                     @NonNull final Plan.Write plan) {
             super();
 
-            mTable = escape(table);
+            mTable = table;
             mWhere = where;
             mPlan = plan;
         }

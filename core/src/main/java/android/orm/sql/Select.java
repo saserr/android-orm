@@ -187,7 +187,7 @@ public class Select {
         }
         result.append('\n');
 
-        result.append("from ").append(escape(table));
+        result.append("from ").append(table);
         if (!where.isEmpty()) {
             result.append('\n').append("where ").append(where.toSQL());
         }

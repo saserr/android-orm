@@ -25,8 +25,6 @@ import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.sql.Helper.escape;
-
 public class Delete implements Expression<Integer> {
 
     @NonNls
@@ -38,7 +36,7 @@ public class Delete implements Expression<Integer> {
     public Delete(@NonNls @NonNull final String table, @NonNull final Where where) {
         super();
 
-        mTable = escape(table);
+        mTable = table;
         mWhere = where;
     }
 
