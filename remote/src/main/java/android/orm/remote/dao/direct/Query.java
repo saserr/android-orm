@@ -32,6 +32,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import static android.orm.sql.Readables.limit;
 import static android.orm.sql.Readables.readable;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
@@ -75,7 +76,7 @@ public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<May
                 try {
                     final Limit limit = arguments.getLimit();
                     final Offset offset = arguments.getOffset();
-                    result = something(plan.read(readable(cursor, limit, offset)));
+                    result = something(plan.read(limit(readable(cursor), limit, offset)));
                 } finally {
                     cursor.close();
                 }

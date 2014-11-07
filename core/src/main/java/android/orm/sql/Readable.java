@@ -36,9 +36,13 @@ public interface Readable extends Closeable {
     @NonNull
     Set<String> getKeys();
 
+    int position();
+
     int size();
 
     boolean start();
+
+    boolean start(final int position);
 
     boolean next();
 
