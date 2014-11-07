@@ -56,9 +56,9 @@ public final class Access {
             mExecutor = executor;
         }
 
-        protected abstract <M> I afterCreate(@Nullable final M model, @NonNull final I result);
+        protected abstract I afterCreate(@Nullable final Object model, @NonNull final I result);
 
-        protected abstract <M> U afterUpdate(@Nullable final M model, @NonNull final U result);
+        protected abstract U afterUpdate(@Nullable final Object model, @NonNull final U result);
 
         @NonNull
         @Override
@@ -74,13 +74,13 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M extends Model> I insert(@NonNull final M model) {
+        public final I insert(@NonNull final Model model) {
             return insert(Model.toInstance(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> I insert(@NonNull final M model) {
+        public final I insert(@NonNull final Instance.Writable model) {
             return insert(model, write(model));
         }
 
@@ -106,27 +106,25 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M extends Model> U update(@NonNull final M model) {
+        public final U update(@NonNull final Model model) {
             return update(Model.toInstance(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Model> U update(@NonNull final Where where,
-                                                @NonNull final M model) {
+        public final U update(@NonNull final Where where, @NonNull final Model model) {
             return update(where, Model.toInstance(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> U update(@NonNull final M model) {
+        public final U update(@NonNull final Instance.Writable model) {
             return update(model, write(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> U update(@NonNull final Where where,
-                                                            @NonNull final M model) {
+        public final U update(@NonNull final Where where, @NonNull final Instance.Writable model) {
             return update(model, where, write(model));
         }
 

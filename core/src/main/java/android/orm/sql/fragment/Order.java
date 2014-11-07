@@ -48,7 +48,7 @@ public class Order implements Fragment {
     }
 
     @NonNull
-    public static <V> Order order(@NonNull final Column<V> column, @NonNull final Type type) {
+    public static Order order(@NonNull final Column<?> column, @NonNull final Type type) {
         return new Order(escape(column.getName()) + ' ' + type.toSQL());
     }
 

@@ -102,7 +102,7 @@ public class Annotated {
     }
 
     @NonNull
-    public final <M> Migration migration(final int version, @NonNull final Class<M> klass) {
+    public final Migration migration(final int version, @NonNull final Class<?> klass) {
         final Table annotation = klass.getAnnotation(Table.class);
         if (annotation == null) {
             @NonNls final String error = "Class " + klass.getSimpleName() + " is not annotated with @Table";
@@ -120,7 +120,7 @@ public class Annotated {
     }
 
     @Nullable
-    public final <M> PrimaryKey<?> primaryKey(@NonNull final Class<M> klass) {
+    public final PrimaryKey<?> primaryKey(@NonNull final Class<?> klass) {
         PrimaryKey<?> result = null;
 
         final android.orm.playground.annotation.PrimaryKey annotation = klass.getAnnotation(android.orm.playground.annotation.PrimaryKey.class);
@@ -143,7 +143,7 @@ public class Annotated {
 
     @NonNull
     @SuppressWarnings("unchecked")
-    public final <M> ForeignKey<?>[] foreignKeys(@NonNull final Class<M> klass) {
+    public final ForeignKey<?>[] foreignKeys(@NonNull final Class<?> klass) {
         final ForeignKeys foreignKeys = klass.getAnnotation(ForeignKeys.class);
         final Collection<ForeignKey<?>> result;
 
@@ -182,7 +182,7 @@ public class Annotated {
     }
 
     @NonNull
-    public final <M> Column<?>[] columns(@NonNull final Class<M> klass) {
+    public final Column<?>[] columns(@NonNull final Class<?> klass) {
         final List<Column<?>> result = new ArrayList<>();
 
         for (final Field field : klass.getDeclaredFields()) {

@@ -98,8 +98,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Maybe<K> afterCreate(@Nullable final M model,
-                                                 @NonNull final Maybe<K> result) {
+        protected final Maybe<K> afterCreate(@Nullable final Object model,
+                                             @NonNull final Maybe<K> result) {
             if (result.getOrElse(null) != null) {
                 Observer.afterCreate(model);
             }
@@ -108,8 +108,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Maybe<K> afterUpdate(@Nullable final M model,
-                                                 @NonNull final Maybe<K> result) {
+        protected final Maybe<K> afterUpdate(@Nullable final Object model,
+                                             @NonNull final Maybe<K> result) {
             if (result.getOrElse(null) != null) {
                 Observer.afterUpdate(model);
             }
@@ -154,8 +154,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Maybe<K> afterCreate(@Nullable final M model,
-                                                 @NonNull final Maybe<K> result) {
+        protected final Maybe<K> afterCreate(@Nullable final Object model,
+                                             @NonNull final Maybe<K> result) {
             if (result.getOrElse(null) != null) {
                 Observer.afterCreate(model);
             }
@@ -164,8 +164,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Maybe<Integer> afterUpdate(@Nullable final M model,
-                                                       @NonNull final Maybe<Integer> result) {
+        protected final Maybe<Integer> afterUpdate(@Nullable final Object model,
+                                                   @NonNull final Maybe<Integer> result) {
             if (result.isSomething()) {
                 final Integer updated = result.get();
                 if ((updated != null) && (updated > 0)) {

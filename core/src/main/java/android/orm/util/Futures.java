@@ -67,9 +67,9 @@ public final class Futures {
         }
     }
 
-    public static <V> void deliver(@Nullable final Handler handler,
-                                   @NonNull final Future.Callback<V> callback,
-                                   @NonNull final Throwable error) {
+    public static void deliver(@Nullable final Handler handler,
+                               @NonNull final Future.Callback<?> callback,
+                               @NonNull final Throwable error) {
         if ((handler == null) || currentThread().equals(handler.getLooper().getThread())) {
             try {
                 callback.onError(error);

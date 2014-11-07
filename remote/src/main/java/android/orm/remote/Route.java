@@ -417,8 +417,8 @@ public abstract class Route extends Value.Read.Base<Uri> {
         }
 
         @NonNull
-        public final <V> Single single(@NonNls @NonNull final String table,
-                                       @NonNull final Column<V> column) {
+        public final Single single(@NonNls @NonNull final String table,
+                                   @NonNull final Column<?> column) {
             if (!column.isUnique()) {
                 throw new IllegalArgumentException("Column must be unique");
             }
@@ -441,8 +441,8 @@ public abstract class Route extends Value.Read.Base<Uri> {
         }
 
         @NonNull
-        public final <V> Single single(@NonNull final Single singleRoute,
-                                       @NonNull final Column<V> column) {
+        public final Single single(@NonNull final Single singleRoute,
+                                   @NonNull final Column<?> column) {
             if (!column.isUnique()) {
                 throw new IllegalArgumentException("Column must be unique");
             }

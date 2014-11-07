@@ -106,13 +106,13 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M extends Model> Access insert(@NonNull final M model) {
+        public final Access insert(@NonNull final Model model) {
             return insert(Model.toInstance(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> Access insert(@NonNull final M model) {
+        public final Access insert(@NonNull final Instance.Writable model) {
             return insert(write(model));
         }
 
@@ -138,27 +138,26 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M extends Model> Access update(@NonNull final M model) {
+        public final Access update(@NonNull final Model model) {
             return update(Model.toInstance(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Model> Access update(@NonNull final Where where,
-                                                     @NonNull final M model) {
+        public final Access update(@NonNull final Where where, @NonNull final Model model) {
             return update(where, Model.toInstance(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> Access update(@NonNull final M model) {
+        public final Access update(@NonNull final Instance.Writable model) {
             return update(write(model));
         }
 
         @NonNull
         @Override
-        public final <M extends Instance.Writable> Access update(@NonNull final Where where,
-                                                                 @NonNull final M model) {
+        public final Access update(@NonNull final Where where,
+                                   @NonNull final Instance.Writable model) {
             return update(where, write(model));
         }
 

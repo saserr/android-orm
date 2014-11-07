@@ -64,18 +64,18 @@ public final class Migrations {
     }
 
     @NonNull
-    public static <V> Migration createIndex(final int version,
-                                            @NonNls @NonNull final String table,
-                                            @NonNull final Column<V> column) {
+    public static Migration createIndex(final int version,
+                                        @NonNls @NonNull final String table,
+                                        @NonNull final Column<?> column) {
         @NonNls final String name = table + '_' + column.getName() + "_index";
         return createIndex(version, name, table, column);
     }
 
     @NonNull
-    public static <V> Migration createIndex(final int version,
-                                            @NonNls @NonNull final String name,
-                                            @NonNls @NonNull final String table,
-                                            @NonNull final Column<V> column) {
+    public static Migration createIndex(final int version,
+                                        @NonNls @NonNull final String name,
+                                        @NonNls @NonNull final String table,
+                                        @NonNull final Column<?> column) {
         return createIndex(version, column.isUnique(), name, table, column);
     }
 

@@ -102,7 +102,7 @@ public class Select {
     }
 
     @NonNull
-    public static <V> Projection projection(@NonNull final Column<V> column) {
+    public static Projection projection(@NonNull final Column<?> column) {
         return projection(column.getName(), null);
     }
 

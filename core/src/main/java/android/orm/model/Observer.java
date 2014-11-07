@@ -23,7 +23,7 @@ import java.util.Arrays;
 
 public final class Observer {
 
-    public static <M> void beforeRead(@Nullable final M model) {
+    public static void beforeRead(@Nullable final Object model) {
         if (model instanceof Read) {
             ((Read) model).beforeRead();
         }
@@ -35,7 +35,7 @@ public final class Observer {
         }
     }
 
-    public static <M> void afterRead(@Nullable final M model) {
+    public static void afterRead(@Nullable final Object model) {
         if (model instanceof Read) {
             ((Read) model).afterRead();
         }
@@ -47,7 +47,7 @@ public final class Observer {
         }
     }
 
-    public static <M> void beforeCreate(@Nullable final M model) {
+    public static void beforeCreate(@Nullable final Object model) {
         if (model instanceof Write) {
             ((Write) model).beforeCreate();
             ((Write) model).beforeSave();
@@ -60,7 +60,7 @@ public final class Observer {
         }
     }
 
-    public static <M> void afterCreate(@Nullable final M model) {
+    public static void afterCreate(@Nullable final Object model) {
         if (model instanceof Write) {
             ((Write) model).afterSave();
             ((Write) model).afterCreate();
@@ -73,7 +73,7 @@ public final class Observer {
         }
     }
 
-    public static <M> void beforeUpdate(@Nullable final M model) {
+    public static void beforeUpdate(@Nullable final Object model) {
         if (model instanceof Write) {
             ((Write) model).beforeUpdate();
             ((Write) model).beforeSave();
@@ -86,7 +86,7 @@ public final class Observer {
         }
     }
 
-    public static <M> void afterUpdate(@Nullable final M model) {
+    public static void afterUpdate(@Nullable final Object model) {
         if (model instanceof Write) {
             ((Write) model).afterSave();
             ((Write) model).afterUpdate();

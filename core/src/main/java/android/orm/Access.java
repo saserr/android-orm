@@ -521,10 +521,10 @@ public final class Access {
     public interface Insert<R> {
 
         @NonNull
-        <M extends Model> R insert(@NonNull final M model);
+        R insert(@NonNull final Model model);
 
         @NonNull
-        <M extends Instance.Writable> R insert(@NonNull final M model);
+        R insert(@NonNull final Instance.Writable model);
 
         @NonNull
         R insert(@NonNull final Writer writer);
@@ -539,17 +539,16 @@ public final class Access {
     public interface Update<R> {
 
         @NonNull
-        <M extends Model> R update(@NonNull final M model);
+        R update(@NonNull final Model model);
 
         @NonNull
-        <M extends Model> R update(@NonNull final Where where, @NonNull final M model);
+        R update(@NonNull final Where where, @NonNull final Model model);
 
         @NonNull
-        <M extends Instance.Writable> R update(@NonNull final M model);
+        R update(@NonNull final Instance.Writable model);
 
         @NonNull
-        <M extends Instance.Writable> R update(@NonNull final Where where,
-                                               @NonNull final M model);
+        R update(@NonNull final Where where, @NonNull final Instance.Writable model);
 
         @NonNull
         R update(@NonNull final Writer writer);

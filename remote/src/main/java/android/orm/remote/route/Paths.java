@@ -31,7 +31,7 @@ public final class Paths {
     }
 
     @NonNull
-    public static <V> Path path(@NonNull final Column<V> column) {
+    public static Path path(@NonNull final Column<?> column) {
         return path(Argument.isEqualTo(column));
     }
 

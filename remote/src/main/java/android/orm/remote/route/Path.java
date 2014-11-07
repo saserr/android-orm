@@ -115,7 +115,7 @@ public class Path {
     }
 
     @NonNull
-    public final <V> Path slash(@NonNull final Column<V> column) {
+    public final Path slash(@NonNull final Column<?> column) {
         return slash(Argument.isEqualTo(column));
     }
 

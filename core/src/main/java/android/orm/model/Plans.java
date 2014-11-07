@@ -206,7 +206,7 @@ public final class Plans {
     }
 
     @NonNull
-    public static <M extends Instance.Writable> Plan.Write write(@NonNull final M model) {
+    public static Plan.Write write(@NonNull final Instance.Writable model) {
         return model.prepareWrite();
     }
 
@@ -382,10 +382,10 @@ public final class Plans {
             });
         }
 
-        private static <V, C extends java.util.Collection<V>> void read(@NonNls @NonNull final String name,
-                                                                        @NonNull final Reading.Item.Create<V> reading,
-                                                                        @NonNull final Readable input,
-                                                                        @NonNull final C values) {
+        private static <V> void read(@NonNls @NonNull final String name,
+                                     @NonNull final Reading.Item.Create<V> reading,
+                                     @NonNull final Readable input,
+                                     @NonNull final java.util.Collection<V> values) {
             @NonNls final int size = input.size();
             if (Log.isLoggable(TAG, DEBUG)) {
                 Log.d(TAG, "Rows in input for " + name + ": " + size); //NON-NLS

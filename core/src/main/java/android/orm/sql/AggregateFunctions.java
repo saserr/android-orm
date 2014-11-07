@@ -54,7 +54,7 @@ public final class AggregateFunctions {
     };
 
     @NonNull
-    public static <V> AggregateFunction.Builder<Long> count(@NonNull final Column<V> column) {
+    public static AggregateFunction.Builder<Long> count(@NonNull final Column<?> column) {
         return new OnInteger.Builder<>(COUNT, column);
     }
 

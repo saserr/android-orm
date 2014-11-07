@@ -18,8 +18,6 @@ package android.orm.test;
 
 import android.support.annotation.NonNull;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
@@ -52,13 +50,13 @@ public class SameThreadExecutorService extends AbstractExecutorService {
     }
 
     @Override
-    public final boolean awaitTermination(final long timeout, @NotNull final TimeUnit unit) {
+    public final boolean awaitTermination(final long timeout, @NonNull final TimeUnit unit) {
         shutdown();
         return true;
     }
 
     @Override
-    public final void execute(@NotNull final Runnable command) {
+    public final void execute(@NonNull final Runnable command) {
         if (!mStopped) {
             command.run();
         }

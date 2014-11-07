@@ -100,8 +100,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Result<K> afterCreate(@Nullable final M model,
-                                                  @NonNull final Result<K> result) {
+        protected final Result<K> afterCreate(@Nullable final Object model,
+                                              @NonNull final Result<K> result) {
             return (model instanceof Observer.Write) ?
                     result.onComplete(new Result.Callback<K>() {
                         @Override
@@ -115,8 +115,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Result<K> afterUpdate(@Nullable final M model,
-                                                  @NonNull final Result<K> result) {
+        protected final Result<K> afterUpdate(@Nullable final Object model,
+                                              @NonNull final Result<K> result) {
             return (model instanceof Observer.Write) ?
                     result.onComplete(new Result.Callback<K>() {
                         @Override
@@ -166,8 +166,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Result<K> afterCreate(@Nullable final M model,
-                                                  @NonNull final Result<K> result) {
+        protected final Result<K> afterCreate(@Nullable final Object model,
+                                              @NonNull final Result<K> result) {
             return (model instanceof Observer.Write) ?
                     result.onComplete(new Result.Callback<K>() {
                         @Override
@@ -181,8 +181,8 @@ public final class Access {
         }
 
         @Override
-        protected final <M> Result<Integer> afterUpdate(@Nullable final M model,
-                                                        @NonNull final Result<Integer> result) {
+        protected final Result<Integer> afterUpdate(@Nullable final Object model,
+                                                    @NonNull final Result<Integer> result) {
             return (model instanceof Observer.Write) ?
                     result.onSomething(new Consumer<Integer>() {
                         @Override
