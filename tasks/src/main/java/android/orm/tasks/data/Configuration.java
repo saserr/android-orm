@@ -21,7 +21,7 @@ import android.orm.database.IntegrityChecks;
 
 public final class Configuration {
 
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     public static final Database Database = new Database("tasks.db", VERSION, IntegrityChecks.Full)
             .migrate(Migrations.Tasks);

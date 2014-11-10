@@ -39,6 +39,8 @@ import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 
 import static android.orm.dao.async.Executors.create;
+import static android.orm.remote.dao.Executors.many;
+import static android.orm.remote.dao.Executors.single;
 
 public class Async implements Remote.Async {
 
@@ -67,7 +69,7 @@ public class Async implements Remote.Async {
     @Override
     public final Access.Async.Single<Uri> at(@NonNull final Route.Single route,
                                              @NonNull final Object... arguments) {
-        final Executor.Direct.Single<Uri> executor = Executors.create(mResolver, route, arguments);
+        final Executor.Direct.Single<Uri> executor = single(mResolver, route, arguments);
         return new android.orm.dao.async.Access.Single<>(create(mExecutionContext, executor));
     }
 
@@ -75,14 +77,14 @@ public class Async implements Remote.Async {
     @Override
     public final Access.Async.Many<Uri> at(@NonNull final Route.Many route,
                                            @NonNull final Object... arguments) {
-        final Executor.Direct.Many<Uri> executor = Executors.create(mResolver, route, arguments);
+        final Executor.Direct.Many<Uri> executor = many(mResolver, route, arguments);
         return new android.orm.dao.async.Access.Many<>(create(mExecutionContext, executor));
     }
 
     @NonNull
     @Override
     public final Access.Async.Many<Uri> at(@NonNull final Uri uri) {
-        final Executor.Direct.Many<Uri> executor = Executors.create(mResolver, uri);
+        final Executor.Direct.Many<Uri> executor = many(mResolver, uri);
         return new android.orm.dao.async.Access.Many<>(create(mExecutionContext, executor));
     }
 

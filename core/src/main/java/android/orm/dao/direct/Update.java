@@ -19,11 +19,11 @@ package android.orm.dao.direct;
 import android.content.ContentValues;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.model.Plan;
 import android.orm.sql.Expression;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
@@ -55,7 +55,7 @@ public final class Update {
         @NonNull
         private final Where mWhere;
         @NonNull
-        private final Plan.Write mPlan;
+        private final Writer mWriter;
         @NonNull
         private final ContentValues mAdditional;
         @NonNull
@@ -65,14 +65,14 @@ public final class Update {
 
         public Single(@NonNls @NonNull final String table,
                       @NonNull final Where where,
-                      @NonNull final Plan.Write plan,
+                      @NonNull final Writer writer,
                       @NonNull final ContentValues additional,
                       @NonNull final Value.Read<K> key) {
             super();
 
             mTable = table;
-            mWhere = where;
-            mPlan = plan;
+            mWhere = where.and(writer.onUpdate());
+            mWriter = writer;
             mAdditional = additional;
             mKey = key;
             mSelect = select(table).with(where).with(Limit.Single).build();
@@ -82,7 +82,7 @@ public final class Update {
         @Override
         public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
-            mPlan.write(Update, writable(values));
+            mWriter.write(Update, writable(values));
             final int updated = update(database, mTable, mWhere, values);
 
             final Maybe<K> result;
@@ -125,27 +125,26 @@ public final class Update {
         @NonNls
         @NonNull
         private final String mTable;
-        @NonNls
         @NonNull
         private final Where mWhere;
         @NonNull
-        private final Plan.Write mPlan;
+        private final Writer mWriter;
 
         public Many(@NonNls @NonNull final String table,
                     @NonNull final Where where,
-                    @NonNull final Plan.Write plan) {
+                    @NonNull final Writer writer) {
             super();
 
             mTable = table;
-            mWhere = where;
-            mPlan = plan;
+            mWhere = where.and(writer.onUpdate());
+            mWriter = writer;
         }
 
         @NonNull
         @Override
         public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
-            mPlan.write(Update, writable(values));
+            mWriter.write(Update, writable(values));
             final int updated = update(database, mTable, mWhere, values);
             return (updated > 0) ? something(updated) : Maybes.<Integer>nothing();
         }

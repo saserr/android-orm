@@ -18,6 +18,7 @@ package android.orm.model;
 
 import android.orm.sql.Value;
 import android.orm.util.Lens;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -25,7 +26,6 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.Arrays;
 
-import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.model.Reading.Item.action;
 
 public final class Instances {
@@ -180,8 +180,7 @@ public final class Instances {
             @NonNull
             @Override
             public Plan.Write prepareWrite() {
-                final V value = binding.get().getOrElse(null);
-                return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
+                return mapper.prepareWrite(binding.get());
             }
         };
     }
@@ -210,8 +209,7 @@ public final class Instances {
             @NonNull
             @Override
             public Plan.Write prepareWrite() {
-                final V value = binding.get().getOrElse(null);
-                return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
+                return mapper.prepareWrite(binding.get());
             }
         };
     }

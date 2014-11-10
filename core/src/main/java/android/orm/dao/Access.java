@@ -99,9 +99,9 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M> I insert(@NonNull final M model,
+        public final <M> I insert(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
-            return insert(model, mapper.prepareWrite(model));
+            return insert(model, mapper.prepareWrite(something(model)));
         }
 
         @NonNull
@@ -158,17 +158,17 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M> U update(@NonNull final M model,
+        public final <M> U update(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
-            return update(model, mapper.prepareWrite(model));
+            return update(model, mapper.prepareWrite(something(model)));
         }
 
         @NonNull
         @Override
         public final <M> U update(@NonNull final Where where,
-                                  @NonNull final M model,
+                                  @Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
-            return update(model, where, mapper.prepareWrite(model));
+            return update(model, where, mapper.prepareWrite(something(model)));
         }
 
         @NonNull

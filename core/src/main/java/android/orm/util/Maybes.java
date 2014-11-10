@@ -43,6 +43,12 @@ public final class Maybes {
 
     @NonNull
     @SuppressWarnings("unchecked")
+    public static <V> Maybe<V> unnull(@Nullable final Maybe<V> value) {
+        return (value == null) ? (Maybe<V>) Null : value;
+    }
+
+    @NonNull
+    @SuppressWarnings("unchecked")
     public static <V> Maybe<V> something(@Nullable final V value) {
         return (value == null) ? (Something<V>) Null : new Something<>(value);
     }

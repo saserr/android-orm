@@ -17,5 +17,8 @@
   -->
 
 <resources>
-    <color name="holo_blue_dark">@android:color/holo_blue_dark</color>
+
+    <color name="primary_color">@android:color/holo_blue_dark</color>
+
+    <style name="Text" parent="android:TextAppearance.DeviceDefault.Large" />
 </resources>

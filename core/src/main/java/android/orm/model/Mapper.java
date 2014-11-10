@@ -25,6 +25,7 @@ import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
@@ -32,6 +33,7 @@ import org.jetbrains.annotations.NonNls;
 import static android.orm.model.Mappers.combine;
 import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
+import static android.orm.util.Maybes.something;
 
 public final class Mapper {
 
@@ -246,7 +248,7 @@ public final class Mapper {
         String getName();
 
         @NonNull
-        Plan.Write prepareWrite(@NonNull final M m);
+        Plan.Write prepareWrite(@NonNull final Maybe<M> value);
 
         @NonNull
         Write<M> and(@NonNull final Value.Constant value);
@@ -314,7 +316,7 @@ public final class Mapper {
 
                 @NonNull
                 @Override
-                public final Plan.Write prepareWrite(@NonNull final M value) {
+                public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
                     return mFirst.prepareWrite(value).and(Plans.write(mSecond));
                 }
             }
@@ -351,8 +353,21 @@ public final class Mapper {
 
                 @NonNull
                 @Override
-                public final Plan.Write prepareWrite(@NonNull final Pair<M, N> pair) {
-                    return mFirst.prepareWrite(pair.first).and(mSecond.prepareWrite(pair.second));
+                public final Plan.Write prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
+                    return mFirst.prepareWrite(first(value))
+                            .and(mSecond.prepareWrite(second(value)));
+                }
+
+                @NonNull
+                private static <M, N> Maybe<M> first(@NonNull final Maybe<Pair<M, N>> value) {
+                    final Pair<M, N> pair = value.getOrElse(null);
+                    return something((pair == null) ? null : pair.first);
+                }
+
+                @NonNull
+                private static <M, N> Maybe<N> second(@NonNull final Maybe<Pair<M, N>> value) {
+                    final Pair<M, N> pair = value.getOrElse(null);
+                    return something((pair == null) ? null : pair.second);
                 }
             }
 
@@ -361,7 +376,7 @@ public final class Mapper {
                 @NonNull
                 private final Write<M> mWrite;
                 @NonNull
-                private final Function<? super N, ? extends M> mConverter;
+                private final Function<Maybe<N>, Maybe<M>> mConverter;
                 @NonNls
                 @NonNull
                 private final String mName;
@@ -371,7 +386,7 @@ public final class Mapper {
                     super();
 
                     mWrite = write;
-                    mConverter = converter;
+                    mConverter = Maybes.map(converter);
                     mName = write.getName();
                 }
 
@@ -384,7 +399,7 @@ public final class Mapper {
 
                 @NonNull
                 @Override
-                public final Plan.Write prepareWrite(@NonNull final N value) {
+                public final Plan.Write prepareWrite(@NonNull final Maybe<N> value) {
                     return mWrite.prepareWrite(mConverter.invoke(value));
                 }
             }
@@ -442,7 +457,7 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Plan.Write prepareWrite(@NonNull final M value) {
+                    public Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
                         return write.build(value);
                     }
                 };

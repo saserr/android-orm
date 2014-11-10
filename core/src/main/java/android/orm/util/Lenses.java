@@ -19,7 +19,20 @@ package android.orm.util;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import static android.orm.util.Maybes.unnull;
+
 public final class Lenses {
+
+    @Nullable
+    public static <M, V> V get(@Nullable final M model, @NonNull final Lens.Read<M, V> lens) {
+        return (model == null) ? null : lens.get(model);
+    }
+
+    @NonNull
+    public static <M, V> Maybe<V> get(@NonNull final Maybe<M> model,
+                                      @NonNull final Lens.Read<M, Maybe<V>> lens) {
+        return model.isNothing() ? Maybes.<V>nothing() : unnull(get(model.get(), lens));
+    }
 
     @NonNull
     public static <M, V, T> Lens.Read<M, T> convert(@NonNull final Lens.Read<M, V> lens,

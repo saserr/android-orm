@@ -24,6 +24,7 @@ import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.Expression;
 import android.orm.sql.Readable;
+import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -55,14 +56,14 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
     };
 
     @NonNull
-    private final Plan.Read<V> mPlan;
+    private final Reader<V> mReader;
     @NonNull
     private final Select mSelect;
 
-    public Query(@NonNull final Plan.Read<V> plan, @NonNull final Select select) {
+    public Query(@NonNull final Reader<V> reader, @NonNull final Select select) {
         super();
 
-        mPlan = plan;
+        mReader = reader;
         mSelect = select;
     }
 
@@ -71,12 +72,12 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
     public final Maybe<Producer<Maybe<V>>> execute(@NonNull final SQLiteDatabase database) {
         final Maybe<Producer<Maybe<V>>> result;
 
-        final Readable input = mSelect.execute(mPlan.getProjection(), database);
+        final Readable input = mSelect.execute(mReader.getProjection(), database);
         if (input == null) {
             result = nothing();
         } else {
             try {
-                result = something(mPlan.read(input));
+                result = something(mReader.read(input));
             } finally {
                 input.close();
             }
@@ -87,8 +88,8 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
 
     @NonNull
     @SuppressWarnings("unchecked")
-    public static <M> Function<Producer<Maybe<M>>, Maybe<M>> afterRead() {
-        return (Function<Producer<Maybe<M>>, Maybe<M>>) AfterRead;
+    public static <V> Function<Producer<Maybe<V>>, Maybe<V>> afterRead() {
+        return (Function<Producer<Maybe<V>>, Maybe<V>>) AfterRead;
     }
 
     public static class Builder<M> implements Access.Direct.Query.Builder.Many.Refreshable<M> {

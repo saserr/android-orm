@@ -28,6 +28,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Checkable;
 import android.widget.ListView;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 
 import static android.widget.AbsListView.CHOICE_MODE_NONE;
@@ -145,7 +147,7 @@ public class List extends ListFragment {
         @Override
         public final View getView(final int position,
                                   final View convertView,
-                                  final ViewGroup parent) {
+                                  @NotNull final ViewGroup parent) {
             final ListItem view = (ListItem) super.getView(position, convertView, parent);
 
             if (view != null) {

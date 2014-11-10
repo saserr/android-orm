@@ -27,7 +27,6 @@ public final class Lens {
     }
 
     public interface Write<M, V> {
-
         void set(@NonNull final M m, @Nullable final V v);
     }
 

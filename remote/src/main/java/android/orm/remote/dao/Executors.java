@@ -26,6 +26,7 @@ import android.orm.remote.dao.direct.Exists;
 import android.orm.remote.dao.direct.Insert;
 import android.orm.remote.dao.direct.Query;
 import android.orm.remote.dao.direct.Update;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
@@ -44,22 +45,22 @@ import static android.orm.util.Maybes.something;
 public final class Executors {
 
     @NonNull
-    public static Executor.Direct.Single<Uri> create(@NonNull final ContentResolver resolver,
+    public static Executor.Direct.Single<Uri> single(@NonNull final ContentResolver resolver,
                                                      @NonNull final Route.Single route,
                                                      @NonNull final Object... arguments) {
         return new Single(resolver, route.createUri(arguments));
     }
 
     @NonNull
-    public static Executor.Direct.Many<Uri> create(@NonNull final ContentResolver resolver,
-                                                   @NonNull final Route.Many route,
-                                                   @NonNull final Object... arguments) {
-        return create(resolver, route.createUri(arguments));
+    public static Executor.Direct.Many<Uri> many(@NonNull final ContentResolver resolver,
+                                                 @NonNull final Route.Many route,
+                                                 @NonNull final Object... arguments) {
+        return many(resolver, route.createUri(arguments));
     }
 
     @NonNull
-    public static Executor.Direct.Many<Uri> create(@NonNull final ContentResolver resolver,
-                                                   @NonNull final Uri uri) {
+    public static Executor.Direct.Many<Uri> many(@NonNull final ContentResolver resolver,
+                                                 @NonNull final Uri uri) {
         return new Many(resolver, uri);
     }
 
@@ -95,7 +96,7 @@ public final class Executors {
                                        @NonNull final Plan.Write plan) {
             return plan.isEmpty() ?
                     Maybes.<Uri>nothing() :
-                    mUpdate.invoke(Pair.create(where, plan)).flatMap(mToUri);
+                    mUpdate.invoke(Pair.<Where, Writer>create(where, plan)).flatMap(mToUri);
         }
     }
 
@@ -116,7 +117,7 @@ public final class Executors {
                                            @NonNull final Plan.Write plan) {
             return plan.isEmpty() ?
                     Maybes.<Integer>nothing() :
-                    mUpdate.invoke(Pair.create(where, plan));
+                    mUpdate.invoke(Pair.<Where, Writer>create(where, plan));
         }
     }
 

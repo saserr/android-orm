@@ -37,6 +37,8 @@ public final class Migrations {
                 .with(primaryKey(Task.Id));
         Tasks.at(2)
                 .add(Task.Finished);
+        Tasks.at(3)
+                .add(Task.Version);
     }
 
     private Migrations() {

@@ -22,6 +22,7 @@ import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
+import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -50,7 +51,7 @@ public final class Plans {
 
     private static final String TAG = Plan.Read.class.getSimpleName();
 
-    public static final Plan.Write EmptyWrite = new Plan.Write() {
+    public static final Plan.Write EmptyWrite = new Plan.Write(Where.None) {
 
         @Override
         public boolean isEmpty() {
@@ -214,7 +215,7 @@ public final class Plans {
     public static Plan.Write write(@NonNull final Writer writer) {
         return (writer instanceof Plan.Write) ?
                 (Plan.Write) writer :
-                new Plan.Write() {
+                new Plan.Write(writer.onUpdate()) {
 
                     @Override
                     public boolean isEmpty() {
@@ -238,14 +239,13 @@ public final class Plans {
     @NonNull
     public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
                                        @NonNull final Instance.Getter<V> getter) {
-        final V v = getter.get();
-        return (v == null) ? EmptyWrite : mapper.prepareWrite(v);
+        return mapper.prepareWrite(something(getter.get()));
     }
 
     @NonNull
     public static <V> Plan.Write write(@NonNull final Maybe<V> model,
                                        @NonNull final Value.Write<V> value) {
-        return new Plan.Write() {
+        return new Plan.Write(Where.None) {
 
             @Override
             public boolean isEmpty() {
@@ -262,7 +262,7 @@ public final class Plans {
 
     @NonNull
     public static Plan.Write write(@NonNull final ContentValues values) {
-        return new Plan.Write() {
+        return new Plan.Write(Where.None) {
 
             private final boolean mIsEmpty = values.size() > 0;
 
@@ -481,7 +481,7 @@ public final class Plans {
         private final Iterable<Plan.Write> mPlans;
 
         private WriteComposition(@NonNull final Iterable<Plan.Write> plans) {
-            super();
+            super(onUpdate(plans));
 
             mPlans = plans;
         }
@@ -497,6 +497,17 @@ public final class Plans {
             for (final Plan.Write plan : mPlans) {
                 plan.write(operation, output);
             }
+        }
+
+        @NonNull
+        private static Where onUpdate(@NonNull final Iterable<Plan.Write> plans) {
+            Where onUpdate = Where.None;
+
+            for (final Plan.Write plan : plans) {
+                onUpdate = onUpdate.and(plan.onUpdate());
+            }
+
+            return onUpdate;
         }
     }
 

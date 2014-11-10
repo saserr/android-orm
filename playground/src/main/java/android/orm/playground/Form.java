@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.model.Plans.compose;
 import static android.orm.util.Maybes.something;
 
@@ -269,8 +268,7 @@ public class Form extends Instance.ReadWrite.Base {
     @NonNull
     public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
                                        @NonNull final Binding.Read<V> binding) {
-        final V value = binding.get().getOrElse(null);
-        return (value == null) ? EmptyWrite : mapper.prepareWrite(value);
+        return mapper.prepareWrite(binding.get());
     }
 
     @NonNull

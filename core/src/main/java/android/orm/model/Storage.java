@@ -139,8 +139,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
             @NonNull
             @Override
             protected Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
-                final M m = value.getOrElse(null);
-                return (m == null) ? EmptyWrite : mapper.prepareWrite(m);
+                return mapper.prepareWrite(value);
             }
         };
     }

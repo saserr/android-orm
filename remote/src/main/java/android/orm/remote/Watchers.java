@@ -50,7 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
-import static android.orm.remote.dao.Executors.create;
+import static android.orm.remote.dao.Executors.many;
+import static android.orm.remote.dao.Executors.single;
 import static java.lang.Runtime.getRuntime;
 
 public class Watchers {
@@ -80,7 +81,7 @@ public class Watchers {
     @NonNull
     public final Access.Single at(@NonNull final Route.Single route,
                                   @NonNull final Object... arguments) {
-        return new Access.Single(create(mResolver, route, arguments), mHandler) {
+        return new Access.Single(single(mResolver, route, arguments), mHandler) {
 
             private final Uri mUri = route.createUri(arguments);
 
@@ -95,7 +96,7 @@ public class Watchers {
     @NonNull
     public final Access.Many at(@NonNull final Route.Many route,
                                 @NonNull final Object... arguments) {
-        return new Access.Many(create(mResolver, route, arguments), mHandler) {
+        return new Access.Many(many(mResolver, route, arguments), mHandler) {
 
             private final Uri mUri = route.createUri(arguments);
 

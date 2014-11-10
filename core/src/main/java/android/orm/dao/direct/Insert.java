@@ -61,13 +61,13 @@ public class Insert<K> implements Expression<K> {
     private final Value.Read<K> mKey;
 
     public Insert(@NonNls @NonNull final String table,
-                  @NonNull final Writer plan,
+                  @NonNull final Writer writer,
                   @NonNull final ContentValues additional,
                   @NonNull final Value.Read<K> key) {
         super();
 
         mTable = table;
-        mWriter = plan;
+        mWriter = writer;
         mAdditional = additional;
         mKey = key;
     }

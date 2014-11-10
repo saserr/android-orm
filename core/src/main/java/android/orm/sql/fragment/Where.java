@@ -175,8 +175,8 @@ public class Where implements Fragment {
     public static <M> ComplexPart<M> where(@NonNull final Mapper.Write<M> mapper) {
         return new ComplexPart<M>() {
             @Override
-            protected void write(@NonNull final M model, @NonNull final Writable writable) {
-                mapper.prepareWrite(model).write(Visit, writable);
+            protected void write(@Nullable final M model, @NonNull final Writable writable) {
+                mapper.prepareWrite(something(model)).write(Visit, writable);
             }
         };
     }

@@ -20,6 +20,7 @@ import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.orm.model.Plan;
+import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -38,7 +39,7 @@ import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<Maybe<M>>>> {
+public class Query<V> implements Function<Query.Arguments<V>, Maybe<Producer<Maybe<V>>>> {
 
     private static final String TAG = Query.class.getSimpleName();
 
@@ -56,10 +57,10 @@ public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<May
 
     @NonNull
     @Override
-    public final Maybe<Producer<Maybe<M>>> invoke(@NonNull final Arguments<M> arguments) {
-        final Plan.Read<M> plan = arguments.getPlan();
-        final Select.Projection projection = plan.getProjection();
-        final Maybe<Producer<Maybe<M>>> result;
+    public final Maybe<Producer<Maybe<V>>> invoke(@NonNull final Arguments<V> arguments) {
+        final Reader<V> reader = arguments.getReader();
+        final Select.Projection projection = reader.getProjection();
+        final Maybe<Producer<Maybe<V>>> result;
 
         if (projection.isEmpty()) {
             result = nothing();
@@ -76,7 +77,7 @@ public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<May
                 try {
                     final Limit limit = arguments.getLimit();
                     final Offset offset = arguments.getOffset();
-                    result = something(plan.read(limit(readable(cursor), limit, offset)));
+                    result = something(reader.read(limit(readable(cursor), limit, offset)));
                 } finally {
                     cursor.close();
                 }
@@ -86,10 +87,10 @@ public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<May
         return result;
     }
 
-    public static class Arguments<M> {
+    public static class Arguments<V> {
 
         @NonNull
-        private final Plan.Read<M> mPlan;
+        private final Reader<V> mReader;
         @NonNull
         private final Where mWhere;
         @Nullable
@@ -99,18 +100,18 @@ public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<May
         @Nullable
         private final Offset mOffset;
 
-        public Arguments(@NonNull final Plan.Read<M> plan) {
-            this(plan, Where.None, null, null, null);
+        public Arguments(@NonNull final Reader<V> reader) {
+            this(reader, Where.None, null, null, null);
         }
 
-        public Arguments(@NonNull final Plan.Read<M> plan,
+        public Arguments(@NonNull final Reader<V> reader,
                          @NonNull final Where where,
                          @Nullable final Order order,
                          @Nullable final Limit limit,
                          @Nullable final Offset offset) {
             super();
 
-            mPlan = plan;
+            mReader = reader;
             mWhere = where;
             mOrder = order;
             mLimit = limit;
@@ -123,8 +124,8 @@ public class Query<M> implements Function<Query.Arguments<M>, Maybe<Producer<May
         }
 
         @NonNull
-        private Plan.Read<M> getPlan() {
-            return mPlan;
+        private Reader<V> getReader() {
+            return mReader;
         }
 
         @NonNull

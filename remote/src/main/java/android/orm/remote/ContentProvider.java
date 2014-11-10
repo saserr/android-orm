@@ -85,7 +85,7 @@ public class ContentProvider extends android.content.ContentProvider {
         return true;
     }
 
-    @Nullable
+    @NonNull
     @Override
     public final Cursor query(@NonNls @NonNull final Uri uri,
                               @Nullable final String[] projection,
@@ -111,17 +111,20 @@ public class ContentProvider extends android.content.ContentProvider {
     }
 
     @NonNls
-    @Nullable
+    @NonNull
     @Override
-    public final String getType(@NonNull final Uri uri) {
-        String result = null;
+    public final String getType(@NonNls @NonNull final Uri uri) {
+        final String result;
 
         final Route route = route(uri);
-        if (route != null) {
-            final Limit limit = route.getLimit();
-            @NonNls final String type = ((limit == null) || (limit.getAmount() > 1)) ? "dir" : "item";
-            result = CONTENT_TYPE_FORMAT.format(new String[]{type, mName, route.getTable()});
+        if (route == null) {
+            Log.w(TAG, "Get type at " + uri + " was unsuccessful."); //NON-NLS
+            throw new SQLException("Unkown uri " + uri + '.');
         }
+
+        final Limit limit = route.getLimit();
+        @NonNls final String type = ((limit == null) || (limit.getAmount() > 1)) ? "dir" : "item";
+        result = CONTENT_TYPE_FORMAT.format(new String[]{type, mName, route.getTable()});
 
         return result;
     }
@@ -251,12 +254,14 @@ public class ContentProvider extends android.content.ContentProvider {
         final Cursor cursor = match(uri).query(database, projection, selection, arguments, order);
 
         if (cursor == null) {
-            Log.w(TAG, "Query at " + uri + " was unsuccessful."); //NON-NLS\
-        } else {
-            if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Query at " + uri + " returned " + cursor.getCount() + " rows."); //NON-NLS
-            }
-            cursor.setNotificationUri(mContentResolver, uri);
+            final String message = "Query at " + uri + " was unsuccessful."; //NON-NLS
+            Log.w(TAG, message);
+            throw new SQLException(message);
+        }
+
+        cursor.setNotificationUri(mContentResolver, uri);
+        if (Log.isLoggable(TAG, DEBUG)) {
+            Log.d(TAG, "Query at " + uri + " returned " + cursor.getCount() + " rows."); //NON-NLS
         }
 
         return cursor;

@@ -31,6 +31,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
+import org.jetbrains.annotations.NotNull;
+
 import static android.orm.util.Validations.IsNotEmpty;
 import static android.orm.util.Validations.IsRequired;
 
@@ -38,20 +40,32 @@ public class Form extends Fragment {
 
     private Controller mController = DUMMY_CONTROLLER;
 
+    @Nullable
+    private Task mEdited;
+
     private EditText mTitle;
     private Validator.Instance mValidator;
 
     private final View.OnKeyListener mSave = new View.OnKeyListener() {
         @Override
-        public boolean onKey(final View view, final int code, final KeyEvent event) {
+        public boolean onKey(final View view, final int code, @NotNull final KeyEvent event) {
             final boolean result;
 
             if (((code == KeyEvent.KEYCODE_ENTER)
                     || (code == KeyEvent.KEYCODE_DPAD_CENTER))
                     && (event.getAction() == KeyEvent.ACTION_DOWN)) {
                 if (mValidator.isValid()) {
+                    final Task task;
+
                     final String title = mTitle.getText().toString();
-                    mController.save(new Task(title));
+                    if (mEdited == null) {
+                        task = new Task(title);
+                    } else {
+                        mEdited.setTitle(title);
+                        task = mEdited;
+                    }
+
+                    mController.save(task);
                 }
                 result = true;
             } else {
@@ -101,6 +115,8 @@ public class Form extends Fragment {
     }
 
     public final void edit(final Task task) {
+        mEdited = task;
+
         final String title = task.getTitle();
         mTitle.setText(title);
         mTitle.setSelection(title.length());
@@ -109,6 +125,8 @@ public class Form extends Fragment {
     }
 
     public final void clear() {
+        mEdited = null;
+
         mTitle.setText("");
         mTitle.setHint(R.string.new_task);
         mTitle.clearFocus();

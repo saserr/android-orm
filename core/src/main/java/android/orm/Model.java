@@ -25,11 +25,14 @@ import android.orm.model.Plans;
 import android.orm.model.Property;
 import android.orm.model.Reading;
 import android.orm.model.Storage;
+import android.orm.model.Version;
 import android.orm.model.View;
+import android.orm.sql.Column;
 import android.orm.sql.Value;
 import android.orm.util.Converter;
 import android.orm.util.Converters;
 import android.orm.util.Function;
+import android.orm.util.Lazy;
 import android.orm.util.Producer;
 import android.orm.util.Producers;
 import android.support.annotation.NonNull;
@@ -48,7 +51,7 @@ public abstract class Model {
     private final Collection<Instance.Writable> mWritableInstances = new ArrayList<>();
 
     @NonNull
-    private final Instance.ReadWrite mInstance;
+    private final Lazy<Instance.ReadWrite> mInstance;
 
     protected Model() {
         this(null, Observer.ReadWrite.DUMMY);
@@ -66,7 +69,13 @@ public abstract class Model {
                     @NonNull final Observer.ReadWrite observer) {
         super();
 
-        mInstance = new ModelInstance<>(name, this, observer);
+        mInstance = new Lazy.Volatile<Instance.ReadWrite>() {
+            @NonNull
+            @Override
+            protected Instance.ReadWrite produce() {
+                return new ModelInstance<>(name, Model.this, observer);
+            }
+        };
     }
 
     protected final void with(@NonNull final Instance.Readable instance) {
@@ -83,15 +92,23 @@ public abstract class Model {
     }
 
     @NonNull
-    protected final <V> View<V> view(@NonNull final Value.Read<V> value) {
-        final View<V> view = View.create(value, null);
-        with(view);
-        return view;
+    protected final Version version(@NonNull final Column<Long> column) {
+        final Version version = new Version(column, null);
+        with(version);
+        return version;
     }
 
     @NonNull
-    protected final <V> View<V> view(@NonNull final Mapper.Read<V> mapper) {
-        final View<V> view = View.create(mapper, null);
+    protected final Version version(@NonNull final Column<Long> column,
+                                    @NonNull final Observer.ReadWrite observer) {
+        final Version version = new Version(column, observer);
+        with(version);
+        return version;
+    }
+
+    @NonNull
+    protected final <V> View<V> view(@NonNull final Value.Read<V> value) {
+        final View<V> view = View.create(value, null);
         with(view);
         return view;
     }
@@ -100,6 +117,13 @@ public abstract class Model {
     protected final <V> View<V> view(@NonNull final Value.Read<V> value,
                                      @NonNull final Observer.Read observer) {
         final View<V> view = View.create(value, observer);
+        with(view);
+        return view;
+    }
+
+    @NonNull
+    protected final <V> View<V> view(@NonNull final Mapper.Read<V> mapper) {
+        final View<V> view = View.create(mapper, null);
         with(view);
         return view;
     }
@@ -124,16 +148,16 @@ public abstract class Model {
     }
 
     @NonNull
-    protected final <V> Storage<V> storage(@NonNull final Mapper.Write<V> mapper) {
-        final Storage<V> storage = Storage.create(mapper, null);
+    protected final <V> Storage<V> storage(@NonNull final Value.Write<V> value,
+                                           @NonNull final Observer.Write observer) {
+        final Storage<V> storage = Storage.create(value, observer);
         with(storage);
         return storage;
     }
 
     @NonNull
-    protected final <V> Storage<V> storage(@NonNull final Value.Write<V> value,
-                                           @NonNull final Observer.Write observer) {
-        final Storage<V> storage = Storage.create(value, observer);
+    protected final <V> Storage<V> storage(@NonNull final Mapper.Write<V> mapper) {
+        final Storage<V> storage = Storage.create(mapper, null);
         with(storage);
         return storage;
     }
@@ -154,16 +178,16 @@ public abstract class Model {
     }
 
     @NonNull
-    protected final <V> Property<V> property(@NonNull final Mapper.ReadWrite<V> mapper) {
-        final Property<V> property = Property.create(mapper, null);
+    protected final <V> Property<V> property(@NonNull final Value.ReadWrite<V> value,
+                                             @NonNull final Observer.ReadWrite observer) {
+        final Property<V> property = Property.create(value, observer);
         with(property);
         return property;
     }
 
     @NonNull
-    protected final <V> Property<V> property(@NonNull final Value.ReadWrite<V> value,
-                                             @NonNull final Observer.ReadWrite observer) {
-        final Property<V> property = Property.create(value, observer);
+    protected final <V> Property<V> property(@NonNull final Mapper.ReadWrite<V> mapper) {
+        final Property<V> property = Property.create(mapper, null);
         with(property);
         return property;
     }
@@ -188,7 +212,7 @@ public abstract class Model {
 
     @NonNull
     public static Instance.ReadWrite toInstance(@NonNull final Model model) {
-        return model.mInstance;
+        return model.mInstance.get();
     }
 
     private static class ModelInstance<M extends Model> extends Instance.ReadWrite.Base implements Observer.ReadWrite {

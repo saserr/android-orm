@@ -29,15 +29,18 @@ import android.support.annotation.NonNull;
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.sql.Columns.bool;
+import static android.orm.sql.Columns.number;
 import static android.orm.sql.Columns.text;
 
 public class Task extends Model {
 
     public static final long NoId = -1L;
+    public static final long NoVersion = -1L;
 
     public static final Column<Long> Id = Columns.Id;
     public static final Column<String> Title = text("title").asNotNull();
     public static final Column<Boolean> Finished = bool("finished").asNotNull().withDefault(false);
+    public static final Column<Long> Version = number("version").asNotNull().withDefault(1L);
 
     public static final Value.Constant Open = Finished.write(false);
     public static final Value.Constant Close = Finished.write(true);
@@ -56,6 +59,7 @@ public class Task extends Model {
     private final View<Long> mId = view(Id);
     private final Property<String> mTitle = property(Title);
     private final Property<Boolean> mFinished = property(Finished);
+    private final android.orm.model.Version mVersion = version(Version);
 
     private Task() {
         super(NAME);
@@ -68,17 +72,26 @@ public class Task extends Model {
     }
 
     public final long getId() {
-        final Long id = mId.getValue();
+        final Long id = mId.get();
         return (id == null) ? NoId : id;
     }
 
     public final String getTitle() {
-        return mTitle.getValue();
+        return mTitle.get();
+    }
+
+    public final void setTitle(@NonNls @NonNull final String title) {
+        mTitle.set(title);
     }
 
     public final boolean isFinished() {
-        final Boolean finished = mFinished.getValue();
+        final Boolean finished = mFinished.get();
         return (finished == null) ? false : finished;
+    }
+
+    public final long getVersion() {
+        final Long version = mVersion.get();
+        return (version == null) ? NoVersion : version;
     }
 
     @NonNls

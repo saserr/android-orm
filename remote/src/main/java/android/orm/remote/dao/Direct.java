@@ -34,6 +34,9 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.Collection;
 
+import static android.orm.remote.dao.Executors.many;
+import static android.orm.remote.dao.Executors.single;
+
 public class Direct implements Remote.Direct {
 
     @NonNull
@@ -52,20 +55,20 @@ public class Direct implements Remote.Direct {
     @Override
     public final Access.Direct.Single<Uri> at(@NonNull final Route.Single route,
                                               @NonNull final Object... arguments) {
-        return new android.orm.dao.direct.Access.Single<>(Executors.create(mResolver, route, arguments));
+        return new android.orm.dao.direct.Access.Single<>(single(mResolver, route, arguments));
     }
 
     @NonNull
     @Override
     public final Access.Direct.Many<Uri> at(@NonNull final Route.Many route,
                                             @NonNull final Object... arguments) {
-        return new android.orm.dao.direct.Access.Many<>(Executors.create(mResolver, route, arguments));
+        return new android.orm.dao.direct.Access.Many<>(many(mResolver, route, arguments));
     }
 
     @NonNull
     @Override
     public final Access.Direct.Many<Uri> at(@NonNull final Uri uri) {
-        return new android.orm.dao.direct.Access.Many<>(Executors.create(mResolver, uri));
+        return new android.orm.dao.direct.Access.Many<>(many(mResolver, uri));
     }
 
     @NonNull

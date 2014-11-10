@@ -131,9 +131,9 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M> Access insert(@NonNull final M model,
+        public final <M> Access insert(@Nullable final M model,
                                        @NonNull final Mapper.Write<M> mapper) {
-            return insert(mapper.prepareWrite(model));
+            return insert(mapper.prepareWrite(something(model)));
         }
 
         @NonNull
@@ -191,17 +191,17 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M> Access update(@NonNull final M model,
+        public final <M> Access update(@Nullable final M model,
                                        @NonNull final Mapper.Write<M> mapper) {
-            return update(mapper.prepareWrite(model));
+            return update(mapper.prepareWrite(something(model)));
         }
 
         @NonNull
         @Override
         public final <M> Access update(@NonNull final Where where,
-                                       @NonNull final M model,
+                                       @Nullable final M model,
                                        @NonNull final Mapper.Write<M> mapper) {
-            return update(where, mapper.prepareWrite(model));
+            return update(where, mapper.prepareWrite(something(model)));
         }
 
         @NonNull

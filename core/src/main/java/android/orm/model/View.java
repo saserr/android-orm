@@ -64,13 +64,12 @@ public abstract class View<V> extends Instance.Readable.Base implements Observer
         return mValue.isNothing();
     }
 
-    @NonNull
-    public final Maybe<V> get() {
-        return mValue;
+    public final boolean isNull() {
+        return mValue.isSomething() && (mValue.get() == null);
     }
 
     @Nullable
-    public final V getValue() {
+    public final V get() {
         return mValue.getOrElse(null);
     }
 

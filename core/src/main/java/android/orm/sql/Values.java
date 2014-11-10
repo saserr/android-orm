@@ -16,6 +16,7 @@
 
 package android.orm.sql;
 
+import android.orm.sql.fragment.Where;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -178,6 +179,12 @@ public final class Values {
             return mValue.getName();
         }
 
+        @NonNull
+        @Override
+        public final Where onUpdate() {
+            return Where.None;
+        }
+
         @Override
         public final void write(@NonNull final Value.Write.Operation operation,
                                 @NonNull final Writable output) {
@@ -236,6 +243,8 @@ public final class Values {
         @NonNls
         @NonNull
         private final String mName;
+        @NonNull
+        private final Where mOnUpdate;
 
         private ConstantComposition(@NonNull final Value.Constant first,
                                     @NonNull final Value.Constant second) {
@@ -244,6 +253,7 @@ public final class Values {
             mFirst = first;
             mSecond = second;
             mName = '(' + first.getName() + ", " + second.getName() + ')';
+            mOnUpdate = first.onUpdate().and(second.onUpdate());
         }
 
         @NonNls
@@ -251,6 +261,12 @@ public final class Values {
         @Override
         public final String getName() {
             return mName;
+        }
+
+        @NonNull
+        @Override
+        public final Where onUpdate() {
+            return mOnUpdate;
         }
 
         @Override

@@ -533,7 +533,7 @@ public final class Access {
         <M> R insert(@Nullable final M model, @NonNull final Value.Write<M> value);
 
         @NonNull
-        <M> R insert(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
+        <M> R insert(@Nullable final M model, @NonNull final Mapper.Write<M> mapper);
     }
 
     public interface Update<R> {
@@ -565,11 +565,11 @@ public final class Access {
                      @NonNull final Value.Write<M> value);
 
         @NonNull
-        <M> R update(@NonNull final M model, @NonNull final Mapper.Write<M> mapper);
+        <M> R update(@Nullable final M model, @NonNull final Mapper.Write<M> mapper);
 
         @NonNull
         <M> R update(@NonNull final Where where,
-                     @NonNull final M model,
+                     @Nullable final M model,
                      @NonNull final Mapper.Write<M> mapper);
     }
 

@@ -83,13 +83,12 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
         return mValue.isNothing();
     }
 
-    @NonNull
-    public final Maybe<V> get() {
-        return mValue;
+    public final boolean isNull() {
+        return mValue.isSomething() && (mValue.get() == null);
     }
 
     @Nullable
-    public final V getValue() {
+    public final V get() {
         return mValue.getOrElse(null);
     }
 
@@ -168,6 +167,7 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
     @Override
     public final void afterSave() {
         mSaved = mSaving;
+        mSaving = null;
         mObserver.afterSave();
     }
 
@@ -205,8 +205,7 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
             @NonNull
             @Override
             protected Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
-                final M m = value.getOrElse(null);
-                return (m == null) ? EmptyWrite : mapper.prepareWrite(m);
+                return mapper.prepareWrite(value);
             }
         };
     }

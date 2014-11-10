@@ -19,7 +19,7 @@ package android.orm.remote.dao.direct;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
-import android.orm.model.Plan;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -33,7 +33,7 @@ import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Update implements Function<Pair<Where, Plan.Write>, Maybe<Integer>> {
+public class Update implements Function<Pair<Where, Writer>, Maybe<Integer>> {
 
     private static final String TAG = Update.class.getSimpleName();
 
@@ -51,14 +51,16 @@ public class Update implements Function<Pair<Where, Plan.Write>, Maybe<Integer>>
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final Pair<Where, Plan.Write> pair) {
+    public final Maybe<Integer> invoke(@NonNull final Pair<Where, Writer> args) {
         final ContentValues values = new ContentValues();
-        pair.second.write(Update, writable(values));
+        final Writer writer = args.second;
+        writer.write(Update, writable(values));
 
         final int updated;
 
         if (values.size() > 0) {
-            updated = mResolver.update(mUri, values, pair.first.toSQL(), null);
+            final Where where = args.first.and(writer.onUpdate());
+            updated = mResolver.update(mUri, values, where.toSQL(), null);
         } else {
             updated = 0;
             if (Log.isLoggable(TAG, INFO)) {

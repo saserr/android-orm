@@ -59,8 +59,8 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
 
     @NonNull
     @Override
-    public final Plan.Write prepareWrite(@NonNull final E element) {
-        return mPlan.build(element);
+    public final Plan.Write prepareWrite(@NonNull final Maybe<E> value) {
+        return mPlan.build(value);
     }
 
     @NonNull

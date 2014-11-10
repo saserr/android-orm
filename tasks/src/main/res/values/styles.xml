@@ -24,18 +24,18 @@
 
     <dimen name="small_horizontal_padding">8dp</dimen>
 
-    <color name="holo_blue_dark">#ff0099cc</color>
+    <color name="primary_color">#ff0099cc</color>
 
     <style name="AppTheme" parent="@style/Theme.AppCompat.Light.DarkActionBar">
         <item name="actionBarStyle">@style/ActionBar</item>
     </style>
 
     <style name="ActionBar" parent="@style/Widget.AppCompat.Light.ActionBar.Solid.Inverse">
-        <item name="android:background">@color/holo_blue_dark</item>
-        <item name="background">@color/holo_blue_dark</item>
+        <item name="android:background">@color/primary_color</item>
+        <item name="background">@color/primary_color</item>
     </style>
 
-    <style name="Text" parent="android:TextAppearance.DeviceDefault.Large" />
+    <style name="Text" parent="android:TextAppearance.Large" />
 
     <style name="List.Item" parent="Text">
         <item name="android:gravity">center_vertical</item>
