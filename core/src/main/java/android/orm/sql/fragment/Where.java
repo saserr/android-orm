@@ -40,7 +40,7 @@ import java.util.Map;
 import static android.orm.sql.Types.Integer;
 import static android.orm.sql.Types.Real;
 import static android.orm.sql.Types.Text;
-import static android.orm.sql.Value.Write.Operation.Update;
+import static android.orm.sql.Value.Write.Operation.Visit;
 import static android.orm.util.Maybes.something;
 
 public class Where implements Fragment {
@@ -136,7 +136,7 @@ public class Where implements Fragment {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
-                Model.toInstance(model).prepareWrite().write(Update, writable);
+                Model.toInstance(model).prepareWrite().write(Visit, writable);
             }
         };
     }
@@ -146,7 +146,7 @@ public class Where implements Fragment {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
-                model.prepareWrite().write(Update, writable);
+                model.prepareWrite().write(Visit, writable);
             }
         };
     }
@@ -156,7 +156,7 @@ public class Where implements Fragment {
         return new ComplexPart<Writer>() {
             @Override
             protected void write(@NonNull final Writer writer, @NonNull final Writable writable) {
-                writer.write(Update, writable);
+                writer.write(Visit, writable);
             }
         };
     }
@@ -166,7 +166,7 @@ public class Where implements Fragment {
         return new ComplexPart.WithNull<M>() {
             @Override
             protected void write(@Nullable final M model, @NonNull final Writable writable) {
-                value.write(Update, something(model), writable);
+                value.write(Visit, something(model), writable);
             }
         };
     }
@@ -176,7 +176,7 @@ public class Where implements Fragment {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
-                mapper.prepareWrite(model).write(Update, writable);
+                mapper.prepareWrite(model).write(Visit, writable);
             }
         };
     }

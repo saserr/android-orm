@@ -189,7 +189,7 @@ public final class Value {
         }
 
         enum Operation {
-            Insert, Update
+            Insert, Update, Visit
         }
     }
 
