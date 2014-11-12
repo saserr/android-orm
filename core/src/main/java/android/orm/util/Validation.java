@@ -31,6 +31,9 @@ public interface Validation<V> {
     <T extends V> Validation<T> and(@NonNull final Validation<T> other);
 
     @NonNull
+    <T extends V> Validation<T> or(@NonNull final Validation<T> other);
+
+    @NonNull
     Validation<V> name(@NonNls @NonNull final String name);
 
     @NonNull
@@ -42,15 +45,15 @@ public interface Validation<V> {
     @NonNull
     <T> Validation<T> convert(@NonNull final Function<Maybe<T>, Maybe<V>> converter);
 
-    class Exception extends RuntimeException {
+    class Failure extends RuntimeException {
 
         private static final long serialVersionUID = 53893318821367125L;
 
-        public Exception(@NonNull final String error) {
+        public Failure(@NonNull final String error) {
             super(error);
         }
 
-        public Exception(@NonNull final String error, @NonNull final Throwable cause) {
+        public Failure(@NonNull final String error, @NonNull final Throwable cause) {
             super(error, cause);
         }
     }
@@ -60,7 +63,13 @@ public interface Validation<V> {
         @NonNull
         @Override
         public final <T extends V> Validation<T> and(@NonNull final Validation<T> other) {
-            return Validations.compose(this, other);
+            return Validations.both(this, other);
+        }
+
+        @NonNull
+        @Override
+        public final <T extends V> Validation<T> or(@NonNull final Validation<T> other) {
+            return Validations.either(this, other);
         }
 
         @NonNull
@@ -110,7 +119,7 @@ public interface Validation<V> {
         @Override
         public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
             if (!isValid(value)) {
-                throw new Exception(mError);
+                throw new Failure(mError);
             }
         }
     }

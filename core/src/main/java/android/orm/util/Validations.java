@@ -53,7 +53,7 @@ public final class Validations {
         @Override
         public void isValidOrThrow(@NonNull final Maybe<?> value) {
             if (!isValid(value)) {
-                throw new Exception(Error);
+                throw new Failure(Error);
             }
         }
     };
@@ -176,9 +176,15 @@ public final class Validations {
     }
 
     @NonNull
-    public static <V, T extends V> Validation<T> compose(@NonNull final Validation<V> first,
-                                                         @NonNull final Validation<T> second) {
-        return new Composition<>(first, second);
+    public static <V, T extends V> Validation<T> both(@NonNull final Validation<V> first,
+                                                      @NonNull final Validation<T> second) {
+        return new Both<>(first, second);
+    }
+
+    @NonNull
+    public static <V, T extends V> Validation<T> either(@NonNull final Validation<V> first,
+                                                        @NonNull final Validation<T> second) {
+        return new Either<>(first, second);
     }
 
     @NonNull
@@ -278,8 +284,8 @@ public final class Validations {
         public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
             try {
                 mValidation.isValidOrThrow(value);
-            } catch (final Exception ex) {
-                throw new Exception(mName + ": " + ex.getMessage(), ex);
+            } catch (final Failure ex) {
+                throw new Failure(mName + ": " + ex.getMessage(), ex);
             }
         }
 
@@ -287,6 +293,12 @@ public final class Validations {
         @Override
         public final <T extends V> Validation<T> and(@NonNull final Validation<T> other) {
             return new Name<>(mName, mValidation.and(other));
+        }
+
+        @NonNull
+        @Override
+        public final <T extends V> Validation<T> or(@NonNull final Validation<T> other) {
+            return new Name<>(mName, mValidation.or(other));
         }
 
         @NonNull
@@ -340,15 +352,15 @@ public final class Validations {
         }
     }
 
-    private static class Composition<V> extends Validation.Base<V> {
+    private static class Both<V> extends Validation.Base<V> {
 
         @NonNull
         private final Validation<? super V> mFirst;
         @NonNull
         private final Validation<V> mSecond;
 
-        private Composition(@NonNull final Validation<? super V> first,
-                            @NonNull final Validation<V> second) {
+        private Both(@NonNull final Validation<? super V> first,
+                     @NonNull final Validation<V> second) {
             super();
 
             mFirst = first;
@@ -364,6 +376,40 @@ public final class Validations {
         public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
             mFirst.isValidOrThrow(value);
             mSecond.isValidOrThrow(value);
+        }
+    }
+
+    private static class Either<V> extends Validation.Base<V> {
+
+        @NonNull
+        private final Validation<? super V> mFirst;
+        @NonNull
+        private final Validation<V> mSecond;
+
+        private Either(@NonNull final Validation<? super V> first,
+                       @NonNull final Validation<V> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @Override
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            return mFirst.isValid(value) || mSecond.isValid(value);
+        }
+
+        @Override
+        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
+            try {
+                mFirst.isValidOrThrow(value);
+            } catch (final Failure first) {
+                try {
+                    mSecond.isValidOrThrow(value);
+                } catch (final Failure ignored) {
+                    throw first;
+                }
+            }
         }
     }
 
