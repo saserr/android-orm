@@ -25,7 +25,6 @@ import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;

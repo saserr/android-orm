@@ -14,25 +14,35 @@
  * limitations under the License.
  */
 
-package android.orm.playground.annotation;
+package android.orm.sql.column;
 
-import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.fragment.Constraint;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+public class Unique implements Constraint {
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+    @NonNls
+    @NonNull
+    private final String mSQL;
 
-@Retention(RUNTIME)
-@Target(TYPE)
-public @interface PrimaryKey {
+    public Unique() {
+        super();
 
-    @NonNls @NonNull String[] columns();
+        mSQL = "unique";
+    }
 
-    @Nullable ConflictResolution resolution() default ConflictResolution.Abort;
+    public Unique(@NonNull final ConflictResolution onConflict) {
+        super();
+
+        mSQL = "unique on conflict " + onConflict.toSQL();
+    }
+
+    @NonNls
+    @NonNull
+    @Override
+    public final String toSQL() {
+        return mSQL;
+    }
 }

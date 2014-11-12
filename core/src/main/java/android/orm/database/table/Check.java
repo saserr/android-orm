@@ -16,14 +16,14 @@
 
 package android.orm.database.table;
 
-import android.orm.database.Table;
+import android.orm.sql.fragment.Constraint;
 import android.orm.sql.fragment.Where;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-public class Check implements Table.Constraint {
+public class Check implements Constraint {
 
     @NonNls
     @NonNull

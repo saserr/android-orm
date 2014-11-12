@@ -14,25 +14,20 @@
  * limitations under the License.
  */
 
-package android.orm.playground.annotation;
+package android.orm.sql.column;
 
-import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.Value;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+public interface Validation<V> {
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+    void afterRead(@NonNls @NonNull final String name,
+                   @NonNull final Maybe<? extends V> value);
 
-@Retention(RUNTIME)
-@Target(TYPE)
-public @interface PrimaryKey {
-
-    @NonNls @NonNull String[] columns();
-
-    @Nullable ConflictResolution resolution() default ConflictResolution.Abort;
+    void beforeWrite(@NonNull final Value.Write.Operation operation,
+                     @NonNls @NonNull final String name,
+                     @NonNull final Maybe<? extends V> value);
 }

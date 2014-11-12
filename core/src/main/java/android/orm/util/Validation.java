@@ -113,7 +113,7 @@ public interface Validation<V> {
 
         @Override
         public final boolean isValid(@NonNull final Maybe<? extends V> value) {
-            return value.isNothing() || isValid(value.get());
+            return value.isSomething() && isValid(value.get());
         }
 
         @Override

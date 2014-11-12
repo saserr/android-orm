@@ -16,12 +16,13 @@
 
 package android.orm.database.table;
 
-import android.orm.database.Table;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.fragment.ConflictResolution;
+import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.column.Reference;
+import android.orm.sql.fragment.Constraint;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -32,9 +33,7 @@ import org.jetbrains.annotations.NonNls;
 import java.util.Map;
 import java.util.Set;
 
-import static android.orm.sql.Helper.escape;
-
-public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Table.Constraint {
+public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Constraint {
 
     @NonNull
     private final Value.ReadWrite<V> mValue;
@@ -99,7 +98,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Table.Cons
 
         if (!result && (object != null) && (getClass() == object.getClass())) {
             final PrimaryKey<?> other = (PrimaryKey<?>) object;
-            result = mSQL.get().equals(other.mSQL.get());
+            result = mSQL.get().equals(other.toSQL());
         }
 
         return result;
@@ -120,20 +119,6 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Table.Cons
     @NonNull
     public static <V> PrimaryKey<V> on(@NonNull final Value.ReadWrite<V> value) {
         return new PrimaryKey<>(value, null);
-    }
-
-    @NonNls
-    @NonNull
-    /* package */ static String toSQL(@NonNull final Set<String> projection) {
-        final StringBuilder result = new StringBuilder();
-
-        for (final String column : projection) {
-            result.append(escape(column)).append(", ");
-        }
-        final int length = result.length();
-        result.delete(length - 2, length);
-
-        return result.toString();
     }
 
     private static class SQL extends Lazy.Volatile<String> {
@@ -159,7 +144,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Table.Cons
         @NonNull
         @Override
         protected final String produce() {
-            return "primary key (" + toSQL(mKey) + ')' +
+            return "primary key (" + Reference.toSQL(mKey) + ')' +
                     ((mResolution == null) ? "" : (" on conflict " + mResolution.toSQL()));
         }
     }

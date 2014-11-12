@@ -27,7 +27,7 @@ import android.orm.sql.Column;
 import android.orm.sql.Type;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
-import android.orm.sql.fragment.ConflictResolution;
+import android.orm.sql.column.ConflictResolution;
 import android.orm.util.Lens;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;

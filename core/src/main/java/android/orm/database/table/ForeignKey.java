@@ -17,76 +17,46 @@
 package android.orm.database.table;
 
 import android.orm.database.Table;
-import android.orm.sql.Fragment;
 import android.orm.sql.Value;
+import android.orm.sql.column.Reference;
+import android.orm.sql.fragment.Constraint;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.Map;
 import java.util.Set;
 
-import static android.orm.sql.Helper.escape;
-
-public class ForeignKey<V> implements Table.Constraint {
+public class ForeignKey<V> implements Constraint {
 
     @NonNull
     private final Value.Read<V> mChildKey;
     @NonNls
     @NonNull
-    private final String mParentTable;
-    @Nullable
-    private final Value.Read<V> mParentKey;
-    @Nullable
-    private final Action mOnDelete;
-    @Nullable
-    private final Action mOnUpdate;
+    private final Reference<V> mReference;
     @NonNls
     @NonNull
     private final Lazy<String> mSQL;
 
-    private ForeignKey(@NonNull final Value.Read<V> childKey,
-                       @NonNls @NonNull final String parentTable,
-                       @Nullable final Value.Read<V> parentKey,
-                       @Nullable final Action onDelete,
-                       @Nullable final Action onUpdate) {
+    protected ForeignKey(@NonNull final Value.Read<V> childKey,
+                         @NonNull final Reference<V> reference) {
         super();
 
         mChildKey = childKey;
-        mParentTable = parentTable;
-        mParentKey = parentKey;
-        mOnDelete = onDelete;
-        mOnUpdate = onUpdate;
+        mReference = reference;
 
-        mSQL = new SQL(childKey, parentTable, parentKey, onDelete, onUpdate);
+        mSQL = new SQL(childKey, mReference);
     }
 
     @NonNull
-    public final Value.Read<V> getChildKey() {
-        return mChildKey;
-    }
-
-    @NonNls
-    @NonNull
-    public final String getParentTable() {
-        return mParentTable;
-    }
-
-    @Nullable
-    public final Value.Read<V> getParentKey() {
-        return mParentKey;
+    public final ForeignKey<V> onDelete(@NonNull final Reference.Action action) {
+        return new ForeignKey<>(mChildKey, mReference.onDelete(action));
     }
 
     @NonNull
-    public final ForeignKey<V> onDelete(@NonNull final Action action) {
-        return new ForeignKey<>(mChildKey, mParentTable, mParentKey, action, mOnUpdate);
-    }
-
-    @NonNull
-    public final ForeignKey<V> onUpdate(@NonNull final Action action) {
-        return new ForeignKey<>(mChildKey, mParentTable, mParentKey, mOnDelete, action);
+    public final ForeignKey<V> onUpdate(@NonNull final Reference.Action action) {
+        return new ForeignKey<>(mChildKey, mReference.onUpdate(action));
     }
 
     @Override
@@ -95,7 +65,7 @@ public class ForeignKey<V> implements Table.Constraint {
 
         if (!result && (object != null) && (getClass() == object.getClass())) {
             final ForeignKey<?> other = (ForeignKey<?>) object;
-            result = mSQL.get().equals(other.mSQL.get());
+            result = mSQL.get().equals(other.toSQL());
         }
 
         return result;
@@ -117,8 +87,7 @@ public class ForeignKey<V> implements Table.Constraint {
     @NonNull
     @Override
     public final String toString() {
-        return mChildKey.getName() + " -> " + mParentTable +
-                ((mParentKey == null) ? "" : ('(' + mParentKey.getName() + ')'));
+        return mChildKey.getName() + " -> " + mReference;
     }
 
     @NonNull
@@ -138,38 +107,25 @@ public class ForeignKey<V> implements Table.Constraint {
         }
 
         @NonNull
+        public final ForeignKey<V> to(@NonNls @NonNull final Table<V> table) {
+            final String parent = table.getName();
+            final PrimaryKey<V> parentKey = table.getPrimaryKey();
+            final Reference<V> reference = (parentKey == null) ?
+                    Reference.<V>to(parent) :
+                    Reference.to(parent, parentKey);
+
+            return new ForeignKey<>(mChildKey, reference);
+        }
+
+        @NonNull
         public final ForeignKey<V> to(@NonNls @NonNull final String table) {
-            return new ForeignKey<>(mChildKey, table, null, null, null);
+            return new ForeignKey<>(mChildKey, Reference.<V>to(table));
         }
 
         @NonNull
         public final ForeignKey<V> to(@NonNls @NonNull final String table,
-                                      @NonNull final Value.Read<V> parentKey) {
-            return new ForeignKey<>(mChildKey, table, parentKey, null, null);
-        }
-    }
-
-    public enum Action implements Fragment {
-
-        SetNull("set null"),
-        SetDefault("set default"),
-        Cascade("cascade"),
-        Restrict("restrict"),
-        NoAction("no action");
-
-        @NonNls
-        @NonNull
-        private final String mSQL;
-
-        Action(@NonNls @NonNull final String sql) {
-            mSQL = sql;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String toSQL() {
-            return mSQL;
+                                      @NonNull final Value.Read<V> key) {
+            return new ForeignKey<>(mChildKey, Reference.to(table, key));
         }
     }
 
@@ -179,46 +135,25 @@ public class ForeignKey<V> implements Table.Constraint {
         private final Set<String> mChildKey;
         @NonNls
         @NonNull
-        private final String mParentTable;
-        @Nullable
-        private final Set<String> mParentKey;
-        @Nullable
-        private final Action mOnDelete;
-        @Nullable
-        private final Action mOnUpdate;
+        private final Reference<?> mReference;
 
         private <V> SQL(@NonNull final Value.Read<V> childKey,
-                        @NonNull final String parentTable,
-                        @Nullable final Value.Read<V> parentKey,
-                        @Nullable final Action onDelete,
-                        @Nullable final Action onUpdate) {
+                        @NonNull final Reference<V> reference) {
             super();
-
-            mParentTable = escape(parentTable);
-            mOnDelete = onDelete;
-            mOnUpdate = onUpdate;
 
             mChildKey = childKey.getProjection().asMap().keySet();
             if (mChildKey.isEmpty()) {
                 throw new IllegalArgumentException("Child key must reference something");
             }
 
-            final Map<String, String> parentKeyMap = (parentKey == null) ? null : parentKey.getProjection().asMap();
-            if ((parentKeyMap != null) && parentKeyMap.isEmpty()) {
-                throw new IllegalArgumentException("Parent cannot reference nothing");
-            }
-            mParentKey = (parentKeyMap == null) ? null : parentKeyMap.keySet();
+            mReference = reference;
         }
 
         @NonNls
         @NonNull
         @Override
         protected final String produce() {
-            return "foreign key (" + PrimaryKey.toSQL(mChildKey) +
-                    ") references " + mParentTable +
-                    ((mParentKey == null) ? "" : ('(' + PrimaryKey.toSQL(mParentKey) + ')')) +
-                    ((mOnDelete == null) ? "" : (" on delete " + mOnDelete.toSQL())) +
-                    ((mOnUpdate == null) ? "" : (" on update " + mOnUpdate.toSQL()));
+            return "foreign key (" + Reference.toSQL(mChildKey) + ") " + mReference.toSQL();
         }
     }
 }

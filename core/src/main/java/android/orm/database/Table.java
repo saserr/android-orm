@@ -24,7 +24,6 @@ import android.orm.database.table.PrimaryKey;
 import android.orm.database.table.Schema;
 import android.orm.database.table.Schemas;
 import android.orm.sql.Column;
-import android.orm.sql.Fragment;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
@@ -223,13 +222,6 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
                 throw new UnsupportedOperationException("Trying to create table without columns");
             }
         }
-    }
-
-    public interface Constraint extends Fragment {
-        @NonNls
-        @NonNull
-        @Override
-        String toSQL();
     }
 
     public interface Revision {

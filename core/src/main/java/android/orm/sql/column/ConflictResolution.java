@@ -14,25 +14,33 @@
  * limitations under the License.
  */
 
-package android.orm.playground.annotation;
+package android.orm.sql.column;
 
-import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.Fragment;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+public enum ConflictResolution implements Fragment {
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+    Rollback("rollback"),
+    Abort("abort"),
+    Fail("fail"),
+    Ignore("ignore"),
+    Replace("replace");
 
-@Retention(RUNTIME)
-@Target(TYPE)
-public @interface PrimaryKey {
+    @NonNls
+    @NonNull
+    private final String mSQL;
 
-    @NonNls @NonNull String[] columns();
+    ConflictResolution(@NonNls @NonNull final String sql) {
+        mSQL = sql;
+    }
 
-    @Nullable ConflictResolution resolution() default ConflictResolution.Abort;
+    @NonNls
+    @NonNull
+    @Override
+    public final String toSQL() {
+        return mSQL;
+    }
 }

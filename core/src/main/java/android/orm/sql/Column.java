@@ -17,58 +17,74 @@
 package android.orm.sql;
 
 import android.database.SQLException;
-import android.orm.sql.fragment.ConflictResolution;
+import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.column.Default;
+import android.orm.sql.column.NotNull;
+import android.orm.sql.column.Reference;
+import android.orm.sql.column.Unique;
+import android.orm.sql.column.Validation;
+import android.orm.sql.column.Validations;
+import android.orm.sql.fragment.Constraint;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
-import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import static android.orm.sql.Value.Write.Operation.Insert;
+import static android.orm.sql.column.Validations.compose;
+import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
+import static android.orm.util.Validations.IsNotNull;
 
 public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
+
+    private static final Unique UNIQUE = new Unique();
+    private static final NotNull NOT_NULL = new NotNull();
 
     @NonNls
     @NonNull
     private final String mName;
     @NonNull
     private final Type<V> mType;
+    @Nullable
+    private final NotNull mNotNull;
+    @Nullable
+    private final Unique mUnique;
+    @Nullable
+    private final Default<V> mDefault;
+    @Nullable
+    private final Reference<V> mReference;
+    @Nullable
+    private final Validation<V> mValidation;
     @NonNull
     private final Select.Projection mProjection;
     @NonNull
-    private final List<Constraint<V>> mConstraints;
-    @NonNull
     private final Lazy<String> mSQL;
     private final boolean mNullable;
-    private final boolean mUnique;
-    private final boolean mRequired;
-
-    private Column(@NonNls @NonNull final String name, @NonNull final Type<V> type) {
-        this(name, type, Collections.<Constraint<V>>emptyList());
-    }
 
     private Column(@NonNls @NonNull final String name,
                    @NonNull final Type<V> type,
-                   @NonNull final List<Constraint<V>> constraints) {
+                   @Nullable final NotNull notNull,
+                   @Nullable final Unique unique,
+                   @Nullable final Default<V> defaultValue,
+                   @Nullable final Reference<V> reference,
+                   @Nullable final Validation<V> validation) {
         super();
 
         mName = name;
         mType = type;
-        mProjection = Select.projection(name, null);
-        mConstraints = constraints;
-        mSQL = sql(name, type, constraints);
+        mNotNull = notNull;
+        mUnique = unique;
+        mDefault = defaultValue;
+        mReference = reference;
+        mValidation = validation;
 
-        mNullable = !contains(Constraint.NotNull.class);
-        mUnique = contains(Constraint.Unique.class);
-        mRequired = contains(Constraint.Default.class) || mNullable;
+        mProjection = Select.projection(name, null);
+        mSQL = sql(name, type, notNull, unique, defaultValue, reference);
+        mNullable = mNotNull == null;
     }
 
     @NonNls
@@ -94,7 +110,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     public final boolean isUnique() {
-        return mUnique;
+        return mUnique != null;
     }
 
     @NonNull
@@ -105,64 +121,104 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @NonNull
     @Override
     public final Maybe<V> read(@NonNull final Readable input) {
-        return afterRead(mType.read(input, mName));
+        final Maybe<V> result = mType.read(input, mName);
+
+        if (mValidation != null) {
+            mValidation.afterRead(mName, result);
+        }
+
+        return result;
     }
 
     @Override
     public final void write(@NonNull final Value.Write.Operation operation,
                             @NonNull final Maybe<V> value,
                             @NonNull final Writable output) {
-        final Maybe<V> processed = beforeWrite(operation, value);
+        Maybe<V> result = value;
+        if ((operation == Insert) && value.isNothing()) {
+            if (mDefault == null) {
+                if (!mNullable) {
+                    throw new SQLException("Required column " + mName + " is missing");
+                }
 
-        if (processed.isSomething()) {
-            final V v = processed.get();
+                result = nothing();
+            } else {
+                result = something(mDefault.get());
+            }
+        }
+
+        if (mValidation != null) {
+            mValidation.beforeWrite(operation, mName, result);
+        }
+
+        if (result.isSomething()) {
+            final V v = result.get();
             if (v == null) {
                 output.putNull(mName);
             } else {
                 mType.write(output, mName, v);
             }
-        } else {
-            if ((operation == Insert) && mRequired) {
-                throw new SQLException("Required column " + mName + " is missing");
-            }
         }
     }
 
     @NonNull
-    public final Column<V> asUnique() {
-        return with(new Constraint.Unique<V>());
-    }
-
-    @NonNull
-    public final Column<V> asUnique(@NonNull final ConflictResolution onConflict) {
-        return with(new Constraint.Unique<V>(onConflict));
-    }
-
-    @NonNull
     public final Column<V> asNotNull() {
-        return with(new Constraint.NotNull<V>());
+        final Validation<V> isNotNull = Validations.convert(IsNotNull.name(mName));
+        final Validation<V> validation = (mValidation == null) ?
+                isNotNull :
+                compose(mValidation, isNotNull);
+        return new Column<>(mName, mType, NOT_NULL, mUnique, mDefault, mReference, validation);
     }
 
     @NonNull
     public final Column<V> asNotNull(@NonNull final ConflictResolution onConflict) {
-        return with(new Constraint.NotNull<V>(onConflict));
+        final Validation<V> isNotNull = Validations.convert(IsNotNull.name(mName));
+        final Validation<V> validation = (mValidation == null) ?
+                isNotNull :
+                compose(mValidation, isNotNull);
+        final NotNull notNull = new NotNull(onConflict);
+        return new Column<>(mName, mType, notNull, mUnique, mDefault, mReference, validation);
+    }
+
+    @NonNull
+    public final Column<V> asUnique() {
+        return new Column<>(mName, mType, mNotNull, UNIQUE, mDefault, mReference, mValidation);
+    }
+
+    @NonNull
+    public final Column<V> asUnique(@NonNull final ConflictResolution onConflict) {
+        final Unique unique = new Unique(onConflict);
+        return new Column<>(mName, mType, mNotNull, unique, mDefault, mReference, mValidation);
     }
 
     @NonNull
     public final Column<V> withDefault(@Nullable final V value) {
-        return with(new Constraint.Default<>(mType, value));
+        final Default<V> defaultValue = new Default<>(mType, value);
+        return new Column<>(mName, mType, mNotNull, mUnique, defaultValue, mReference, mValidation);
     }
 
     @NonNull
     public final Column<V> withDefault(@Nullable final Producer<V> producer) {
-        return with(new Constraint.Default<>(producer));
+        final Default<V> defaultValue = new Default<>(producer);
+        return new Column<>(mName, mType, mNotNull, mUnique, defaultValue, mReference, mValidation);
     }
 
     @NonNull
-    public final Column<V> with(@NonNull final Constraint<V> constraint) {
-        final List<Constraint<V>> constraints = new ArrayList<>(mConstraints);
-        constraints.add(constraint);
-        return new Column<>(mName, mType, constraints);
+    public final Column<V> references(@NonNull final Reference<V> reference) {
+        return new Column<>(mName, mType, mNotNull, mUnique, mDefault, reference, mValidation);
+    }
+
+    @NonNull
+    public final Column<V> as(@NonNull final Validation<? super V> validation) {
+        return new Column<>(mName, mType, mNotNull, mUnique, mDefault, mReference,
+                (mValidation == null) ?
+                        Validations.safeCast(validation) :
+                        compose(mValidation, validation));
+    }
+
+    @NonNull
+    public final Column<V> check(@NonNull final android.orm.util.Validation<? super V> validation) {
+        return as(Validations.convert(validation.name(mName)));
     }
 
     @NonNls
@@ -195,9 +251,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
         if (!result && (object != null) && (getClass() == object.getClass())) {
             final Column<?> other = (Column<?>) object;
-            result = mName.equals(other.mName) &&
-                    mType.equals(other.mType) &&
-                    mConstraints.equals(other.mConstraints);
+            result = mSQL.get().equals(other.toSQL());
         }
 
         return result;
@@ -205,7 +259,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
     @Override
     public final int hashCode() {
-        return (31 * mName.hashCode()) + mType.hashCode();
+        return mSQL.get().hashCode();
     }
 
     @NonNls
@@ -215,219 +269,34 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         return mName;
     }
 
-    private <C extends Constraint<?>> boolean contains(@NonNull final Class<C> klass) {
-        final List<Constraint<V>> constraints = mConstraints;
-        final int size = constraints.size();
-        boolean found = false;
-
-        for (int i = 0; (i < size) && !found; i++) {
-            found = klass.isInstance(constraints.get(i));
-        }
-
-        return found;
-    }
-
-    @NonNull
-    private Maybe<V> afterRead(@NonNull final Maybe<V> value) {
-        Maybe<V> result = value;
-
-        for (final Constraint<V> constraint : mConstraints) {
-            result = constraint.afterRead(mName, result);
-        }
-
-        return result;
-    }
-
-    @NonNull
-    private Maybe<V> beforeWrite(@NonNull final Value.Write.Operation operation,
-                                 @NonNull final Maybe<V> value) {
-        Maybe<V> result = value;
-
-        for (final Constraint<V> constraint : mConstraints) {
-            result = constraint.beforeWrite(operation, mName, result);
-        }
-
-        return result;
-    }
-
     @NonNull
     public static <V> Column<V> column(@NonNls @NonNull final String name,
                                        @NonNull final Type<V> type) {
-        return new Column<>(name, type);
-    }
-
-    public interface Constraint<V> {
-
-        @NonNull
-        Maybe<V> afterRead(@NonNls @NonNull final String name, @NonNull final Maybe<V> value);
-
-        @NonNull
-        Maybe<V> beforeWrite(@NonNull final Value.Write.Operation operation,
-                             @NonNls @NonNull final String name,
-                             @NonNull final Maybe<V> value);
-
-        @NonNls
-        @NonNull
-        String toSQL(@NonNull final String column);
-
-        class Unique<V> implements Constraint<V> {
-
-            @NonNls
-            @NonNull
-            private final String mSQL;
-
-            public Unique() {
-                super();
-
-                mSQL = "unique";
-            }
-
-            public Unique(@NonNull final ConflictResolution onConflict) {
-                super();
-
-                mSQL = "unique on conflict " + onConflict.toSQL();
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> afterRead(@NonNls @NonNull final String name,
-                                            @NonNull final Maybe<V> value) {
-                return value;
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> beforeWrite(@NonNull final Value.Write.Operation operation,
-                                              @NonNls @NonNull final String name,
-                                              @NonNull final Maybe<V> value) {
-                return value;
-            }
-
-            @NonNls
-            @NonNull
-            @Override
-            public final String toSQL(@NonNull final String column) {
-                return mSQL;
-            }
-        }
-
-        class NotNull<V> implements Constraint<V> {
-
-            @NonNls
-            @NonNull
-            private final String mSQL;
-
-            public NotNull() {
-                super();
-
-                mSQL = "not null";
-            }
-
-            public NotNull(@NonNull final ConflictResolution onConflict) {
-                super();
-
-                mSQL = "not null on conflict " + onConflict.toSQL();
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> afterRead(@NonNls @NonNull final String name,
-                                            @NonNull final Maybe<V> value) {
-                if (value.isSomething() && (value.get() == null)) {
-                    throw new SQLException("Read value from " + name + " should not be null");
-                }
-
-                return value;
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> beforeWrite(@NonNull final Value.Write.Operation operation,
-                                              @NonNls @NonNull final String name,
-                                              @NonNull final Maybe<V> value) {
-                if (value.isSomething() && (value.get() == null)) {
-                    throw new SQLException("Value to be written into " + name + " cannot be null");
-                }
-
-                return value;
-            }
-
-            @NonNls
-            @NonNull
-            @Override
-            public final String toSQL(@NonNull final String column) {
-                return mSQL;
-            }
-        }
-
-        class Default<V> implements Constraint<V> {
-
-            @Nullable
-            private final Producer<V> mProducer;
-            @NonNls
-            @NonNull
-            private final String mSQL;
-
-            public Default(@NonNull final Type<V> type,
-                           @Nullable final V value) {
-                super();
-
-                if (value == null) {
-                    mProducer = null;
-                    mSQL = "default null";
-                } else {
-                    mProducer = Producers.constant(value);
-                    mSQL = "default " + type.escape(value);
-                }
-            }
-
-            public Default(@Nullable final Producer<V> producer) {
-                super();
-
-                mProducer = producer;
-                mSQL = "";
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> afterRead(@NonNls @NonNull final String name,
-                                            @NonNull final Maybe<V> value) {
-                return value;
-            }
-
-            @NonNull
-            @Override
-            public final Maybe<V> beforeWrite(@NonNull final Value.Write.Operation operation,
-                                              @NonNls @NonNull final String name,
-                                              @NonNull final Maybe<V> value) {
-                return ((operation == Insert) && value.isNothing()) ?
-                        something((mProducer == null) ? null : mProducer.produce()) :
-                        value;
-            }
-
-            @NonNls
-            @NonNull
-            @Override
-            public final String toSQL(@NonNull final String column) {
-                return mSQL;
-            }
-        }
+        return new Column<>(name, type, null, null, null, null, null);
     }
 
     @NonNull
     private static <V> Lazy<String> sql(@NonNls @NonNull final String name,
                                         @NonNull final Type<V> type,
-                                        @NonNull final Iterable<Constraint<V>> constraints) {
+                                        @NonNull final Constraint... constraints) {
         return new Lazy.Volatile<String>() {
             @NonNls
             @NonNull
             @Override
             protected String produce() {
-                @NonNls final StringBuilder result = new StringBuilder().append(Helper.escape(name));
+                @NonNls final StringBuilder result = new StringBuilder();
 
-                result.append(' ').append(type.toSQL());
-                for (final Constraint<V> constraint : constraints) {
-                    result.append(' ').append(constraint.toSQL(name));
+                result.append(Helper.escape(name))
+                        .append(' ')
+                        .append(type.toSQL());
+
+                for (final Constraint constraint : constraints) {
+                    if (constraint != null) {
+                        final String sql = constraint.toSQL();
+                        if (sql != null) {
+                            result.append(' ').append(sql);
+                        }
+                    }
                 }
 
                 return result.toString();

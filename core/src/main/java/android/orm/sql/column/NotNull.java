@@ -14,27 +14,29 @@
  * limitations under the License.
  */
 
-package android.orm.sql.fragment;
+package android.orm.sql.column;
 
-import android.orm.sql.Fragment;
+import android.orm.sql.fragment.Constraint;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
-public enum ConflictResolution implements Fragment {
-
-    Rollback("rollback"),
-    Abort("abort"),
-    Fail("fail"),
-    Ignore("ignore"),
-    Replace("replace");
+public class NotNull implements Constraint {
 
     @NonNls
     @NonNull
     private final String mSQL;
 
-    ConflictResolution(@NonNls @NonNull final String sql) {
-        mSQL = sql;
+    public NotNull() {
+        super();
+
+        mSQL = "not null";
+    }
+
+    public NotNull(@NonNull final ConflictResolution onConflict) {
+        super();
+
+        mSQL = "not null on conflict " + onConflict.toSQL();
     }
 
     @NonNls

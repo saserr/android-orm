@@ -31,16 +31,18 @@ import org.jetbrains.annotations.NonNls;
 import static android.orm.sql.Columns.bool;
 import static android.orm.sql.Columns.number;
 import static android.orm.sql.Columns.text;
+import static android.orm.sql.column.Validations.NonUpdateable;
+import static android.orm.util.Validations.OnLong.IsPositive;
 
 public class Task extends Model {
 
     public static final long NoId = -1L;
     public static final long NoVersion = -1L;
 
-    public static final Column<Long> Id = Columns.Id;
+    public static final Column<Long> Id = Columns.Id.as(NonUpdateable);
     public static final Column<String> Title = text("title").asNotNull();
     public static final Column<Boolean> Finished = bool("finished").asNotNull().withDefault(false);
-    public static final Column<Long> Version = number("version").asNotNull().withDefault(1L);
+    public static final Column<Long> Version = number("version").asNotNull().check(IsPositive).withDefault(1L);
 
     public static final Value.Constant Open = Finished.write(false);
     public static final Value.Constant Close = Finished.write(true);

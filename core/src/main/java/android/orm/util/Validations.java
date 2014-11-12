@@ -24,7 +24,6 @@ import org.jetbrains.annotations.NonNls;
 import java.math.BigDecimal;
 import java.util.Collection;
 
-import static android.orm.util.Maybes.safeCast;
 import static android.text.TextUtils.isEmpty;
 import static java.math.BigDecimal.ZERO;
 
@@ -40,14 +39,14 @@ public final class Validations {
         String NOT_NEGATIVE = "number is not negative";
     }
 
-    public static final Validation<Object> IsRequired = new Validation.Base<Object>() {
+    public static final Validation<Object> IsNothing = new Validation.Base<Object>() {
 
         @NonNls
-        private static final String Error = "value is required";
+        private static final String Error = "value is something";
 
         @Override
         public boolean isValid(@NonNull final Maybe<?> value) {
-            return value.isSomething() && (value.get() != null);
+            return value.isNothing();
         }
 
         @Override
@@ -55,6 +54,38 @@ public final class Validations {
             if (!isValid(value)) {
                 throw new Failure(Error);
             }
+        }
+    };
+
+    public static final Validation<Object> IsSomething = new Validation.Base<Object>() {
+
+        @NonNls
+        private static final String Error = "value is nothing";
+
+        @Override
+        public boolean isValid(@NonNull final Maybe<?> value) {
+            return value.isSomething();
+        }
+
+        @Override
+        public void isValidOrThrow(@NonNull final Maybe<?> value) {
+            if (!isValid(value)) {
+                throw new Failure(Error);
+            }
+        }
+    };
+
+    public static final Validation<Object> IsNull = new Validation.Value<Object>("value is not null") {
+        @Override
+        protected boolean isValid(@Nullable final Object value) {
+            return value == null;
+        }
+    };
+
+    public static final Validation<Object> IsNotNull = new Validation.Value<Object>("value is null") {
+        @Override
+        protected boolean isValid(@Nullable final Object value) {
+            return value != null;
         }
     };
 
@@ -66,21 +97,21 @@ public final class Validations {
     };
 
     @NonNull
-    public static <V> Validation<V> IsEqualTo(@NonNls @Nullable final V value) {
+    public static <V> Validation<V> IsEqualTo(@NonNls @NonNull final V value) {
         return new Validation.Value<V>("value is not equal to " + value) {
             @Override
             public boolean isValid(@Nullable final V other) {
-                return (value == null) ? (other == null) : value.equals(other);
+                return (other != null) && value.equals(other);
             }
         };
     }
 
     @NonNull
-    public static <V> Validation<V> IsNotEqualTo(@NonNls @Nullable final V value) {
+    public static <V> Validation<V> IsNotEqualTo(@NonNls @NonNull final V value) {
         return new Validation.Value<V>("value is equal to " + value) {
             @Override
             public boolean isValid(@Nullable final V other) {
-                return (value == null) ? (other != null) : !value.equals(other);
+                return (other != null) && !value.equals(other);
             }
         };
     }
@@ -90,7 +121,7 @@ public final class Validations {
         return new Validation.Value<V>("value is greater than or equal to " + value) {
             @Override
             public boolean isValid(@Nullable final V other) {
-                return (other == null) || (other.compareTo(value) < 0);
+                return (other != null) && (other.compareTo(value) < 0);
             }
         };
     }
@@ -100,7 +131,7 @@ public final class Validations {
         return new Validation.Value<V>("value is greater than " + value) {
             @Override
             public boolean isValid(@Nullable final V other) {
-                return (other == null) || (other.compareTo(value) <= 0);
+                return (other != null) && (other.compareTo(value) <= 0);
             }
         };
     }
@@ -110,7 +141,7 @@ public final class Validations {
         return new Validation.Value<V>("value is less than or equal to " + value) {
             @Override
             public boolean isValid(@Nullable final V other) {
-                return (other == null) || (other.compareTo(value) > 0);
+                return (other != null) && (other.compareTo(value) > 0);
             }
         };
     }
@@ -120,7 +151,7 @@ public final class Validations {
         return new Validation.Value<V>("value is less than " + value) {
             @Override
             public boolean isValid(@Nullable final V other) {
-                return (other == null) || (other.compareTo(value) >= 0);
+                return (other != null) && (other.compareTo(value) >= 0);
             }
         };
     }
@@ -142,7 +173,7 @@ public final class Validations {
         return new Validation.Value<V>("value is not one of " + plain) {
             @Override
             public boolean isValid(@Nullable final V value) {
-                return values.contains(value);
+                return (value != null) && values.contains(value);
             }
         };
     }
@@ -164,7 +195,7 @@ public final class Validations {
         return new Validation.Value<V>("value is one of " + plain) {
             @Override
             public boolean isValid(@Nullable final V value) {
-                return !values.contains(value);
+                return (value != null) && !values.contains(value);
             }
         };
     }
@@ -200,14 +231,14 @@ public final class Validations {
         public static final Validation<Long> IsPositive = new Validation.Value<Long>(Errors.NOT_POSITIVE) {
             @Override
             public boolean isValid(@Nullable final Long value) {
-                return (value == null) || (value.compareTo(ZERO) > 0);
+                return (value != null) && (value.compareTo(ZERO) > 0);
             }
         };
 
         public static final Validation<Long> IsNegative = new Validation.Value<Long>(Errors.NOT_NEGATIVE) {
             @Override
             public boolean isValid(@Nullable final Long value) {
-                return (value == null) || (value.compareTo(ZERO) < 0);
+                return (value != null) && (value.compareTo(ZERO) < 0);
             }
         };
 
@@ -223,14 +254,14 @@ public final class Validations {
         public static final Validation<Double> IsPositive = new Validation.Value<Double>(Errors.NOT_POSITIVE) {
             @Override
             public boolean isValid(@Nullable final Double value) {
-                return (value == null) || (value.compareTo(ZERO) > 0);
+                return (value != null) && (value.compareTo(ZERO) > 0);
             }
         };
 
         public static final Validation<Double> IsNegative = new Validation.Value<Double>(Errors.NOT_NEGATIVE) {
             @Override
             public boolean isValid(@Nullable final Double value) {
-                return (value == null) || (value.compareTo(ZERO) < 0);
+                return (value != null) && (value.compareTo(ZERO) < 0);
             }
         };
 
@@ -244,14 +275,14 @@ public final class Validations {
         public static final Validation<BigDecimal> IsPositive = new Validation.Value<BigDecimal>(Errors.NOT_POSITIVE) {
             @Override
             public boolean isValid(@Nullable final BigDecimal value) {
-                return (value == null) || (value.compareTo(ZERO) > 0);
+                return (value != null) && (value.compareTo(ZERO) > 0);
             }
         };
 
         public static final Validation<BigDecimal> IsNegative = new Validation.Value<BigDecimal>(Errors.NOT_NEGATIVE) {
             @Override
             public boolean isValid(@Nullable final BigDecimal value) {
-                return (value == null) || (value.compareTo(ZERO) < 0);
+                return (value != null) && (value.compareTo(ZERO) < 0);
             }
         };
 
@@ -343,12 +374,12 @@ public final class Validations {
 
         @Override
         public final boolean isValid(@NonNull final Maybe<? extends T> value) {
-            return mValidation.isValid(mConverter.invoke(safeCast(value)));
+            return mValidation.isValid(mConverter.invoke(Maybes.safeCast(value)));
         }
 
         @Override
         public final void isValidOrThrow(@NonNull final Maybe<? extends T> value) {
-            mValidation.isValidOrThrow(mConverter.invoke(safeCast(value)));
+            mValidation.isValidOrThrow(mConverter.invoke(Maybes.safeCast(value)));
         }
     }
 
