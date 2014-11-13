@@ -18,8 +18,6 @@ package android.orm.database.table;
 
 import android.orm.database.Table;
 import android.orm.sql.Column;
-import android.orm.sql.ForeignKey;
-import android.orm.sql.PrimaryKey;
 import android.orm.sql.Statement;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -31,6 +29,8 @@ public interface Schema {
     void rename(@NonNls @NonNull final String name);
 
     void update(@Nullable final Column<?> before, @Nullable final Column<?> after);
+
+    void update(@Nullable final Check before, @Nullable final Check after);
 
     void update(@Nullable final ForeignKey<?> before, @Nullable final ForeignKey<?> after);
 

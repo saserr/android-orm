@@ -17,11 +17,13 @@
 package android.orm.playground.annotation;
 
 import android.orm.database.Migration;
+import android.orm.database.Table;
+import android.orm.database.table.Check;
+import android.orm.database.table.ForeignKey;
+import android.orm.database.table.PrimaryKey;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.sql.Column;
-import android.orm.sql.ForeignKey;
-import android.orm.sql.PrimaryKey;
 import android.orm.sql.Type;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
@@ -37,19 +39,19 @@ import org.jetbrains.annotations.NonNls;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import static android.orm.database.Migrations.create;
-import static android.orm.database.Table.table;
 import static java.lang.reflect.Modifier.isFinal;
 import static java.lang.reflect.Modifier.isStatic;
-import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 
 public class Annotated {
 
     public static final Annotated StandardTypesOnly = new Annotated(Types.withStandardTypes());
+
+    private static final Set<Check> NO_CHECKS = emptySet();
 
     @NonNull
     private final Types mTypes;
@@ -103,20 +105,74 @@ public class Annotated {
 
     @NonNull
     public final Migration migration(final int version, @NonNull final Class<?> klass) {
-        final Table annotation = klass.getAnnotation(Table.class);
+        final android.orm.playground.annotation.Table annotation = klass.getAnnotation(android.orm.playground.annotation.Table.class);
         if (annotation == null) {
             @NonNls final String error = "Class " + klass.getSimpleName() + " is not annotated with @Table";
             throw new IllegalArgumentException(error);
         }
 
         final String name = annotation.name();
+        final Set<Column<?>> columns = columns(klass);
+        final Set<ForeignKey<?>> foreignKeys = foreignKeys(klass);
         final PrimaryKey<?> primaryKey = primaryKey(klass);
-        final ForeignKey<?>[] foreignKeys = foreignKeys(klass);
-        final Column<?>[] columns = columns(klass);
 
-        return (primaryKey == null) ?
-                create(version, table(name, foreignKeys, columns)) :
-                create(version, table(name, primaryKey, foreignKeys, columns));
+        return create(version, new Table<>(name, columns, NO_CHECKS, foreignKeys, primaryKey));
+    }
+
+    @NonNull
+    public final Set<Column<?>> columns(@NonNull final Class<?> klass) {
+        final Set<Column<?>> result = new HashSet<>();
+
+        for (final Field field : klass.getDeclaredFields()) {
+            if (!isStatic(field.getModifiers())) {
+                final Pair<android.orm.playground.annotation.Column, Column<Object>> column = column(klass, field);
+                if (column != null) {
+                    result.add(column.second);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public final Set<ForeignKey<?>> foreignKeys(@NonNull final Class<?> klass) {
+        final ForeignKeys foreignKeys = klass.getAnnotation(ForeignKeys.class);
+        final Set<ForeignKey<?>> result;
+
+        if (foreignKeys == null) {
+            result = emptySet();
+        } else {
+            result = new HashSet<>(foreignKeys.value().length);
+            for (final android.orm.playground.annotation.ForeignKey annotation : foreignKeys.value()) {
+                final Value.ReadWrite<Object> childKey = (Value.ReadWrite<Object>) value(annotation.childKey());
+                if (childKey == null) {
+                    @NonNls final String error = "@ForeignKey must have non-empty child key columns " +
+                            " (class " + klass.getSimpleName() + ')';
+                    throw new IllegalArgumentException(error);
+                }
+                final Value.ReadWrite<Object> parentKey = (Value.ReadWrite<Object>) value(annotation.parentKey());
+
+                final Class<?> parent = annotation.parent();
+                final android.orm.playground.annotation.Table table = parent.getAnnotation(android.orm.playground.annotation.Table.class);
+                if (table == null) {
+                    @NonNls final String error = "@ForeignKey must point to parent class that is annotated with @Table " +
+                            " (class " + klass.getSimpleName() + ", parent " + parent.getSimpleName() + ')';
+                    throw new IllegalArgumentException(error);
+                }
+
+                final ForeignKey<?> foreignKey = (parentKey == null) ?
+                        ForeignKey.from(childKey).to(table.name()) :
+                        ForeignKey.from(childKey).to(table.name(), parentKey);
+
+                result.add(foreignKey
+                        .onDelete(annotation.onDelete())
+                        .onUpdate(annotation.onUpdate()));
+            }
+        }
+
+        return result;
     }
 
     @Nullable
@@ -134,67 +190,11 @@ public class Annotated {
 
             final ConflictResolution resolution = annotation.resolution();
             result = (resolution == null) ?
-                    PrimaryKey.primaryKey(value) :
-                    PrimaryKey.primaryKey(value, resolution);
+                    PrimaryKey.on(value) :
+                    PrimaryKey.on(value).onConflict(resolution);
         }
 
         return result;
-    }
-
-    @NonNull
-    @SuppressWarnings("unchecked")
-    public final ForeignKey<?>[] foreignKeys(@NonNull final Class<?> klass) {
-        final ForeignKeys foreignKeys = klass.getAnnotation(ForeignKeys.class);
-        final Collection<ForeignKey<?>> result;
-
-        if (foreignKeys == null) {
-            result = emptyList();
-        } else {
-            result = new ArrayList<>(foreignKeys.value().length);
-            for (final android.orm.playground.annotation.ForeignKey annotation : foreignKeys.value()) {
-                final Value.ReadWrite<Object> childKey = (Value.ReadWrite<Object>) value(annotation.childKey());
-                if (childKey == null) {
-                    @NonNls final String error = "@ForeignKey must have non-empty child key columns " +
-                            " (class " + klass.getSimpleName() + ')';
-                    throw new IllegalArgumentException(error);
-                }
-                final Value.ReadWrite<Object> parentKey = (Value.ReadWrite<Object>) value(annotation.parentKey());
-                if (parentKey == null) {
-                    @NonNls final String error = "@ForeignKey must have non-empty parent key columns " +
-                            " (class " + klass.getSimpleName() + ')';
-                    throw new IllegalArgumentException(error);
-                }
-
-                final Class<?> parent = annotation.parent();
-                final Table table = parent.getAnnotation(Table.class);
-                if (table == null) {
-                    @NonNls final String error = "@ForeignKey must point to parent class that is annotated with @Table " +
-                            " (class " + klass.getSimpleName() + ", parent " + parent.getSimpleName() + ')';
-                    throw new IllegalArgumentException(error);
-                }
-                result.add(ForeignKey.foreignKey(childKey, table.name(), parentKey)
-                        .onDelete(annotation.onDelete())
-                        .onUpdate(annotation.onUpdate()));
-            }
-        }
-
-        return result.toArray(new ForeignKey[result.size()]);
-    }
-
-    @NonNull
-    public final Column<?>[] columns(@NonNull final Class<?> klass) {
-        final List<Column<?>> result = new ArrayList<>();
-
-        for (final Field field : klass.getDeclaredFields()) {
-            if (!isStatic(field.getModifiers())) {
-                final Pair<android.orm.playground.annotation.Column, Column<Object>> column = column(klass, field);
-                if (column != null) {
-                    result.add(column.second);
-                }
-            }
-        }
-
-        return result.toArray(new Column[result.size()]);
     }
 
     @NonNull

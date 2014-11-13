@@ -208,47 +208,158 @@ public class Where implements Fragment {
 
         @NonNull
         public final Where isEqualTo(@NonNull final V value) {
-            return new Where(mEscapedName + " = " + escape(value));
+            return isEqualTo(escape(value));
+        }
+
+        @NonNull
+        public final Where isEqualTo(@NonNull final Column<V> column) {
+            return isEqualTo(escape(column));
         }
 
         @NonNull
         public final Where isNotEqualTo(@NonNull final V value) {
-            return new Where(mEscapedName + " <> " + escape(value));
+            return isNotEqualTo(escape(value));
+        }
+
+        @NonNull
+        public final Where isNotEqualTo(@NonNull final Column<V> column) {
+            return isNotEqualTo(escape(column));
         }
 
         @NonNull
         public final Where isLessThan(@NonNull final V value) {
-            return new Where(mEscapedName + " < " + escape(value));
+            return isLessThan(escape(value));
+        }
+
+        @NonNull
+        public final Where isLessThan(@NonNull final Column<V> column) {
+            return isLessThan(escape(column));
         }
 
         @NonNull
         public final Where isLessOrEqualThan(@NonNull final V value) {
-            return new Where(mEscapedName + " <= " + escape(value));
+            return isLessOrEqualThan(escape(value));
+        }
+
+        @NonNull
+        public final Where isLessOrEqualThan(@NonNull final Column<V> column) {
+            return isLessOrEqualThan(escape(column));
         }
 
         @NonNull
         public final Where isGreaterThan(@NonNull final V value) {
-            return new Where(mEscapedName + " > " + escape(value));
+            return isGreaterThan(escape(value));
+        }
+
+        @NonNull
+        public final Where isGreaterThan(@NonNull final Column<V> column) {
+            return isGreaterThan(escape(column));
         }
 
         @NonNull
         public final Where isGreaterOrEqualThan(@NonNull final V value) {
-            return new Where(mEscapedName + " >= " + escape(value));
+            return isGreaterOrEqualThan(escape(value));
+        }
+
+        @NonNull
+        public final Where isGreaterOrEqualThan(@NonNull final Column<V> column) {
+            return isGreaterOrEqualThan(escape(column));
         }
 
         @NonNull
         public final Where isBetween(@NonNull final V min, @NonNull final V max) {
-            return new Where(mEscapedName + " between " + escape(min) + " and " + escape(max));
+            return isBetween(escape(min), escape(max));
+        }
+
+        @NonNull
+        public final Where isBetween(@NonNull final Column<V> min, @NonNull final V max) {
+            return isBetween(escape(min), escape(max));
+        }
+
+        @NonNull
+        public final Where isBetween(@NonNull final V min, @NonNull final Column<V> max) {
+            return isBetween(escape(min), escape(max));
+        }
+
+        @NonNull
+        public final Where isBetween(@NonNull final Column<V> min,
+                                     @NonNull final Column<V> max) {
+            return isBetween(escape(min), escape(max));
         }
 
         @NonNull
         public final Where isNotBetween(@NonNull final V min, @NonNull final V max) {
-            return new Where(mEscapedName + " not between " + escape(min) + " and " + escape(max));
+            return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
+        public final Where isNotBetween(@NonNull final Column<V> min, @NonNull final V max) {
+            return isNotBetween(escape(min), escape(max));
+        }
+
+        @NonNull
+        public final Where isNotBetween(@NonNull final V min, @NonNull final Column<V> max) {
+            return isNotBetween(escape(min), escape(max));
+        }
+
+        @NonNull
+        public final Where isNotBetween(@NonNull final Column<V> min,
+                                        @NonNull final Column<V> max) {
+            return isNotBetween(escape(min), escape(max));
+        }
+
+        @NonNull
+        private Where isEqualTo(@NonNls @NonNull final String value) {
+            return new Where(mEscapedName + " = " + value);
+        }
+
+        @NonNull
+        private Where isNotEqualTo(@NonNls @NonNull final String value) {
+            return new Where(mEscapedName + " <> " + value);
+        }
+
+        @NonNull
+        private Where isLessThan(@NonNls @NonNull final String value) {
+            return new Where(mEscapedName + " < " + value);
+        }
+
+        @NonNull
+        private Where isLessOrEqualThan(@NonNls @NonNull final String value) {
+            return new Where(mEscapedName + " <= " + value);
+        }
+
+        @NonNull
+        private Where isGreaterThan(@NonNls @NonNull final String value) {
+            return new Where(mEscapedName + " > " + value);
+        }
+
+        @NonNull
+        private Where isGreaterOrEqualThan(@NonNls @NonNull final String value) {
+            return new Where(mEscapedName + " >= " + value);
+        }
+
+        @NonNull
+        private Where isBetween(@NonNls @NonNull final String min,
+                                @NonNls @NonNull final String max) {
+            return new Where(mEscapedName + " between " + min + " and " + max);
+        }
+
+        @NonNull
+        private Where isNotBetween(@NonNls @NonNull final String min,
+                                   @NonNls @NonNull final String max) {
+            return new Where(mEscapedName + " not between " + min + " and " + max);
+        }
+
+        @NonNls
+        @NonNull
         protected String escape(@NonNull final V value) {
             return mType.escape(value);
+        }
+
+        @NonNls
+        @NonNull
+        protected static String escape(@NonNull final Column<?> column) {
+            return Helper.escape(column.getName());
         }
     }
 

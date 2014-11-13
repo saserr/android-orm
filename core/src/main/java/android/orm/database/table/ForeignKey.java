@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package android.orm.sql;
+package android.orm.database.table;
 
+import android.orm.database.Table;
+import android.orm.sql.Fragment;
+import android.orm.sql.Value;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -27,7 +30,7 @@ import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
 
-public class ForeignKey<V> implements Fragment {
+public class ForeignKey<V> implements Table.Constraint {
 
     @NonNull
     private final Value.Read<V> mChildKey;
@@ -119,10 +122,31 @@ public class ForeignKey<V> implements Fragment {
     }
 
     @NonNull
-    public static <V> ForeignKey<V> foreignKey(@NonNull final Value.Read<V> childKey,
-                                               @NonNls @NonNull final String parentTable,
-                                               @NonNull final Value.Read<V> parentKey) {
-        return new ForeignKey<>(childKey, parentTable, parentKey, null, null);
+    public static <V> Factory<V> from(@NonNull final Value.Read<V> childKey) {
+        return new Factory<>(childKey);
+    }
+
+    public static class Factory<V> {
+
+        @NonNull
+        private final Value.Read<V> mChildKey;
+
+        public Factory(@NonNull final Value.Read<V> childKey) {
+            super();
+
+            mChildKey = childKey;
+        }
+
+        @NonNull
+        public final ForeignKey<V> to(@NonNls @NonNull final String table) {
+            return new ForeignKey<>(mChildKey, table, null, null, null);
+        }
+
+        @NonNull
+        public final ForeignKey<V> to(@NonNls @NonNull final String table,
+                                      @NonNull final Value.Read<V> parentKey) {
+            return new ForeignKey<>(mChildKey, table, parentKey, null, null);
+        }
     }
 
     public enum Action implements Fragment {

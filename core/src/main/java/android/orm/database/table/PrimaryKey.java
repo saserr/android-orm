@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package android.orm.sql;
+package android.orm.database.table;
 
+import android.orm.database.Table;
+import android.orm.sql.Readable;
+import android.orm.sql.Select;
+import android.orm.sql.Value;
+import android.orm.sql.Writable;
 import android.orm.sql.fragment.ConflictResolution;
-import android.orm.sql.fragment.Order;
+import android.orm.util.Lazy;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -29,16 +34,15 @@ import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
 
-public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
+public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Table.Constraint {
 
     @NonNull
     private final Value.ReadWrite<V> mValue;
     @NonNls
     @NonNull
-    private final String mSQL;
+    private final Lazy<String> mSQL;
 
     private PrimaryKey(@NonNull final Value.ReadWrite<V> value,
-                       @Nullable final Order.Type order,
                        @Nullable final ConflictResolution resolution) {
         super();
 
@@ -48,9 +52,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
         }
 
         mValue = value;
-        mSQL = "primary key (" + toSQL(projection.keySet()) +
-                ((order == null) ? "" : order.toSQL()) + ')' +
-                ((resolution == null) ? "" : (" on conflict " + resolution.toSQL()));
+        mSQL = new SQL(mValue, resolution);
     }
 
     @NonNls
@@ -64,6 +66,11 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @Override
     public final Select.Projection getProjection() {
         return mValue.getProjection();
+    }
+
+    @NonNull
+    public final PrimaryKey<V> onConflict(@NonNull final ConflictResolution resolution) {
+        return new PrimaryKey<>(mValue, resolution);
     }
 
     @NonNull
@@ -83,7 +90,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     @NonNull
     @Override
     public final String toSQL() {
-        return mSQL;
+        return mSQL.get();
     }
 
     @Override
@@ -92,7 +99,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
         if (!result && (object != null) && (getClass() == object.getClass())) {
             final PrimaryKey<?> other = (PrimaryKey<?>) object;
-            result = mSQL.equals(other.mSQL);
+            result = mSQL.get().equals(other.mSQL.get());
         }
 
         return result;
@@ -100,7 +107,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
 
     @Override
     public final int hashCode() {
-        return mSQL.hashCode();
+        return mSQL.get().hashCode();
     }
 
     @NonNls
@@ -111,14 +118,8 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
     }
 
     @NonNull
-    public static <V> PrimaryKey<V> primaryKey(@NonNull final Value.ReadWrite<V> value) {
-        return new PrimaryKey<>(value, null, null);
-    }
-
-    @NonNull
-    public static <V> PrimaryKey<V> primaryKey(@NonNull final Value.ReadWrite<V> value,
-                                               @NonNull final ConflictResolution resolution) {
-        return new PrimaryKey<>(value, null, resolution);
+    public static <V> PrimaryKey<V> on(@NonNull final Value.ReadWrite<V> value) {
+        return new PrimaryKey<>(value, null);
     }
 
     @NonNls
@@ -133,5 +134,33 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Fragment {
         result.delete(length - 2, length);
 
         return result.toString();
+    }
+
+    private static class SQL extends Lazy.Volatile<String> {
+
+        @NonNull
+        private final Set<String> mKey;
+        @Nullable
+        private final ConflictResolution mResolution;
+
+        private SQL(@NonNull final Value.Read<?> value,
+                    @Nullable final ConflictResolution resolution) {
+            super();
+
+            mKey = value.getProjection().asMap().keySet();
+            if (mKey.isEmpty()) {
+                throw new IllegalArgumentException("Key must reference something");
+            }
+
+            mResolution = resolution;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        protected final String produce() {
+            return "primary key (" + toSQL(mKey) + ')' +
+                    ((mResolution == null) ? "" : (" on conflict " + mResolution.toSQL()));
+        }
     }
 }

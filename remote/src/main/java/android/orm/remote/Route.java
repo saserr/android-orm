@@ -21,7 +21,6 @@ import android.content.UriMatcher;
 import android.net.Uri;
 import android.orm.remote.route.Path;
 import android.orm.sql.Column;
-import android.orm.sql.ForeignKey;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
@@ -270,43 +269,6 @@ public abstract class Route extends Value.Read.Base<Uri> {
         }
 
         @NonNull
-        public final <R> Many many(@NonNull final Single singleRoute,
-                                   @NonNull final ForeignKey<R> foreignKey) {
-            return many(singleRoute, null, null, foreignKey);
-        }
-
-        @NonNull
-        public final <R> Many many(@NonNull final Single singleRoute,
-                                   @NonNull final Order order,
-                                   @NonNull final ForeignKey<R> foreignKey) {
-            return many(singleRoute, order, null, foreignKey);
-        }
-
-        @NonNull
-        public final <R> Many many(@NonNull final Single singleRoute,
-                                   @NonNull final Limit limit,
-                                   @NonNull final ForeignKey<R> foreignKey) {
-            return many(singleRoute, null, limit, foreignKey);
-        }
-
-        @NonNull
-        public final <R> Many many(@NonNull final Single singleRoute,
-                                   @Nullable final Order order,
-                                   @Nullable final Limit limit,
-                                   @NonNull final ForeignKey<R> foreignKey) {
-            final Value.Read<R> child = foreignKey.getChildKey();
-            if (!(child instanceof Column)) {
-                throw new IllegalArgumentException("Reference must be a single column");
-            }
-            final Column<R> reference = (Column<R>) child;
-
-            final Path path = path(foreignKey.getParentTable())
-                    .slash(reference)
-                    .slash(singleRoute.getTable());
-            return many(singleRoute, order, limit, path);
-        }
-
-        @NonNull
         public final Many many(@NonNull final Single singleRoute,
                                @NonNull final Path path) {
             return many(singleRoute, (Order) null, null, path);
@@ -365,54 +327,6 @@ public abstract class Route extends Value.Read.Base<Uri> {
                                @NonNull final Path path) {
             final Many route = new Many(this, singleRoute, where, order, limit, path);
             with(route);
-            return route;
-        }
-
-        @NonNull
-        public final <R> Single single(@NonNull final ForeignKey<R> foreignKey,
-                                       @NonNls @NonNull final String table) {
-            final Value.Read<R> child = foreignKey.getChildKey();
-            if (!(child instanceof Column)) {
-                throw new IllegalArgumentException("Foreign key must be a single column");
-            }
-            final Column<R> reference = (Column<R>) child;
-            if (!reference.isUnique()) {
-                throw new IllegalArgumentException("Foreign key must be unique");
-            }
-
-            final Path path = path(foreignKey.getParentTable())
-                    .slash(reference)
-                    .slash(table);
-            return single(table, path);
-        }
-
-        @NonNull
-        public final <R, V> Single single(@NonNull final ForeignKey<R> foreignKey,
-                                          @NonNls @NonNull final String table,
-                                          @NonNull final Column<V> column) {
-            final Value.Read<R> child = foreignKey.getChildKey();
-            if (!(child instanceof Column)) {
-                throw new IllegalArgumentException("Foreign key must be a single column");
-            }
-            final Column<R> reference = (Column<R>) child;
-
-            final Single route;
-
-            if (reference.isUnique()) {
-                route = single(foreignKey, table);
-            } else {
-                if (!column.isUnique()) {
-                    throw new IllegalArgumentException("Column must be unique");
-                }
-
-                final Path path = path(foreignKey.getParentTable())
-                        .slash(reference)
-                        .slash(table)
-                        .slash(column);
-
-                route = single(table, path);
-            }
-
             return route;
         }
 

@@ -19,6 +19,9 @@ package android.orm.sql;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.orm.database.table.Check;
+import android.orm.database.table.ForeignKey;
+import android.orm.database.table.PrimaryKey;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -45,9 +48,10 @@ public final class Statements {
 
     @NonNull
     public static Statement createTable(@NonNls @NonNull final String name,
-                                        @Nullable final PrimaryKey<?> primaryKey,
+                                        @NonNull final Set<Column<?>> columns,
+                                        @NonNull final Set<Check> checks,
                                         @NonNull final Set<ForeignKey<?>> foreignKeys,
-                                        @NonNull final Set<Column<?>> columns) {
+                                        @Nullable final PrimaryKey<?> primaryKey) {
         if (columns.size() < 1) {
             throw new IllegalArgumentException(NO_COLUMNS);
         }
@@ -59,12 +63,16 @@ public final class Statements {
             result.append(column.toSQL()).append(",\n");
         }
 
-        if (primaryKey != null) {
-            result.append(primaryKey.toSQL()).append(",\n");
+        for (final Check check : checks) {
+            result.append(check.toSQL()).append(",\n");
         }
 
         for (final ForeignKey<?> foreignKey : foreignKeys) {
             result.append(foreignKey.toSQL()).append(",\n");
+        }
+
+        if (primaryKey != null) {
+            result.append(primaryKey.toSQL()).append(",\n");
         }
 
         final int length = result.length();

@@ -17,6 +17,9 @@
 package android.orm.database;
 
 import android.orm.DAO;
+import android.orm.database.table.Check;
+import android.orm.database.table.ForeignKey;
+import android.orm.database.table.PrimaryKey;
 import android.orm.sql.Column;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
@@ -29,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static android.orm.sql.Statements.createTable;
 import static android.orm.sql.Statements.dropTable;
@@ -45,9 +49,13 @@ public final class Migrations {
     @NonNull
     public static Migration create(final int version, @NonNls @NonNull final Table<?> table) {
         final String name = table.getName();
+        final Set<Column<?>> columns = table.getColumns();
+        final Set<Check> checks = table.getChecks();
+        final Set<ForeignKey<?>> foreignKeys = table.getForeignKeys();
+        final PrimaryKey<?> primaryKey = table.getPrimaryKey();
         return atVersion(
                 version,
-                createTable(name, table.getPrimaryKey(), table.getForeignKeys(), table.getColumns()),
+                createTable(name, columns, checks, foreignKeys, primaryKey),
                 dropTable(name)
         );
     }

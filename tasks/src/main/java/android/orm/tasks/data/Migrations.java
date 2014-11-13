@@ -17,11 +17,10 @@
 package android.orm.tasks.data;
 
 import android.orm.database.Table;
+import android.orm.database.table.PrimaryKey;
 import android.orm.tasks.model.Task;
 
 import org.jetbrains.annotations.NonNls;
-
-import static android.orm.sql.PrimaryKey.primaryKey;
 
 public final class Migrations {
 
@@ -34,7 +33,7 @@ public final class Migrations {
         Tasks.at(1)
                 .add(Task.Id)
                 .add(Task.Title)
-                .with(primaryKey(Task.Id));
+                .with(PrimaryKey.on(Task.Id));
         Tasks.at(2)
                 .add(Task.Finished);
         Tasks.at(3)

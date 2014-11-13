@@ -19,8 +19,6 @@ package android.orm.database.table;
 import android.database.SQLException;
 import android.orm.database.Table;
 import android.orm.sql.Column;
-import android.orm.sql.ForeignKey;
-import android.orm.sql.PrimaryKey;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
 import android.orm.util.Legacy;
@@ -61,25 +59,8 @@ public final class Schemas {
 
         private final Set<Column<?>> mColumns = new HashSet<>();
 
-        @NonNls
-        @NonNull
-        private String mName;
-
         private Create(@NonNls @NonNull final String name) {
-            super();
-
-            mName = name;
-        }
-
-        @NonNull
-        @Override
-        protected final String getName() {
-            return mName;
-        }
-
-        @Override
-        public final void rename(@NonNls @NonNull final String name) {
-            mName = name;
+            super(name);
         }
 
         @Override
@@ -87,7 +68,7 @@ public final class Schemas {
                                  @Nullable final Column<?> after) {
             if (before != null) {
                 if (!mColumns.remove(before)) {
-                    throw new SQLException(UNKNOWN_COLUMN + before + IN_TABLE + mName);
+                    throw new SQLException(UNKNOWN_COLUMN + before + IN_TABLE + getName());
                 }
             }
 
@@ -99,7 +80,7 @@ public final class Schemas {
         @NonNull
         @Override
         public final Table<?> table() {
-            return new Table<>(mName, getPrimaryKey(), getForeignKey(), mColumns);
+            return new Table<>(getName(), mColumns, getChecks(), getForeignKey(), getPrimaryKey());
         }
 
         @NonNull
@@ -107,12 +88,12 @@ public final class Schemas {
         public final Statement statement(final int version) {
             if (mColumns.isEmpty()) {
                 throw new SQLException(
-                        mName + " table cannot be created" +
+                        getName() + " table cannot be created" +
                                 " because it has no columns at version " + version
                 );
             }
 
-            return createTable(mName, getPrimaryKey(), getForeignKey(), mColumns);
+            return createTable(getName(), mColumns, getChecks(), getForeignKey(), getPrimaryKey());
         }
     }
 
@@ -126,12 +107,8 @@ public final class Schemas {
         @NonNull
         private final Map<Column<?>, Column<?>> mToCopy;
 
-        @NonNls
-        @NonNull
-        private Pair<String, String> mName;
-
         private Update(@NonNull final Table<?> table) {
-            super(table.getPrimaryKey(), table.getForeignKeys());
+            super(table);
 
             mTable = table;
 
@@ -140,20 +117,6 @@ public final class Schemas {
             for (final Column<?> column : mColumns) {
                 mToCopy.put(column, column);
             }
-
-            final String name = table.getName();
-            mName = Pair.create(name, name);
-        }
-
-        @NonNull
-        @Override
-        protected final String getName() {
-            return mName.second;
-        }
-
-        @Override
-        public final void rename(@NonNls @NonNull final String name) {
-            mName = Pair.create(mName.first, name);
         }
 
         @Override
@@ -165,7 +128,7 @@ public final class Schemas {
                         findKeyForValue(before);
 
                 if (key == null) {
-                    throw new SQLException(UNKNOWN_COLUMN + before + IN_TABLE + mName.second);
+                    throw new SQLException(UNKNOWN_COLUMN + before + IN_TABLE + getName());
                 }
 
                 if (after == null) {
@@ -185,14 +148,14 @@ public final class Schemas {
         @NonNull
         @Override
         public final Table<?> table() {
-            return new Table<>(mName.second, getPrimaryKey(), getForeignKey(), mColumns);
+            return new Table<>(getName(), mColumns, getChecks(), getForeignKey(), getPrimaryKey());
         }
 
         @NonNull
         @Override
         public final Statement statement(final int version) {
-            @NonNls final String oldName = mName.first;
-            @NonNls final String newName = mName.second;
+            @NonNls final String oldName = mTable.getName();
+            @NonNls final String newName = getName();
 
             if (mColumns.isEmpty()) {
                 throw new SQLException(
@@ -202,10 +165,12 @@ public final class Schemas {
             }
             final Statement result;
 
-            final PrimaryKey<?> primaryKey = getPrimaryKey();
+            final Set<Check> checks = getChecks();
             final Set<ForeignKey<?>> foreignKeys = getForeignKey();
+            final PrimaryKey<?> primaryKey = getPrimaryKey();
             if (mColumns.equals(mTable.getColumns()) &&
                     Legacy.equals(primaryKey, mTable.getPrimaryKey()) &&
+                    checks.equals(mTable.getChecks()) &&
                     foreignKeys.equals(mTable.getForeignKeys())) {
                 result = oldName.equals(newName) ?
                         Statements.NOTHING :
@@ -226,13 +191,13 @@ public final class Schemas {
                         // defer foreign keys integrity check until end of the transaction
                         Statements.statement("pragma defer_foreign_keys=on;"),
                         // create a temporary table
-                        createTable(temporary, primaryKey, foreignKeys, mColumns),
+                        createTable(temporary, mColumns, checks, foreignKeys, primaryKey),
                         // copy data to temporary table
                         copyData(oldName, temporary, toTemporary),
                         // drop the original table
                         dropTable(oldName),
                         // recreate the original table with remaining columns
-                        createTable(newName, primaryKey, foreignKeys, mColumns),
+                        createTable(newName, mColumns, checks, foreignKeys, primaryKey),
                         // copy data from temporary table
                         copyData(temporary, newName, fromTemporary),
                         // drop the temporary table
@@ -268,28 +233,43 @@ public final class Schemas {
         protected static final String IN_TABLE = " in table ";
 
         @NonNull
+        private final Set<Check> mChecks;
+        @NonNull
         private final Set<ForeignKey<?>> mForeignKey;
 
+        @NonNls
+        @NonNull
+        private String mName;
         @Nullable
         private PrimaryKey<?> mPrimaryKey;
 
-        protected Base() {
+        protected Base(@NonNls @NonNull final String name) {
             super();
 
+            mName = name;
+            mChecks = new HashSet<>();
             mForeignKey = new HashSet<>();
         }
 
-        protected Base(@Nullable final PrimaryKey<?> primaryKey,
-                       @NonNull final Set<ForeignKey<?>> foreignKeys) {
+        protected Base(@NonNull final Table<?> table) {
             super();
 
-            mPrimaryKey = primaryKey;
-            mForeignKey = new HashSet<>(foreignKeys);
+            mName = table.getName();
+            mChecks = new HashSet<>(table.getChecks());
+            mForeignKey = new HashSet<>(table.getForeignKeys());
+            mPrimaryKey = table.getPrimaryKey();
         }
 
         @NonNls
         @NonNull
-        protected abstract String getName();
+        protected final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        protected final Set<Check> getChecks() {
+            return unmodifiableSet(mChecks);
+        }
 
         @NonNull
         protected final Set<ForeignKey<?>> getForeignKey() {
@@ -302,11 +282,29 @@ public final class Schemas {
         }
 
         @Override
+        public final void rename(@NonNls @NonNull final String name) {
+            mName = name;
+        }
+
+        @Override
+        public final void update(@Nullable final Check before, @Nullable final Check after) {
+            if (before != null) {
+                if (!mChecks.remove(before)) {
+                    throw new SQLException("Unknown check " + before + IN_TABLE + mName);
+                }
+            }
+
+            if (after != null) {
+                mChecks.add(after);
+            }
+        }
+
+        @Override
         public final void update(@Nullable final ForeignKey<?> before,
                                  @Nullable final ForeignKey<?> after) {
             if (before != null) {
                 if (!mForeignKey.remove(before)) {
-                    throw new SQLException("Unknown foreign key " + before + IN_TABLE + getName());
+                    throw new SQLException("Unknown foreign key " + before + IN_TABLE + mName);
                 }
             }
 

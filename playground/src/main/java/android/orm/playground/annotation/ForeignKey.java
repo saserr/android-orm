@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NonNls;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import static android.orm.sql.ForeignKey.Action.NoAction;
+import static android.orm.database.table.ForeignKey.Action.NoAction;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
@@ -35,9 +35,9 @@ public @interface ForeignKey {
 
     @NonNull Class<?> parent();
 
-    @NonNls @NonNull String[] parentKey();
+    @NonNls @NonNull String[] parentKey() default {};
 
-    @NonNull android.orm.sql.ForeignKey.Action onDelete() default NoAction;
+    @NonNull android.orm.database.table.ForeignKey.Action onDelete() default NoAction;
 
-    @NonNull android.orm.sql.ForeignKey.Action onUpdate() default NoAction;
+    @NonNull android.orm.database.table.ForeignKey.Action onUpdate() default NoAction;
 }

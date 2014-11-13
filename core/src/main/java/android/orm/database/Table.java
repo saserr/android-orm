@@ -18,11 +18,13 @@ package android.orm.database;
 
 import android.orm.DAO;
 import android.orm.Database;
+import android.orm.database.table.Check;
+import android.orm.database.table.ForeignKey;
+import android.orm.database.table.PrimaryKey;
 import android.orm.database.table.Schema;
 import android.orm.database.table.Schemas;
 import android.orm.sql.Column;
-import android.orm.sql.ForeignKey;
-import android.orm.sql.PrimaryKey;
+import android.orm.sql.Fragment;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
@@ -48,37 +50,38 @@ import static android.orm.sql.Statements.dropTable;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 
 public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
     private static final String TAG = Table.class.getSimpleName();
-    private static final Set<ForeignKey<?>> NO_FOREIGN_KEYS = emptySet();
 
     @NonNls
     @NonNull
     private final String mName;
-    @Nullable
-    private final PrimaryKey<K> mPrimaryKey;
-    @NonNull
-    private final Set<ForeignKey<?>> mForeignKeys;
     @NonNull
     private final Set<Column<?>> mColumns;
+    @NonNull
+    private final Set<Check> mChecks;
+    @NonNull
+    private final Set<ForeignKey<?>> mForeignKeys;
+    @Nullable
+    private final PrimaryKey<K> mPrimaryKey;
     @NonNull
     private final Select.Projection mProjection;
 
     public Table(@NonNls @NonNull final String name,
-                 @Nullable final PrimaryKey<K> primaryKey,
+                 @NonNull final Collection<Column<?>> columns,
+                 @NonNull final Collection<Check> checks,
                  @NonNull final Collection<ForeignKey<?>> foreignKeys,
-                 @NonNull final Collection<Column<?>> columns) {
+                 @Nullable final PrimaryKey<K> primaryKey) {
         super();
 
         mName = name;
-        mPrimaryKey = primaryKey;
-        mForeignKeys = new HashSet<>(foreignKeys);
         mColumns = new HashSet<>(columns);
+        mChecks = new HashSet<>(checks);
+        mForeignKeys = new HashSet<>(foreignKeys);
+        mPrimaryKey = primaryKey;
 
         Select.Projection projection = null;
         for (final Column<?> column : columns) {
@@ -96,9 +99,14 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         return mName;
     }
 
-    @Nullable
-    public final PrimaryKey<K> getPrimaryKey() {
-        return mPrimaryKey;
+    @NonNull
+    public final Set<Column<?>> getColumns() {
+        return unmodifiableSet(mColumns);
+    }
+
+    @NonNull
+    public final Set<Check> getChecks() {
+        return unmodifiableSet(mChecks);
     }
 
     @NonNull
@@ -106,9 +114,9 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         return unmodifiableSet(mForeignKeys);
     }
 
-    @NonNull
-    public final Set<Column<?>> getColumns() {
-        return unmodifiableSet(mColumns);
+    @Nullable
+    public final PrimaryKey<K> getPrimaryKey() {
+        return mPrimaryKey;
     }
 
     @NonNull
@@ -157,31 +165,71 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
     }
 
     @NonNull
-    public static Table<Long> table(@NonNls @NonNull final String name,
-                                    @NonNull final Column<?>... columns) {
-        return new Table<>(name, null, NO_FOREIGN_KEYS, asList(columns));
+    public static Builder table(@NonNls @NonNull final String name) {
+        return new Builder(name);
     }
 
-    @NonNull
-    public static <K> Table<K> table(@NonNls @NonNull final String name,
-                                     @NonNull final PrimaryKey<K> primaryKey,
-                                     @NonNull final Column<?>... columns) {
-        return new Table<>(name, primaryKey, NO_FOREIGN_KEYS, asList(columns));
+    public static class Builder {
+
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        @NonNull
+        private final Set<Column<?>> mColumns = new HashSet<>();
+        @NonNull
+        private final Set<Check> mChecks = new HashSet<>();
+        @NonNull
+        private final Set<ForeignKey<?>> mForeignKeys = new HashSet<>();
+
+        public Builder(@NonNls @NonNull final String name) {
+            super();
+
+            mName = name;
+        }
+
+        @NonNull
+        public final Builder with(@NonNull final Column<?> column) {
+            mColumns.add(column);
+            return this;
+        }
+
+        @NonNull
+        public final Builder with(@NonNull final Check check) {
+            mChecks.add(check);
+            return this;
+        }
+
+        @NonNull
+        public final Builder with(@NonNull final ForeignKey<?> foreignKey) {
+            mForeignKeys.add(foreignKey);
+            return this;
+        }
+
+        @NonNull
+        public final Table<Long> build() {
+            validate();
+            return new Table<>(mName, mColumns, mChecks, mForeignKeys, null);
+        }
+
+        @NonNull
+        public final <K> Table<K> build(@NonNull final PrimaryKey<K> primaryKey) {
+            validate();
+            return new Table<>(mName, mColumns, mChecks, mForeignKeys, primaryKey);
+        }
+
+        private void validate() {
+            if (mColumns.isEmpty()) {
+                throw new UnsupportedOperationException("Trying to create table without columns");
+            }
+        }
     }
 
-    @NonNull
-    public static Table<Long> table(@NonNls @NonNull final String name,
-                                    @NonNull final ForeignKey<?>[] foreignKeys,
-                                    @NonNull final Column<?>... columns) {
-        return new Table<>(name, null, asList(foreignKeys), asList(columns));
-    }
-
-    @NonNull
-    public static <K> Table<K> table(@NonNls @NonNull final String name,
-                                     @NonNull final PrimaryKey<K> primaryKey,
-                                     @NonNull final ForeignKey<?>[] foreignKeys,
-                                     @NonNull final Column<?>... columns) {
-        return new Table<>(name, primaryKey, asList(foreignKeys), asList(columns));
+    public interface Constraint extends Fragment {
+        @NonNls
+        @NonNull
+        @Override
+        String toSQL();
     }
 
     public interface Revision {
@@ -197,6 +245,12 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
         @NonNull
         Revision remove(@NonNull final Column<?> column);
+
+        @NonNull
+        Revision add(@NonNull final Check check);
+
+        @NonNull
+        Revision remove(@NonNull final Check check);
 
         @NonNull
         Revision add(@NonNull final ForeignKey<?> foreignKey);
@@ -381,6 +435,7 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
             private final int mVersion;
 
             private final List<Pair<Column<?>, Column<?>>> mColumns = new ArrayList<>();
+            private final List<Pair<Check, Check>> mChecks = new ArrayList<>();
             private final List<Pair<ForeignKey<?>, ForeignKey<?>>> mForeignKeys = new ArrayList<>();
 
             @NonNls
@@ -437,6 +492,20 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
             @NonNull
             @Override
+            public final Revision add(@NonNull final Check check) {
+                mChecks.add(Pair.<Check, Check>create(null, check));
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final Revision remove(@NonNull final Check check) {
+                mChecks.add(Pair.<Check, Check>create(check, null));
+                return this;
+            }
+
+            @NonNull
+            @Override
             public final Revision add(@NonNull final ForeignKey<?> foreignKey) {
                 mForeignKeys.add(Pair.<ForeignKey<?>, ForeignKey<?>>create(null, foreignKey));
                 return this;
@@ -472,6 +541,10 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
                     schema.update(pair.first, pair.second);
                 }
 
+                for (final Pair<Check, Check> pair : mChecks) {
+                    schema.update(pair.first, pair.second);
+                }
+
                 for (final Pair<ForeignKey<?>, ForeignKey<?>> pair : mForeignKeys) {
                     schema.update(pair.first, pair.second);
                 }
@@ -488,6 +561,10 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
                 }
 
                 for (final Pair<Column<?>, Column<?>> pair : mColumns) {
+                    schema.update(pair.second, pair.first);
+                }
+
+                for (final Pair<Check, Check> pair : mChecks) {
                     schema.update(pair.second, pair.first);
                 }
 
