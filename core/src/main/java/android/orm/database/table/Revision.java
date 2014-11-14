@@ -17,34 +17,49 @@
 package android.orm.database.table;
 
 import android.orm.sql.Column;
-import android.orm.sql.Statement;
-import android.orm.sql.Table;
 import android.orm.sql.table.Check;
 import android.orm.sql.table.ForeignKey;
 import android.orm.sql.table.PrimaryKey;
 import android.orm.sql.table.UniqueKey;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-public interface Schema {
-
-    void rename(@NonNls @NonNull final String name);
-
-    void update(@Nullable final Column<?> before, @Nullable final Column<?> after);
-
-    void update(@Nullable final Check before, @Nullable final Check after);
-
-    void update(@Nullable final ForeignKey<?> before, @Nullable final ForeignKey<?> after);
-
-    void update(@Nullable final UniqueKey<?> before, @Nullable final UniqueKey<?> after);
-
-    void with(@Nullable final PrimaryKey<?> primaryKey);
+public interface Revision {
 
     @NonNull
-    Table<?> table();
+    Revision rename(@NonNls @NonNull final String name);
 
     @NonNull
-    Statement statement(final int version);
+    Revision add(@NonNull final Column<?> column);
+
+    @NonNull
+    Revision update(@NonNull final Column<?> before, @NonNull final Column<?> after);
+
+    @NonNull
+    Revision remove(@NonNull final Column<?> column);
+
+    @NonNull
+    Revision add(@NonNull final Check check);
+
+    @NonNull
+    Revision remove(@NonNull final Check check);
+
+    @NonNull
+    Revision add(@NonNull final ForeignKey<?> foreignKey);
+
+    @NonNull
+    Revision remove(@NonNull final ForeignKey<?> foreignKey);
+
+    @NonNull
+    Revision add(@NonNull final UniqueKey<?> uniqueKey);
+
+    @NonNull
+    Revision remove(@NonNull final UniqueKey<?> uniqueKey);
+
+    @NonNull
+    Revision with(@NonNull final PrimaryKey<?> primaryKey);
+
+    @NonNull
+    Revision withoutPrimaryKey();
 }

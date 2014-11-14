@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package android.orm.database.table;
+package android.orm.sql.table;
 
-import android.orm.database.Table;
+import android.orm.sql.Table;
 import android.orm.sql.Value;
 import android.orm.sql.column.Reference;
 import android.orm.sql.fragment.Constraint;

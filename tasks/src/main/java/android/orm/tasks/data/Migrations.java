@@ -16,8 +16,8 @@
 
 package android.orm.tasks.data;
 
-import android.orm.database.Table;
-import android.orm.database.table.PrimaryKey;
+import android.orm.database.Migration;
+import android.orm.sql.table.PrimaryKey;
 import android.orm.tasks.model.Task;
 
 import org.jetbrains.annotations.NonNls;
@@ -25,11 +25,11 @@ import org.jetbrains.annotations.NonNls;
 public final class Migrations {
 
     @NonNls
-    public static final Table.Migration Tasks;
+    public static final Migration.Table Tasks;
 
     /* tasks table migrations */
     static {
-        Tasks = new Table.Migration("tasks");
+        Tasks = new Migration.Table("tasks");
         Tasks.at(1)
                 .add(Task.Id)
                 .add(Task.Title)

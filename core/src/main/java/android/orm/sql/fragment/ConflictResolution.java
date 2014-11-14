@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.sql.column;
+package android.orm.sql.fragment;
 
 import android.orm.sql.Fragment;
 import android.support.annotation.NonNull;

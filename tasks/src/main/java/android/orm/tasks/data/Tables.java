@@ -16,7 +16,7 @@
 
 package android.orm.tasks.data;
 
-import android.orm.database.Table;
+import android.orm.sql.Table;
 
 import static android.orm.tasks.data.Configuration.Database;
 

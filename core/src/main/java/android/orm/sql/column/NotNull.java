@@ -16,6 +16,7 @@
 
 package android.orm.sql.column;
 
+import android.orm.sql.fragment.ConflictResolution;
 import android.orm.sql.fragment.Constraint;
 import android.support.annotation.NonNull;
 

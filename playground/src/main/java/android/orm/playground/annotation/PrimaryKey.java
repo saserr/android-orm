@@ -16,7 +16,7 @@
 
 package android.orm.playground.annotation;
 
-import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.fragment.ConflictResolution;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 

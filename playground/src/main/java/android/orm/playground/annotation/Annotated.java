@@ -17,18 +17,18 @@
 package android.orm.playground.annotation;
 
 import android.orm.database.Migration;
-import android.orm.database.Table;
-import android.orm.database.table.Check;
-import android.orm.database.table.ForeignKey;
-import android.orm.database.table.PrimaryKey;
-import android.orm.database.table.UniqueKey;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.sql.Column;
+import android.orm.sql.Table;
 import android.orm.sql.Type;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
-import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.fragment.ConflictResolution;
+import android.orm.sql.table.Check;
+import android.orm.sql.table.ForeignKey;
+import android.orm.sql.table.PrimaryKey;
+import android.orm.sql.table.UniqueKey;
 import android.orm.util.Lens;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;

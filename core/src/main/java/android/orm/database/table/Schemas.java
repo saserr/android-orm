@@ -17,10 +17,14 @@
 package android.orm.database.table;
 
 import android.database.SQLException;
-import android.orm.database.Table;
 import android.orm.sql.Column;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
+import android.orm.sql.Table;
+import android.orm.sql.table.Check;
+import android.orm.sql.table.ForeignKey;
+import android.orm.sql.table.PrimaryKey;
+import android.orm.sql.table.UniqueKey;
 import android.orm.util.Legacy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -93,7 +97,7 @@ public final class Schemas {
                 );
             }
 
-            return createTable(getName(), mColumns, getChecks(), getForeignKeys(), getUniqueKeys(), getPrimaryKey());
+            return createTable(table());
         }
     }
 
@@ -178,7 +182,9 @@ public final class Schemas {
                         Statements.NOTHING :
                         renameTable(oldName, newName);
             } else {
-                @NonNls final String temporary = "temp." + newName;
+                @NonNls final String temporaryName = "temp." + newName;
+                final Table<?> temporary = new Table<>(temporaryName, mColumns, checks, foreignKeys, uniqueKeys, primaryKey);
+                final Table<?> newTable = new Table<>(newName, mColumns, checks, foreignKeys, uniqueKeys, primaryKey);
 
                 final Collection<Pair<String, String>> toTemporary = new ArrayList<>(mColumns.size());
                 final Collection<Pair<String, String>> fromTemporary = new ArrayList<>(mColumns.size());
@@ -193,17 +199,17 @@ public final class Schemas {
                         // defer foreign keys integrity check until end of the transaction
                         Statements.statement("pragma defer_foreign_keys=on;"),
                         // create a temporary table
-                        createTable(temporary, mColumns, checks, foreignKeys, uniqueKeys, primaryKey),
+                        createTable(temporary),
                         // copy data to temporary table
-                        copyData(oldName, temporary, toTemporary),
+                        copyData(oldName, temporaryName, toTemporary),
                         // drop the original table
                         dropTable(oldName),
                         // recreate the original table with remaining columns
-                        createTable(newName, mColumns, checks, foreignKeys, uniqueKeys, primaryKey),
+                        createTable(newTable),
                         // copy data from temporary table
-                        copyData(temporary, newName, fromTemporary),
+                        copyData(temporaryName, newName, fromTemporary),
                         // drop the temporary table
-                        dropTable(temporary)
+                        dropTable(temporaryName)
                 );
             }
 

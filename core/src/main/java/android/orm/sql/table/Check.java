@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.orm.database.table;
+package android.orm.sql.table;
 
 import android.orm.sql.fragment.Constraint;
 import android.orm.sql.fragment.Where;

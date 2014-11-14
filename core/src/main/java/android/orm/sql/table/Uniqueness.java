@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package android.orm.database.table;
+package android.orm.sql.table;
 
 import android.orm.sql.Fragment;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.column.ConflictResolution;
 import android.orm.sql.column.Reference;
+import android.orm.sql.fragment.ConflictResolution;
 import android.orm.sql.fragment.Constraint;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;

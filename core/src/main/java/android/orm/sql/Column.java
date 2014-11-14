@@ -17,13 +17,13 @@
 package android.orm.sql;
 
 import android.database.SQLException;
-import android.orm.sql.column.ConflictResolution;
 import android.orm.sql.column.Default;
 import android.orm.sql.column.NotNull;
 import android.orm.sql.column.Reference;
 import android.orm.sql.column.Unique;
 import android.orm.sql.column.Validation;
 import android.orm.sql.column.Validations;
+import android.orm.sql.fragment.ConflictResolution;
 import android.orm.sql.fragment.Constraint;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;

@@ -19,19 +19,17 @@ package android.orm.sql;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.database.table.Check;
-import android.orm.database.table.ForeignKey;
-import android.orm.database.table.PrimaryKey;
-import android.orm.database.table.UniqueKey;
+import android.orm.sql.table.Check;
+import android.orm.sql.table.ForeignKey;
+import android.orm.sql.table.PrimaryKey;
+import android.orm.sql.table.UniqueKey;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.Collection;
-import java.util.Set;
 
 import static android.orm.sql.Helper.escape;
 import static android.util.Log.DEBUG;
@@ -48,35 +46,27 @@ public final class Statements {
     private static final String NO_COLUMNS = "Columns cannot be empty";
 
     @NonNull
-    public static Statement createTable(@NonNls @NonNull final String name,
-                                        @NonNull final Set<Column<?>> columns,
-                                        @NonNull final Set<Check> checks,
-                                        @NonNull final Set<ForeignKey<?>> foreignKeys,
-                                        @NonNull final Set<UniqueKey<?>> uniqueKeys,
-                                        @Nullable final PrimaryKey<?> primaryKey) {
-        if (columns.size() < 1) {
-            throw new IllegalArgumentException(NO_COLUMNS);
-        }
-
+    public static Statement createTable(@NonNull final Table<?> table) {
         @NonNls final StringBuilder result = new StringBuilder();
-        result.append("create table ").append(escape(name)).append(" (\n");
+        result.append("create table ").append(escape(table.getName())).append(" (\n");
 
-        for (final Column<?> column : columns) {
+        for (final Column<?> column : table.getColumns()) {
             result.append(column.toSQL()).append(",\n");
         }
 
-        for (final Check check : checks) {
+        for (final Check check : table.getChecks()) {
             result.append(check.toSQL()).append(",\n");
         }
 
-        for (final ForeignKey<?> foreignKey : foreignKeys) {
+        for (final ForeignKey<?> foreignKey : table.getForeignKeys()) {
             result.append(foreignKey.toSQL()).append(",\n");
         }
 
-        for (final UniqueKey<?> uniqueKey : uniqueKeys) {
+        for (final UniqueKey<?> uniqueKey : table.getUniqueKeys()) {
             result.append(uniqueKey.toSQL()).append(",\n");
         }
 
+        final PrimaryKey<?> primaryKey = table.getPrimaryKey();
         if (primaryKey != null) {
             result.append(primaryKey.toSQL()).append(",\n");
         }

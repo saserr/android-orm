@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package android.orm.database.table;
+package android.orm.sql.table;
 
 import android.orm.sql.Value;
-import android.orm.sql.column.ConflictResolution;
+import android.orm.sql.fragment.ConflictResolution;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
