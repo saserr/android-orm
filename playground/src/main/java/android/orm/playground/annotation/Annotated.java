@@ -21,6 +21,7 @@ import android.orm.database.Table;
 import android.orm.database.table.Check;
 import android.orm.database.table.ForeignKey;
 import android.orm.database.table.PrimaryKey;
+import android.orm.database.table.UniqueKey;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.sql.Column;
@@ -52,6 +53,7 @@ public class Annotated {
     public static final Annotated StandardTypesOnly = new Annotated(Types.withStandardTypes());
 
     private static final Set<Check> NO_CHECKS = emptySet();
+    private static final Set<UniqueKey<?>> NO_UNIQUE_KEYS = emptySet();
 
     @NonNull
     private final Types mTypes;
@@ -116,7 +118,7 @@ public class Annotated {
         final Set<ForeignKey<?>> foreignKeys = foreignKeys(klass);
         final PrimaryKey<?> primaryKey = primaryKey(klass);
 
-        return create(version, new Table<>(name, columns, NO_CHECKS, foreignKeys, primaryKey));
+        return create(version, new Table<>(name, columns, NO_CHECKS, foreignKeys, NO_UNIQUE_KEYS, primaryKey));
     }
 
     @NonNull

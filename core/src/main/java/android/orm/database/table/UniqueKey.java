@@ -16,31 +16,30 @@
 
 package android.orm.database.table;
 
-import android.orm.database.Table;
-import android.orm.sql.Column;
-import android.orm.sql.Statement;
+import android.orm.sql.Value;
+import android.orm.sql.column.ConflictResolution;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import org.jetbrains.annotations.NonNls;
-
-public interface Schema {
-
-    void rename(@NonNls @NonNull final String name);
-
-    void update(@Nullable final Column<?> before, @Nullable final Column<?> after);
-
-    void update(@Nullable final Check before, @Nullable final Check after);
-
-    void update(@Nullable final ForeignKey<?> before, @Nullable final ForeignKey<?> after);
-
-    void update(@Nullable final UniqueKey<?> before, @Nullable final UniqueKey<?> after);
-
-    void with(@Nullable final PrimaryKey<?> primaryKey);
+public class UniqueKey<V> extends Uniqueness<V> {
 
     @NonNull
-    Table<?> table();
+    private final Value.ReadWrite<V> mValue;
+
+    private UniqueKey(@NonNull final Value.ReadWrite<V> value,
+                      @Nullable final ConflictResolution resolution) {
+        super(Type.UniqueKey, value, resolution);
+
+        mValue = value;
+    }
 
     @NonNull
-    Statement statement(final int version);
+    public final UniqueKey<V> onConflict(@NonNull final ConflictResolution resolution) {
+        return new UniqueKey<>(mValue, resolution);
+    }
+
+    @NonNull
+    public static <V> UniqueKey<V> on(@NonNull final Value.ReadWrite<V> value) {
+        return new UniqueKey<>(value, null);
+    }
 }

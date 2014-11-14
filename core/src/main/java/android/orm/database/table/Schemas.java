@@ -80,7 +80,7 @@ public final class Schemas {
         @NonNull
         @Override
         public final Table<?> table() {
-            return new Table<>(getName(), mColumns, getChecks(), getForeignKey(), getPrimaryKey());
+            return new Table<>(getName(), mColumns, getChecks(), getForeignKeys(), getUniqueKeys(), getPrimaryKey());
         }
 
         @NonNull
@@ -93,7 +93,7 @@ public final class Schemas {
                 );
             }
 
-            return createTable(getName(), mColumns, getChecks(), getForeignKey(), getPrimaryKey());
+            return createTable(getName(), mColumns, getChecks(), getForeignKeys(), getUniqueKeys(), getPrimaryKey());
         }
     }
 
@@ -148,7 +148,7 @@ public final class Schemas {
         @NonNull
         @Override
         public final Table<?> table() {
-            return new Table<>(getName(), mColumns, getChecks(), getForeignKey(), getPrimaryKey());
+            return new Table<>(getName(), mColumns, getChecks(), getForeignKeys(), getUniqueKeys(), getPrimaryKey());
         }
 
         @NonNull
@@ -166,12 +166,14 @@ public final class Schemas {
             final Statement result;
 
             final Set<Check> checks = getChecks();
-            final Set<ForeignKey<?>> foreignKeys = getForeignKey();
+            final Set<ForeignKey<?>> foreignKeys = getForeignKeys();
+            final Set<UniqueKey<?>> uniqueKeys = getUniqueKeys();
             final PrimaryKey<?> primaryKey = getPrimaryKey();
             if (mColumns.equals(mTable.getColumns()) &&
                     Legacy.equals(primaryKey, mTable.getPrimaryKey()) &&
                     checks.equals(mTable.getChecks()) &&
-                    foreignKeys.equals(mTable.getForeignKeys())) {
+                    foreignKeys.equals(mTable.getForeignKeys()) &&
+                    uniqueKeys.equals(mTable.getUniqueKeys())) {
                 result = oldName.equals(newName) ?
                         Statements.NOTHING :
                         renameTable(oldName, newName);
@@ -191,13 +193,13 @@ public final class Schemas {
                         // defer foreign keys integrity check until end of the transaction
                         Statements.statement("pragma defer_foreign_keys=on;"),
                         // create a temporary table
-                        createTable(temporary, mColumns, checks, foreignKeys, primaryKey),
+                        createTable(temporary, mColumns, checks, foreignKeys, uniqueKeys, primaryKey),
                         // copy data to temporary table
                         copyData(oldName, temporary, toTemporary),
                         // drop the original table
                         dropTable(oldName),
                         // recreate the original table with remaining columns
-                        createTable(newName, mColumns, checks, foreignKeys, primaryKey),
+                        createTable(newName, mColumns, checks, foreignKeys, uniqueKeys, primaryKey),
                         // copy data from temporary table
                         copyData(temporary, newName, fromTemporary),
                         // drop the temporary table
@@ -236,6 +238,8 @@ public final class Schemas {
         private final Set<Check> mChecks;
         @NonNull
         private final Set<ForeignKey<?>> mForeignKey;
+        @NonNull
+        private final Set<UniqueKey<?>> mUniqueKeys;
 
         @NonNls
         @NonNull
@@ -249,6 +253,7 @@ public final class Schemas {
             mName = name;
             mChecks = new HashSet<>();
             mForeignKey = new HashSet<>();
+            mUniqueKeys = new HashSet<>();
         }
 
         protected Base(@NonNull final Table<?> table) {
@@ -257,6 +262,7 @@ public final class Schemas {
             mName = table.getName();
             mChecks = new HashSet<>(table.getChecks());
             mForeignKey = new HashSet<>(table.getForeignKeys());
+            mUniqueKeys = new HashSet<>(table.getUniqueKeys());
             mPrimaryKey = table.getPrimaryKey();
         }
 
@@ -272,8 +278,13 @@ public final class Schemas {
         }
 
         @NonNull
-        protected final Set<ForeignKey<?>> getForeignKey() {
+        protected final Set<ForeignKey<?>> getForeignKeys() {
             return unmodifiableSet(mForeignKey);
+        }
+
+        @NonNull
+        protected final Set<UniqueKey<?>> getUniqueKeys() {
+            return unmodifiableSet(mUniqueKeys);
         }
 
         @Nullable
@@ -310,6 +321,20 @@ public final class Schemas {
 
             if (after != null) {
                 mForeignKey.add(after);
+            }
+        }
+
+        @Override
+        public final void update(@Nullable final UniqueKey<?> before,
+                                 @Nullable final UniqueKey<?> after) {
+            if (before != null) {
+                if (!mUniqueKeys.remove(before)) {
+                    throw new SQLException("Unknown unique " + before + IN_TABLE + mName);
+                }
+            }
+
+            if (after != null) {
+                mUniqueKeys.add(after);
             }
         }
 

@@ -22,6 +22,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.orm.database.table.Check;
 import android.orm.database.table.ForeignKey;
 import android.orm.database.table.PrimaryKey;
+import android.orm.database.table.UniqueKey;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -51,6 +52,7 @@ public final class Statements {
                                         @NonNull final Set<Column<?>> columns,
                                         @NonNull final Set<Check> checks,
                                         @NonNull final Set<ForeignKey<?>> foreignKeys,
+                                        @NonNull final Set<UniqueKey<?>> uniqueKeys,
                                         @Nullable final PrimaryKey<?> primaryKey) {
         if (columns.size() < 1) {
             throw new IllegalArgumentException(NO_COLUMNS);
@@ -69,6 +71,10 @@ public final class Statements {
 
         for (final ForeignKey<?> foreignKey : foreignKeys) {
             result.append(foreignKey.toSQL()).append(",\n");
+        }
+
+        for (final UniqueKey<?> uniqueKey : uniqueKeys) {
+            result.append(uniqueKey.toSQL()).append(",\n");
         }
 
         if (primaryKey != null) {

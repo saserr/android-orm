@@ -23,6 +23,7 @@ import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.dao.Transaction;
 import android.orm.database.table.PrimaryKey;
+import android.orm.database.table.UniqueKey;
 import android.orm.sql.Column;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
@@ -113,17 +114,7 @@ public final class DAO {
             throw new IllegalArgumentException("Column must be unique");
         }
 
-        final Where where = (value == null) ? where(column).isNull() : where(column).isEqualTo(value);
-        final ContentValues onInsert = new ContentValues();
-        column.write(Insert, something(value), writable(onInsert));
-
-        return new Executor.Direct.Single.Factory<android.orm.sql.Executor, V>() {
-            @NonNull
-            @Override
-            public Executor.Direct.Single<V> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, where, onInsert, column);
-            }
-        };
+        return byUnique(table, UniqueKey.on(column), value);
     }
 
     @NonNull
@@ -133,12 +124,36 @@ public final class DAO {
             throw new IllegalArgumentException("Column must be unique");
         }
 
+        return byUnique(table, UniqueKey.on(column));
+    }
+
+    public static <V> Executor.Direct.Single.Factory<android.orm.sql.Executor, V> byUnique(@NonNls @NonNull final String table,
+                                                                                           @NonNull final UniqueKey<V> uniqueKey,
+                                                                                           @Nullable final V value) {
+        final Where where = (value == null) ?
+                where(uniqueKey).isNull() :
+                where(uniqueKey).isEqualTo(value);
+        final ContentValues onInsert = new ContentValues();
+        uniqueKey.write(Insert, something(value), writable(onInsert));
+
+        return new Executor.Direct.Single.Factory<android.orm.sql.Executor, V>() {
+            @NonNull
+            @Override
+            public Executor.Direct.Single<V> create(@NonNull final android.orm.sql.Executor executor) {
+                return single(executor, table, where, onInsert, uniqueKey);
+            }
+        };
+    }
+
+    @NonNull
+    public static <V> Executor.Direct.Many.Factory<android.orm.sql.Executor, V> byUnique(@NonNls @NonNull final String table,
+                                                                                         @NonNull final UniqueKey<V> uniqueKey) {
         return new Executor.Direct.Many.Factory<android.orm.sql.Executor, V>() {
             @NonNull
             @Override
             @SuppressWarnings("unchecked")
             public Executor.Direct.Many<V> create(@NonNull final android.orm.sql.Executor executor) {
-                return many(executor, table, column);
+                return many(executor, table, uniqueKey);
             }
         };
     }

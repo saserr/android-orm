@@ -23,6 +23,7 @@ import android.orm.database.table.ForeignKey;
 import android.orm.database.table.PrimaryKey;
 import android.orm.database.table.Schema;
 import android.orm.database.table.Schemas;
+import android.orm.database.table.UniqueKey;
 import android.orm.sql.Column;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
@@ -64,6 +65,8 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
     private final Set<Check> mChecks;
     @NonNull
     private final Set<ForeignKey<?>> mForeignKeys;
+    @NonNull
+    private final Set<UniqueKey<?>> mUniqueKeys;
     @Nullable
     private final PrimaryKey<K> mPrimaryKey;
     @NonNull
@@ -73,6 +76,7 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
                  @NonNull final Collection<Column<?>> columns,
                  @NonNull final Collection<Check> checks,
                  @NonNull final Collection<ForeignKey<?>> foreignKeys,
+                 @NonNull final Collection<UniqueKey<?>> uniqueKeys,
                  @Nullable final PrimaryKey<K> primaryKey) {
         super();
 
@@ -80,6 +84,7 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         mColumns = new HashSet<>(columns);
         mChecks = new HashSet<>(checks);
         mForeignKeys = new HashSet<>(foreignKeys);
+        mUniqueKeys = new HashSet<>(uniqueKeys);
         mPrimaryKey = primaryKey;
 
         Select.Projection projection = null;
@@ -111,6 +116,11 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
     @NonNull
     public final Set<ForeignKey<?>> getForeignKeys() {
         return unmodifiableSet(mForeignKeys);
+    }
+
+    @NonNull
+    public final Set<UniqueKey<?>> getUniqueKeys() {
+        return unmodifiableSet(mUniqueKeys);
     }
 
     @Nullable
@@ -180,6 +190,8 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         private final Set<Check> mChecks = new HashSet<>();
         @NonNull
         private final Set<ForeignKey<?>> mForeignKeys = new HashSet<>();
+        @NonNull
+        private final Set<UniqueKey<?>> mUniqueKeys = new HashSet<>();
 
         public Builder(@NonNls @NonNull final String name) {
             super();
@@ -206,15 +218,21 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
         }
 
         @NonNull
+        public final Builder with(@NonNull final UniqueKey<?> uniqueKey) {
+            mUniqueKeys.add(uniqueKey);
+            return this;
+        }
+
+        @NonNull
         public final Table<Long> build() {
             validate();
-            return new Table<>(mName, mColumns, mChecks, mForeignKeys, null);
+            return new Table<>(mName, mColumns, mChecks, mForeignKeys, mUniqueKeys, null);
         }
 
         @NonNull
         public final <K> Table<K> build(@NonNull final PrimaryKey<K> primaryKey) {
             validate();
-            return new Table<>(mName, mColumns, mChecks, mForeignKeys, primaryKey);
+            return new Table<>(mName, mColumns, mChecks, mForeignKeys, mUniqueKeys, primaryKey);
         }
 
         private void validate() {
@@ -249,6 +267,12 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
         @NonNull
         Revision remove(@NonNull final ForeignKey<?> foreignKey);
+
+        @NonNull
+        Revision add(@NonNull final UniqueKey<?> uniqueKey);
+
+        @NonNull
+        Revision remove(@NonNull final UniqueKey<?> uniqueKey);
 
         @NonNull
         Revision with(@NonNull final PrimaryKey<?> primaryKey);
@@ -429,6 +453,7 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
             private final List<Pair<Column<?>, Column<?>>> mColumns = new ArrayList<>();
             private final List<Pair<Check, Check>> mChecks = new ArrayList<>();
             private final List<Pair<ForeignKey<?>, ForeignKey<?>>> mForeignKeys = new ArrayList<>();
+            private final List<Pair<UniqueKey<?>, UniqueKey<?>>> mUniqueKeys = new ArrayList<>();
 
             @NonNls
             @Nullable
@@ -512,6 +537,20 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
 
             @NonNull
             @Override
+            public final Revision add(@NonNull final UniqueKey<?> uniqueKey) {
+                mUniqueKeys.add(Pair.<UniqueKey<?>, UniqueKey<?>>create(null, uniqueKey));
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final Revision remove(@NonNull final UniqueKey<?> uniqueKey) {
+                mUniqueKeys.add(Pair.<UniqueKey<?>, UniqueKey<?>>create(uniqueKey, null));
+                return this;
+            }
+
+            @NonNull
+            @Override
             public final Revision with(@NonNull final PrimaryKey<?> primaryKey) {
                 mPrimaryKey = Maybes.<PrimaryKey<?>>something(primaryKey);
                 return this;
@@ -541,6 +580,10 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
                     schema.update(pair.first, pair.second);
                 }
 
+                for (final Pair<UniqueKey<?>, UniqueKey<?>> pair : mUniqueKeys) {
+                    schema.update(pair.first, pair.second);
+                }
+
                 if (mPrimaryKey.isSomething()) {
                     schema.with(mPrimaryKey.get());
                 }
@@ -561,6 +604,10 @@ public class Table<K> extends Value.ReadWrite.Base<Map<String, Object>> {
                 }
 
                 for (final Pair<ForeignKey<?>, ForeignKey<?>> pair : mForeignKeys) {
+                    schema.update(pair.second, pair.first);
+                }
+
+                for (final Pair<UniqueKey<?>, UniqueKey<?>> pair : mUniqueKeys) {
                     schema.update(pair.second, pair.first);
                 }
 

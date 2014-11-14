@@ -16,55 +16,21 @@
 
 package android.orm.database.table;
 
-import android.orm.sql.Readable;
-import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.Writable;
 import android.orm.sql.column.ConflictResolution;
-import android.orm.sql.column.Reference;
-import android.orm.sql.fragment.Constraint;
-import android.orm.util.Lazy;
-import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import org.jetbrains.annotations.NonNls;
-
-import java.util.Map;
-import java.util.Set;
-
-public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Constraint {
+public class PrimaryKey<V> extends Uniqueness<V> {
 
     @NonNull
     private final Value.ReadWrite<V> mValue;
-    @NonNls
-    @NonNull
-    private final Lazy<String> mSQL;
 
     private PrimaryKey(@NonNull final Value.ReadWrite<V> value,
                        @Nullable final ConflictResolution resolution) {
-        super();
-
-        final Map<String, String> projection = value.getProjection().asMap();
-        if (projection.isEmpty()) {
-            throw new IllegalArgumentException("Value must reference something");
-        }
+        super(Type.PrimaryKey, value, resolution);
 
         mValue = value;
-        mSQL = new SQL(mValue, resolution);
-    }
-
-    @NonNls
-    @NonNull
-    @Override
-    public final String getName() {
-        return mValue.getName();
-    }
-
-    @NonNull
-    @Override
-    public final Select.Projection getProjection() {
-        return mValue.getProjection();
     }
 
     @NonNull
@@ -73,79 +39,7 @@ public class PrimaryKey<V> extends Value.ReadWrite.Base<V> implements Constraint
     }
 
     @NonNull
-    @Override
-    public final Maybe<V> read(@NonNull final Readable input) {
-        return mValue.read(input);
-    }
-
-    @Override
-    public final void write(@NonNull final Operation operation,
-                            @NonNull final Maybe<V> value,
-                            @NonNull final Writable output) {
-        mValue.write(operation, value, output);
-    }
-
-    @NonNls
-    @NonNull
-    @Override
-    public final String toSQL() {
-        return mSQL.get();
-    }
-
-    @Override
-    public final boolean equals(@Nullable final Object object) {
-        boolean result = this == object;
-
-        if (!result && (object != null) && (getClass() == object.getClass())) {
-            final PrimaryKey<?> other = (PrimaryKey<?>) object;
-            result = mSQL.get().equals(other.toSQL());
-        }
-
-        return result;
-    }
-
-    @Override
-    public final int hashCode() {
-        return mSQL.get().hashCode();
-    }
-
-    @NonNls
-    @NonNull
-    @Override
-    public final String toString() {
-        return mValue.getName();
-    }
-
-    @NonNull
     public static <V> PrimaryKey<V> on(@NonNull final Value.ReadWrite<V> value) {
         return new PrimaryKey<>(value, null);
-    }
-
-    private static class SQL extends Lazy.Volatile<String> {
-
-        @NonNull
-        private final Set<String> mKey;
-        @Nullable
-        private final ConflictResolution mResolution;
-
-        private SQL(@NonNull final Value.Read<?> value,
-                    @Nullable final ConflictResolution resolution) {
-            super();
-
-            mKey = value.getProjection().asMap().keySet();
-            if (mKey.isEmpty()) {
-                throw new IllegalArgumentException("Key must reference something");
-            }
-
-            mResolution = resolution;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        protected final String produce() {
-            return "primary key (" + Reference.toSQL(mKey) + ')' +
-                    ((mResolution == null) ? "" : (" on conflict " + mResolution.toSQL()));
-        }
     }
 }

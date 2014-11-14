@@ -20,6 +20,7 @@ import android.orm.DAO;
 import android.orm.database.table.Check;
 import android.orm.database.table.ForeignKey;
 import android.orm.database.table.PrimaryKey;
+import android.orm.database.table.UniqueKey;
 import android.orm.sql.Column;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
@@ -52,10 +53,11 @@ public final class Migrations {
         final Set<Column<?>> columns = table.getColumns();
         final Set<Check> checks = table.getChecks();
         final Set<ForeignKey<?>> foreignKeys = table.getForeignKeys();
+        final Set<UniqueKey<?>> uniqueKeys = table.getUniqueKeys();
         final PrimaryKey<?> primaryKey = table.getPrimaryKey();
         return atVersion(
                 version,
-                createTable(name, columns, checks, foreignKeys, primaryKey),
+                createTable(name, columns, checks, foreignKeys, uniqueKeys, primaryKey),
                 dropTable(name)
         );
     }
