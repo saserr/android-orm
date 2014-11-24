@@ -81,12 +81,14 @@ public final class Access {
         @NonNull
         @Override
         public final I insert(@NonNull final Instance.Writable model) {
+            beforeCreate(model);
             return insert(model, write(model));
         }
 
         @NonNull
         @Override
         public final I insert(@NonNull final Writer writer) {
+            beforeCreate(writer);
             return insert(writer, write(writer));
         }
 
@@ -94,6 +96,7 @@ public final class Access {
         @Override
         public final <M> I insert(@Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
+            beforeCreate(model);
             return insert(model, write(something(model), value));
         }
 
@@ -101,6 +104,7 @@ public final class Access {
         @Override
         public final <M> I insert(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
+            beforeCreate(model);
             return insert(model, mapper.prepareWrite(something(model)));
         }
 
@@ -119,18 +123,21 @@ public final class Access {
         @NonNull
         @Override
         public final U update(@NonNull final Instance.Writable model) {
+            beforeUpdate(model);
             return update(model, write(model));
         }
 
         @NonNull
         @Override
         public final U update(@NonNull final Where where, @NonNull final Instance.Writable model) {
+            beforeUpdate(model);
             return update(model, where, write(model));
         }
 
         @NonNull
         @Override
         public final U update(@NonNull final Writer writer) {
+            beforeUpdate(writer);
             return update(writer, write(writer));
         }
 
@@ -138,6 +145,7 @@ public final class Access {
         @Override
         public final U update(@NonNull final Where where,
                               @NonNull final Writer writer) {
+            beforeUpdate(writer);
             return update(writer, where, write(writer));
         }
 
@@ -145,6 +153,7 @@ public final class Access {
         @Override
         public final <M> U update(@Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
+            beforeUpdate(model);
             return update(model, write(something(model), value));
         }
 
@@ -153,6 +162,7 @@ public final class Access {
         public final <M> U update(@NonNull final Where where,
                                   @Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
+            beforeUpdate(model);
             return update(model, where, write(something(model), value));
         }
 
@@ -160,6 +170,7 @@ public final class Access {
         @Override
         public final <M> U update(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
+            beforeUpdate(model);
             return update(model, mapper.prepareWrite(something(model)));
         }
 
@@ -168,6 +179,7 @@ public final class Access {
         public final <M> U update(@NonNull final Where where,
                                   @Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
+            beforeUpdate(model);
             return update(model, where, mapper.prepareWrite(something(model)));
         }
 
@@ -184,21 +196,19 @@ public final class Access {
         }
 
         @NonNull
-        private <M> I insert(@Nullable final M model, @NonNull final Plan.Write plan) {
-            beforeCreate(model);
+        private I insert(@Nullable final Object model, @NonNull final Plan.Write plan) {
             return afterCreate(model, mExecutor.insert(plan));
         }
 
         @NonNull
-        private <M> U update(@Nullable final M model, @NonNull final Plan.Write plan) {
+        private U update(@Nullable final Object model, @NonNull final Plan.Write plan) {
             return update(model, Where.None, plan);
         }
 
         @NonNull
-        private <M> U update(@Nullable final M model,
-                             @NonNull final Where where,
-                             @NonNull final Plan.Write plan) {
-            beforeUpdate(model);
+        private U update(@Nullable final Object model,
+                         @NonNull final Where where,
+                         @NonNull final Plan.Write plan) {
             return afterUpdate(model, mExecutor.update(where, plan));
         }
     }
