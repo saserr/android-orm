@@ -37,6 +37,9 @@ public interface Validation<V> {
     Validation<V> name(@NonNls @NonNull final String name);
 
     @NonNull
+    <M> Validation<M> on(@NonNull final Lens.Read<M, Maybe<V>> lens);
+
+    @NonNull
     <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter);
 
     @NonNull
@@ -76,6 +79,12 @@ public interface Validation<V> {
         @Override
         public final Validation<V> name(@NonNls @NonNull final String name) {
             return Validations.name(name, this);
+        }
+
+        @NonNull
+        @Override
+        public final <M> Validation<M> on(@NonNull final Lens.Read<M, Maybe<V>> lens) {
+            return Validations.extend(this, lens);
         }
 
         @NonNull

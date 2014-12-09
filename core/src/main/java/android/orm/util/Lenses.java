@@ -29,7 +29,7 @@ public final class Lenses {
     }
 
     @NonNull
-    public static <M, V> Maybe<V> get(@NonNull final Maybe<M> model,
+    public static <M, V> Maybe<V> get(@NonNull final Maybe<? extends M> model,
                                       @NonNull final Lens.Read<M, Maybe<V>> lens) {
         return model.isNothing() ? Maybes.<V>nothing() : unnull(get(model.get(), lens));
     }

@@ -23,6 +23,7 @@ import android.orm.tasks.R;
 import android.orm.tasks.model.Task;
 import android.orm.util.Maybe;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.KeyEvent;
@@ -30,8 +31,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-
-import org.jetbrains.annotations.NotNull;
 
 import static android.orm.util.Validations.IsNotEmpty;
 
@@ -47,7 +46,7 @@ public class Form extends Fragment {
 
     private final View.OnKeyListener mSave = new View.OnKeyListener() {
         @Override
-        public boolean onKey(final View view, final int code, @NotNull final KeyEvent event) {
+        public boolean onKey(final View view, final int code, @NonNull final KeyEvent event) {
             final boolean result;
 
             if (((code == KeyEvent.KEYCODE_ENTER)

@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.orm.tasks.R;
 import android.orm.tasks.model.Task;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ListFragment;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,8 +28,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Checkable;
 import android.widget.ListView;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 
@@ -147,7 +146,7 @@ public class List extends ListFragment {
         @Override
         public final View getView(final int position,
                                   final View convertView,
-                                  @NotNull final ViewGroup parent) {
+                                  @NonNull final ViewGroup parent) {
             final ListItem view = (ListItem) super.getView(position, convertView, parent);
 
             if (view != null) {

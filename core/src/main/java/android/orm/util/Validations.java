@@ -201,6 +201,18 @@ public final class Validations {
     }
 
     @NonNull
+    public static <V> Validation<V> name(@NonNls @NonNull final String name,
+                                         @NonNull final Validation<V> validation) {
+        return new Name<>(name, validation);
+    }
+
+    @NonNull
+    public static <M, V> Validation<M> extend(@NonNull final Validation<V> validation,
+                                              @NonNull final Lens.Read<M, Maybe<V>> lens) {
+        return new Extension<>(validation, lens);
+    }
+
+    @NonNull
     public static <V, T> Validation<T> convert(@NonNull final Validation<V> validation,
                                                @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
         return new Conversion<>(validation, converter);
@@ -216,12 +228,6 @@ public final class Validations {
     public static <V, T extends V> Validation<T> either(@NonNull final Validation<V> first,
                                                         @NonNull final Validation<T> second) {
         return new Either<>(first, second);
-    }
-
-    @NonNull
-    public static <V> Validation<V> name(@NonNls @NonNull final String name,
-                                         @NonNull final Validation<V> validation) {
-        return new Name<>(name, validation);
     }
 
     public static final class OnLong {
@@ -340,20 +346,52 @@ public final class Validations {
 
         @NonNull
         @Override
+        public final <M> Validation<M> on(@NonNull final Lens.Read<M, Maybe<V>> lens) {
+            return new Name<>(mName, mValidation.on(lens));
+        }
+
+        @NonNull
+        @Override
         public final <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter) {
-            return convert(Maybes.map(converter));
+            return new Name<>(mName, mValidation.map(converter));
         }
 
         @NonNull
         @Override
         public final <T> Validation<T> flatMap(@NonNull final Function<? super T, Maybe<V>> converter) {
-            return convert(Maybes.flatMap(converter));
+            return new Name<>(mName, mValidation.flatMap(converter));
         }
 
         @NonNull
         @Override
         public final <T> Validation<T> convert(@NonNull final Function<Maybe<T>, Maybe<V>> converter) {
-            return new Conversion<>(this, converter);
+            return new Name<>(mName, mValidation.convert(converter));
+        }
+    }
+
+    private static class Extension<M, V> extends Validation.Base<M> {
+
+        @NonNull
+        private final Validation<V> mValidation;
+        @NonNull
+        private final Lens.Read<M, Maybe<V>> mLens;
+
+        private Extension(@NonNull final Validation<V> validation,
+                          @NonNull final Lens.Read<M, Maybe<V>> lens) {
+            super();
+
+            mValidation = validation;
+            mLens = lens;
+        }
+
+        @Override
+        public final boolean isValid(@NonNull final Maybe<? extends M> value) {
+            return mValidation.isValid(Lenses.get(value, mLens));
+        }
+
+        @Override
+        public final void isValidOrThrow(@NonNull final Maybe<? extends M> value) {
+            mValidation.isValidOrThrow(Lenses.get(value, mLens));
         }
     }
 
