@@ -16,13 +16,13 @@
 
 package android.orm.sql;
 
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.support.annotation.NonNull;
 
 public interface Writer {
 
     @NonNull
-    Where onUpdate();
+    Condition onUpdate();
 
     void write(@NonNull final Value.Write.Operation operation, @NonNull final Writable output);
 }

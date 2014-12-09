@@ -21,10 +21,10 @@ import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Future;
 import android.orm.util.Maybe;
@@ -52,7 +52,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
     @NonNull
     private final Reading<M> mReading;
     @NonNull
-    private final Where mWhere;
+    private final Condition mCondition;
     @Nullable
     private final Order mOrder;
     @Nullable
@@ -71,7 +71,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
                    @NonNull final Handler handler,
                    @Nullable final M model,
                    @NonNull final Reading<M> reading,
-                   @NonNull final Where where,
+                   @NonNull final Condition condition,
                    @Nullable final Order order,
                    @Nullable final Limit limit,
                    @Nullable final Offset offset,
@@ -81,7 +81,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         mExecutor = executor;
         mHandler = handler;
         mReading = reading;
-        mWhere = where;
+        mCondition = condition;
         mOrder = order;
         mLimit = limit;
         mOffset = offset;
@@ -118,7 +118,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         final Promise<Maybe<Producer<Maybe<M>>>> promise = new Promise<>();
         promise.getFuture().onComplete(mHandler, this);
         try {
-            promise.success(mExecutor.query(mPlan.get(), mWhere, mOrder, mLimit, mOffset));
+            promise.success(mExecutor.query(mPlan.get(), mCondition, mOrder, mLimit, mOffset));
         } catch (final Throwable error) {
             promise.failure(error);
         }

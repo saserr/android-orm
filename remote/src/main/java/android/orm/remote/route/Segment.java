@@ -22,7 +22,7 @@ import android.orm.sql.Select;
 import android.orm.sql.Type;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
@@ -66,13 +66,13 @@ public interface Segment {
         @NonNull
         private final Select.Projection mProjection;
         @NonNull
-        private final Where.Builder<V> mWhere;
+        private final Condition.Builder<V> mCondition;
         @NonNls
         @NonNull
         private final String mWildcard;
 
         public Argument(@NonNull final Column<V> column,
-                        @NonNull final Where.Builder<V> where) {
+                        @NonNull final Condition.Builder<V> condition) {
             super();
 
             mColumn = column;
@@ -80,7 +80,7 @@ public interface Segment {
             mProjection = column.getProjection();
             final Type.Primitive primitive = column.getType().getPrimitive();
             mWildcard = (primitive == Type.Primitive.Integer) ? "#" : "*";
-            mWhere = where;
+            mCondition = condition;
         }
 
         @NonNls
@@ -113,8 +113,8 @@ public interface Segment {
         }
 
         @NonNull
-        public final Where.Builder<V> getWhere() {
-            return mWhere;
+        public final Condition.Builder<V> getCondition() {
+            return mCondition;
         }
 
         @NonNull
@@ -130,17 +130,17 @@ public interface Segment {
 
         @NonNull
         public final Argument<V> not() {
-            return new Argument<>(mColumn, mWhere.not());
+            return new Argument<>(mColumn, mCondition.not());
         }
 
         @NonNull
-        public final Argument<V> and(@NonNull final Where where) {
-            return new Argument<>(mColumn, mWhere.and(where));
+        public final Argument<V> and(@NonNull final Condition condition) {
+            return new Argument<>(mColumn, mCondition.and(condition));
         }
 
         @NonNull
-        public final Argument<V> or(@NonNull final Where where) {
-            return new Argument<>(mColumn, mWhere.or(where));
+        public final Argument<V> or(@NonNull final Condition condition) {
+            return new Argument<>(mColumn, mCondition.or(condition));
         }
     }
 }

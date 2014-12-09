@@ -17,7 +17,7 @@
 package android.orm.remote.route;
 
 import android.orm.sql.Column;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.support.annotation.NonNull;
 
@@ -67,11 +67,11 @@ public final class Argument {
     @NonNull
     private static <V> Segment.Argument<V> segment(@NonNull final Column<V> column,
                                                    @NonNull final String operation) {
-        return new Segment.Argument<>(column, Where.builder(new Function<V, Where>() {
+        return new Segment.Argument<>(column, Condition.builder(new Function<V, Condition>() {
             @NonNull
             @Override
-            public Where invoke(@NonNull final V value) {
-                return new Where(escape(column.getName()) + operation + column.escape(value));
+            public Condition invoke(@NonNull final V value) {
+                return new Condition(escape(column.getName()) + operation + column.escape(value));
             }
         }));
     }

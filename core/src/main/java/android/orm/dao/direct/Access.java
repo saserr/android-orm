@@ -26,7 +26,7 @@ import android.orm.model.Plans;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Value;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Functions;
 import android.orm.util.Maybe;
@@ -73,7 +73,7 @@ public final class Access {
                 result = something(model);
             } else {
                 final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
-                result = mExecutor.query(plan, Where.None, null, null, null).flatMap(afterRead);
+                result = mExecutor.query(plan, Condition.None, null, null, null).flatMap(afterRead);
             }
 
             return result;

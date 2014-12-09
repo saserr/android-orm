@@ -24,8 +24,8 @@ import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -53,7 +53,7 @@ public final class Update {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
         @NonNull
         private final Writer mWriter;
         @NonNull
@@ -64,18 +64,18 @@ public final class Update {
         private final Select mSelect;
 
         public Single(@NonNls @NonNull final String table,
-                      @NonNull final Where where,
+                      @NonNull final Condition condition,
                       @NonNull final Writer writer,
                       @NonNull final ContentValues additional,
                       @NonNull final Value.Read<K> key) {
             super();
 
             mTable = table;
-            mWhere = where.and(writer.onUpdate());
+            mCondition = condition.and(writer.onUpdate());
             mWriter = writer;
             mAdditional = additional;
             mKey = key;
-            mSelect = select(table).with(where).with(Limit.Single).build();
+            mSelect = select(table).with(condition).with(Limit.Single).build();
         }
 
         @NonNull
@@ -83,7 +83,7 @@ public final class Update {
         public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
             mWriter.write(Update, writable(values));
-            final int updated = update(database, mTable, mWhere, values);
+            final int updated = update(database, mTable, mCondition, values);
 
             final Maybe<K> result;
 
@@ -126,17 +126,17 @@ public final class Update {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
         @NonNull
         private final Writer mWriter;
 
         public Many(@NonNls @NonNull final String table,
-                    @NonNull final Where where,
+                    @NonNull final Condition condition,
                     @NonNull final Writer writer) {
             super();
 
             mTable = table;
-            mWhere = where.and(writer.onUpdate());
+            mCondition = condition.and(writer.onUpdate());
             mWriter = writer;
         }
 
@@ -145,19 +145,19 @@ public final class Update {
         public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
             final ContentValues values = new ContentValues();
             mWriter.write(Update, writable(values));
-            final int updated = update(database, mTable, mWhere, values);
+            final int updated = update(database, mTable, mCondition, values);
             return (updated > 0) ? something(updated) : Maybes.<Integer>nothing();
         }
     }
 
     private static int update(@NonNull final SQLiteDatabase database,
                               @NonNls @NonNull final String table,
-                              @NonNull final Where where,
+                              @NonNull final Condition condition,
                               @NonNull final ContentValues values) {
         final int updated;
 
         if (values.size() > 0) {
-            updated = database.update(table, values, where.toSQL(), null);
+            updated = database.update(table, values, condition.toSQL(), null);
         } else {
             updated = 0;
             if (Log.isLoggable(TAG, INFO)) {

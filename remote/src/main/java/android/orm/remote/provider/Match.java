@@ -25,9 +25,9 @@ import android.orm.dao.direct.Insert;
 import android.orm.model.Plans;
 import android.orm.remote.Route;
 import android.orm.remote.route.Path;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -42,7 +42,7 @@ public class Match {
     @NonNull
     private final ContentValues mOnInsert;
     @NonNull
-    private final Where mWhere;
+    private final Condition mCondition;
     @NonNls
     @NonNull
     private final String mTable;
@@ -56,8 +56,8 @@ public class Match {
 
         mSingleRoute = route.getSingleRoute();
         final Path path = route.getPath();
-        mWhere = path.getWhere(uri);
-        mOnInsert = path.parseValues(uri);
+        mCondition = path.createCondition(uri);
+        mOnInsert = path.createValues(uri);
         mTable = escape(route.getTable());
 
         final Order order = route.getOrder();
@@ -75,7 +75,7 @@ public class Match {
                               @Nullable final String order) {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         builder.setTables(mTable);
-        final String where = mWhere.and(new Where(selection)).toSQL();
+        final String where = mCondition.and(new Condition(selection)).toSQL();
         return builder.query(database, projection, where, arguments, null, null, (order == null) ? mOrder : order, mLimit);
     }
 
@@ -90,14 +90,14 @@ public class Match {
                             @NonNull final ContentValues values,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
-        final String where = mWhere.and(new Where(selection)).toSQL();
+        final String where = mCondition.and(new Condition(selection)).toSQL();
         return database.update(mTable, values, where, arguments);
     }
 
     public final int delete(@NonNull final SQLiteDatabase database,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
-        final String where = mWhere.and(new Where(selection)).toSQL();
+        final String where = mCondition.and(new Condition(selection)).toSQL();
         return database.delete(mTable, where, arguments);
     }
 }

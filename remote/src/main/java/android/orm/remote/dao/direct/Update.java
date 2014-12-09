@@ -20,7 +20,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -33,7 +33,7 @@ import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Update implements Function<Pair<Where, Writer>, Maybe<Integer>> {
+public class Update implements Function<Pair<Condition, Writer>, Maybe<Integer>> {
 
     private static final String TAG = Update.class.getSimpleName();
 
@@ -51,7 +51,7 @@ public class Update implements Function<Pair<Where, Writer>, Maybe<Integer>> {
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final Pair<Where, Writer> args) {
+    public final Maybe<Integer> invoke(@NonNull final Pair<Condition, Writer> args) {
         final ContentValues values = new ContentValues();
         final Writer writer = args.second;
         writer.write(Update, writable(values));
@@ -59,8 +59,8 @@ public class Update implements Function<Pair<Where, Writer>, Maybe<Integer>> {
         final int updated;
 
         if (values.size() > 0) {
-            final Where where = args.first.and(writer.onUpdate());
-            updated = mResolver.update(mUri, values, where.toSQL(), null);
+            final Condition condition = args.first.and(writer.onUpdate());
+            updated = mResolver.update(mUri, values, condition.toSQL(), null);
         } else {
             updated = 0;
             if (Log.isLoggable(TAG, INFO)) {

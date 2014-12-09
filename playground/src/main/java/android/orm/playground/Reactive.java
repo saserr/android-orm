@@ -30,7 +30,7 @@ import android.orm.playground.reactive.Transaction;
 import android.orm.remote.Route;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -51,10 +51,10 @@ public final class Reactive {
             @Override
             public Executor.Direct.Single<Uri> create(@NonNull final android.orm.sql.Executor executor) {
                 final String table = route.getTable();
-                final Where where = route.createWhere(arguments);
+                final Condition condition = route.createCondition(arguments);
                 final ContentValues onInsert = route.createValues(arguments);
                 final Route.Single key = route.getSingleRoute();
-                return single(executor, table, where, onInsert, key);
+                return single(executor, table, condition, onInsert, key);
             }
         };
     }
@@ -67,10 +67,10 @@ public final class Reactive {
             @Override
             public Executor.Direct.Many<Uri> create(@NonNull final android.orm.sql.Executor executor) {
                 final String table = route.getTable();
-                final Where where = route.createWhere(arguments);
+                final Condition condition = route.createCondition(arguments);
                 final ContentValues onInsert = route.createValues(arguments);
                 final Route.Single key = route.getSingleRoute();
-                return many(executor, table, where, onInsert, key);
+                return many(executor, table, condition, onInsert, key);
             }
         };
     }

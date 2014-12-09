@@ -19,10 +19,10 @@ package android.orm.playground.reactive;
 import android.net.Uri;
 import android.orm.dao.Executor;
 import android.orm.model.Plan;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -59,9 +59,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Uri> update(@NonNull final Where where,
+        public final Maybe<Uri> update(@NonNull final Condition condition,
                                        @NonNull final Plan.Write plan) {
-            final Maybe<Uri> result = mExecutor.update(where, plan);
+            final Maybe<Uri> result = mExecutor.update(condition, plan);
             notifyChange(result);
             return result;
         }
@@ -82,9 +82,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> update(@NonNull final Where where,
+        public final Maybe<Integer> update(@NonNull final Condition condition,
                                            @NonNull final Plan.Write plan) {
-            final Maybe<Integer> result = mExecutor.update(where, plan);
+            final Maybe<Integer> result = mExecutor.update(condition, plan);
             notifyIfChanged(result);
             return result;
         }
@@ -111,18 +111,18 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Boolean> exists(@NonNull final Where where) {
-            return mExecutor.exists(where);
+        public final Maybe<Boolean> exists(@NonNull final Condition condition) {
+            return mExecutor.exists(condition);
         }
 
         @NonNull
         @Override
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                                         @NonNull final Where where,
+                                                         @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
-            return mExecutor.query(plan, where, order, limit, offset);
+            return mExecutor.query(plan, condition, order, limit, offset);
         }
 
         @NonNull
@@ -135,8 +135,8 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> delete(@NonNull final Where where) {
-            final Maybe<Integer> result = mExecutor.delete(where);
+        public final Maybe<Integer> delete(@NonNull final Condition condition) {
+            final Maybe<Integer> result = mExecutor.delete(condition);
             notifyIfChanged(result);
             return result;
         }

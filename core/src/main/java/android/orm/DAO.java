@@ -25,7 +25,7 @@ import android.orm.dao.Transaction;
 import android.orm.sql.Column;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.table.PrimaryKey;
 import android.orm.sql.table.UniqueKey;
 import android.orm.util.Lazy;
@@ -42,18 +42,17 @@ import static android.orm.dao.direct.Executors.single;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Values.RowId;
 import static android.orm.sql.Writables.writable;
-import static android.orm.sql.fragment.Where.where;
 import static android.orm.util.Maybes.something;
 import static java.lang.Runtime.getRuntime;
 
 public final class DAO {
 
-    private static final Where.ComplexPart.WithNull<Long> WHERE_ROW_ID = where(RowId);
+    private static final Condition.ComplexPart.WithNull<Long> WHERE_ROW_ID = Condition.on(RowId);
 
     @NonNull
     public static Executor.Direct.Single.Factory<android.orm.sql.Executor, Long> byRowId(@NonNls @NonNull final String table,
                                                                                          final long rowId) {
-        final Where where = WHERE_ROW_ID.isEqualTo(rowId);
+        final Condition condition = WHERE_ROW_ID.isEqualTo(rowId);
         final ContentValues onInsert = new ContentValues();
         RowId.write(Insert, something(rowId), writable(onInsert));
 
@@ -61,7 +60,7 @@ public final class DAO {
             @NonNull
             @Override
             public Executor.Direct.Single<Long> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, where, onInsert, RowId);
+                return single(executor, table, condition, onInsert, RowId);
             }
         };
     }
@@ -81,7 +80,9 @@ public final class DAO {
     public static <K> Executor.Direct.Single.Factory<android.orm.sql.Executor, K> byPrimaryKey(@NonNls @NonNull final String table,
                                                                                                @NonNull final PrimaryKey<K> key,
                                                                                                @Nullable final K value) {
-        final Where where = (value == null) ? where(key).isNull() : where(key).isEqualTo(value);
+        final Condition condition = (value == null) ?
+                Condition.on(key).isNull() :
+                Condition.on(key).isEqualTo(value);
         final ContentValues onInsert = new ContentValues();
         key.write(Insert, something(value), writable(onInsert));
 
@@ -89,7 +90,7 @@ public final class DAO {
             @NonNull
             @Override
             public Executor.Direct.Single<K> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, where, onInsert, key);
+                return single(executor, table, condition, onInsert, key);
             }
         };
     }
@@ -130,9 +131,9 @@ public final class DAO {
     public static <V> Executor.Direct.Single.Factory<android.orm.sql.Executor, V> byUnique(@NonNls @NonNull final String table,
                                                                                            @NonNull final UniqueKey<V> uniqueKey,
                                                                                            @Nullable final V value) {
-        final Where where = (value == null) ?
-                where(uniqueKey).isNull() :
-                where(uniqueKey).isEqualTo(value);
+        final Condition condition = (value == null) ?
+                Condition.on(uniqueKey).isNull() :
+                Condition.on(uniqueKey).isEqualTo(value);
         final ContentValues onInsert = new ContentValues();
         uniqueKey.write(Insert, something(value), writable(onInsert));
 
@@ -140,7 +141,7 @@ public final class DAO {
             @NonNull
             @Override
             public Executor.Direct.Single<V> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, where, onInsert, uniqueKey);
+                return single(executor, table, condition, onInsert, uniqueKey);
             }
         };
     }

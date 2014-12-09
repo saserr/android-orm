@@ -19,7 +19,7 @@ package android.orm.dao.direct;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Expression;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -35,22 +35,21 @@ public class Exists implements Expression<Boolean> {
     @NonNull
     private final String mTable;
     @NonNull
-    private final Where mWhere;
+    private final Condition mCondition;
 
-    public Exists(@NonNls @NonNull final String table, @NonNull final Where where) {
+    public Exists(@NonNls @NonNull final String table, @NonNull final Condition condition) {
         super();
 
         mTable = table;
-        mWhere = where;
+        mCondition = condition;
     }
 
     @NonNull
     @Override
     public final Maybe<Boolean> execute(@NonNull final SQLiteDatabase database) {
-        final String where = mWhere.toSQL();
         final Maybe<Boolean> result;
 
-        final Cursor cursor = database.query(mTable, PROJECTION, where, null, null, null, null, SINGLE);
+        final Cursor cursor = database.query(mTable, PROJECTION, mCondition.toSQL(), null, null, null, null, SINGLE);
         try {
             result = Maybes.something(cursor.getCount() > 0);
         } finally {

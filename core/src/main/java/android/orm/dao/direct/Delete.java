@@ -18,7 +18,7 @@ package android.orm.dao.direct;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Expression;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
@@ -31,19 +31,19 @@ public class Delete implements Expression<Integer> {
     @NonNull
     private final String mTable;
     @NonNull
-    private final Where mWhere;
+    private final Condition mCondition;
 
-    public Delete(@NonNls @NonNull final String table, @NonNull final Where where) {
+    public Delete(@NonNls @NonNull final String table, @NonNull final Condition condition) {
         super();
 
         mTable = table;
-        mWhere = where;
+        mCondition = condition;
     }
 
     @NonNull
     @Override
     public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
-        final int deleted = database.delete(mTable, mWhere.toSQL(), null);
+        final int deleted = database.delete(mTable, mCondition.toSQL(), null);
         return (deleted > 0) ? Maybes.something(deleted) : Maybes.<Integer>nothing();
     }
 }

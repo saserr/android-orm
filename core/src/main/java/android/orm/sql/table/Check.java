@@ -16,8 +16,8 @@
 
 package android.orm.sql.table;
 
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Constraint;
-import android.orm.sql.fragment.Where;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -71,10 +71,10 @@ public class Check implements Constraint {
     }
 
     @NonNull
-    public static Check that(@NonNull final Where where) {
-        final String expression = where.toSQL();
+    public static Check that(@NonNull final Condition condition) {
+        final String expression = condition.toSQL();
         if (expression == null) {
-            throw new IllegalArgumentException("Where cannot be None");
+            throw new IllegalArgumentException("Condition cannot be None");
         }
 
         return new Check(expression);

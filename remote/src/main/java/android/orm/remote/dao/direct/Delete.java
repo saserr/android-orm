@@ -18,7 +18,7 @@ package android.orm.remote.dao.direct;
 
 import android.content.ContentResolver;
 import android.net.Uri;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -26,7 +26,7 @@ import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Delete implements Function<Where, Maybe<Integer>> {
+public class Delete implements Function<Condition, Maybe<Integer>> {
 
     @NonNull
     private final ContentResolver mResolver;
@@ -42,8 +42,8 @@ public class Delete implements Function<Where, Maybe<Integer>> {
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final Where where) {
-        final int deleted = mResolver.delete(mUri, where.toSQL(), null);
+    public final Maybe<Integer> invoke(@NonNull final Condition condition) {
+        final int deleted = mResolver.delete(mUri, condition.toSQL(), null);
         return (deleted > 0) ? something(deleted) : Maybes.<Integer>nothing();
     }
 }

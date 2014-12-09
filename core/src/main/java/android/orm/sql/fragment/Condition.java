@@ -43,7 +43,7 @@ import static android.orm.sql.Types.Text;
 import static android.orm.sql.Value.Write.Operation.Visit;
 import static android.orm.util.Maybes.something;
 
-public class Where implements Fragment {
+public class Condition implements Fragment {
 
     @NonNls
     private static final MessageFormat NOT = new MessageFormat("not ({0})");
@@ -52,13 +52,13 @@ public class Where implements Fragment {
     @NonNls
     private static final MessageFormat OR = new MessageFormat("({0}) or ({1})");
 
-    public static final Where None = new Where(null);
+    public static final Condition None = new Condition(null);
 
     @NonNls
     @Nullable
     private final String mSQL;
 
-    public Where(@NonNls @Nullable final String selection) {
+    public Condition(@NonNls @Nullable final String selection) {
         super();
 
         mSQL = selection;
@@ -69,35 +69,35 @@ public class Where implements Fragment {
     }
 
     @NonNull
-    public final Where not() {
-        return (mSQL == null) ? None : new Where(NOT.format(new String[]{mSQL}));
+    public final Condition not() {
+        return (mSQL == null) ? None : new Condition(NOT.format(new String[]{mSQL}));
     }
 
     @NonNull
-    public final Where and(@NonNull final Where other) {
-        final Where result;
+    public final Condition and(@NonNull final Condition other) {
+        final Condition result;
 
         if (mSQL == null) {
             result = (other.mSQL == null) ? None : other;
         } else {
             result = (other.mSQL == null) ?
                     this :
-                    new Where(AND.format(new String[]{mSQL, other.mSQL}));
+                    new Condition(AND.format(new String[]{mSQL, other.mSQL}));
         }
 
         return result;
     }
 
     @NonNull
-    public final Where or(@NonNull final Where other) {
-        final Where result;
+    public final Condition or(@NonNull final Condition other) {
+        final Condition result;
 
         if (mSQL == null) {
             result = (other.mSQL == null) ? None : other;
         } else {
             result = (other.mSQL == null) ?
                     this :
-                    new Where(OR.format(new String[]{mSQL, other.mSQL}));
+                    new Condition(OR.format(new String[]{mSQL, other.mSQL}));
         }
 
         return result;
@@ -111,28 +111,28 @@ public class Where implements Fragment {
     }
 
     @NonNull
-    public static <V> SimplePart<V> where(@NonNull final Column<V> column) {
-        return where(column.getName(), column.getType());
+    public static <V> SimplePart<V> on(@NonNull final Column<V> column) {
+        return on(column.getName(), column.getType());
     }
 
     @NonNull
-    public static <V> SimplePart<V> where(@NonNls @NonNull final String name,
-                                          @NonNull final Type<V> type) {
+    public static <V> SimplePart<V> on(@NonNls @NonNull final String name,
+                                       @NonNull final Type<V> type) {
         return new SimplePart<>(name, type);
     }
 
     @NonNull
-    public static TextPart text(@NonNull final Column<String> column) {
-        return text(column.getName());
+    public static TextPart onText(@NonNull final Column<String> column) {
+        return onText(column.getName());
     }
 
     @NonNull
-    public static TextPart text(@NonNls @NonNull final String name) {
+    public static TextPart onText(@NonNls @NonNull final String name) {
         return new TextPart(name);
     }
 
     @NonNull
-    public static <M extends Model> ComplexPart<M> model() {
+    public static <M extends Model> ComplexPart<M> onModel() {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
@@ -142,7 +142,7 @@ public class Where implements Fragment {
     }
 
     @NonNull
-    public static <M extends Instance.Writable> ComplexPart<M> instance() {
+    public static <M extends Instance.Writable> ComplexPart<M> onInstance() {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
@@ -152,7 +152,7 @@ public class Where implements Fragment {
     }
 
     @NonNull
-    public static ComplexPart<Writer> writer() {
+    public static ComplexPart<Writer> onWriter() {
         return new ComplexPart<Writer>() {
             @Override
             protected void write(@NonNull final Writer writer, @NonNull final Writable writable) {
@@ -162,7 +162,7 @@ public class Where implements Fragment {
     }
 
     @NonNull
-    public static <M> ComplexPart.WithNull<M> where(@NonNull final Value.Write<M> value) {
+    public static <M> ComplexPart.WithNull<M> on(@NonNull final Value.Write<M> value) {
         return new ComplexPart.WithNull<M>() {
             @Override
             protected void write(@Nullable final M model, @NonNull final Writable writable) {
@@ -172,7 +172,7 @@ public class Where implements Fragment {
     }
 
     @NonNull
-    public static <M> ComplexPart<M> where(@NonNull final Mapper.Write<M> mapper) {
+    public static <M> ComplexPart<M> on(@NonNull final Mapper.Write<M> mapper) {
         return new ComplexPart<M>() {
             @Override
             protected void write(@Nullable final M model, @NonNull final Writable writable) {
@@ -197,157 +197,157 @@ public class Where implements Fragment {
         }
 
         @NonNull
-        public final Where isNull() {
-            return new Where(mEscapedName + " is null");
+        public final Condition isNull() {
+            return new Condition(mEscapedName + " is null");
         }
 
         @NonNull
-        public final Where isNotNull() {
-            return new Where(mEscapedName + " is not null");
+        public final Condition isNotNull() {
+            return new Condition(mEscapedName + " is not null");
         }
 
         @NonNull
-        public final Where isEqualTo(@NonNull final V value) {
+        public final Condition isEqualTo(@NonNull final V value) {
             return isEqualTo(escape(value));
         }
 
         @NonNull
-        public final Where isEqualTo(@NonNull final Column<V> column) {
+        public final Condition isEqualTo(@NonNull final Column<V> column) {
             return isEqualTo(escape(column));
         }
 
         @NonNull
-        public final Where isNotEqualTo(@NonNull final V value) {
+        public final Condition isNotEqualTo(@NonNull final V value) {
             return isNotEqualTo(escape(value));
         }
 
         @NonNull
-        public final Where isNotEqualTo(@NonNull final Column<V> column) {
+        public final Condition isNotEqualTo(@NonNull final Column<V> column) {
             return isNotEqualTo(escape(column));
         }
 
         @NonNull
-        public final Where isLessThan(@NonNull final V value) {
+        public final Condition isLessThan(@NonNull final V value) {
             return isLessThan(escape(value));
         }
 
         @NonNull
-        public final Where isLessThan(@NonNull final Column<V> column) {
+        public final Condition isLessThan(@NonNull final Column<V> column) {
             return isLessThan(escape(column));
         }
 
         @NonNull
-        public final Where isLessOrEqualThan(@NonNull final V value) {
+        public final Condition isLessOrEqualThan(@NonNull final V value) {
             return isLessOrEqualThan(escape(value));
         }
 
         @NonNull
-        public final Where isLessOrEqualThan(@NonNull final Column<V> column) {
+        public final Condition isLessOrEqualThan(@NonNull final Column<V> column) {
             return isLessOrEqualThan(escape(column));
         }
 
         @NonNull
-        public final Where isGreaterThan(@NonNull final V value) {
+        public final Condition isGreaterThan(@NonNull final V value) {
             return isGreaterThan(escape(value));
         }
 
         @NonNull
-        public final Where isGreaterThan(@NonNull final Column<V> column) {
+        public final Condition isGreaterThan(@NonNull final Column<V> column) {
             return isGreaterThan(escape(column));
         }
 
         @NonNull
-        public final Where isGreaterOrEqualThan(@NonNull final V value) {
+        public final Condition isGreaterOrEqualThan(@NonNull final V value) {
             return isGreaterOrEqualThan(escape(value));
         }
 
         @NonNull
-        public final Where isGreaterOrEqualThan(@NonNull final Column<V> column) {
+        public final Condition isGreaterOrEqualThan(@NonNull final Column<V> column) {
             return isGreaterOrEqualThan(escape(column));
         }
 
         @NonNull
-        public final Where isBetween(@NonNull final V min, @NonNull final V max) {
+        public final Condition isBetween(@NonNull final V min, @NonNull final V max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isBetween(@NonNull final Column<V> min, @NonNull final V max) {
+        public final Condition isBetween(@NonNull final Column<V> min, @NonNull final V max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isBetween(@NonNull final V min, @NonNull final Column<V> max) {
+        public final Condition isBetween(@NonNull final V min, @NonNull final Column<V> max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isBetween(@NonNull final Column<V> min,
-                                     @NonNull final Column<V> max) {
+        public final Condition isBetween(@NonNull final Column<V> min,
+                                         @NonNull final Column<V> max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isNotBetween(@NonNull final V min, @NonNull final V max) {
+        public final Condition isNotBetween(@NonNull final V min, @NonNull final V max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isNotBetween(@NonNull final Column<V> min, @NonNull final V max) {
+        public final Condition isNotBetween(@NonNull final Column<V> min, @NonNull final V max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isNotBetween(@NonNull final V min, @NonNull final Column<V> max) {
+        public final Condition isNotBetween(@NonNull final V min, @NonNull final Column<V> max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Where isNotBetween(@NonNull final Column<V> min,
-                                        @NonNull final Column<V> max) {
+        public final Condition isNotBetween(@NonNull final Column<V> min,
+                                            @NonNull final Column<V> max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        private Where isEqualTo(@NonNls @NonNull final String value) {
-            return new Where(mEscapedName + " = " + value);
+        private Condition isEqualTo(@NonNls @NonNull final String value) {
+            return new Condition(mEscapedName + " = " + value);
         }
 
         @NonNull
-        private Where isNotEqualTo(@NonNls @NonNull final String value) {
-            return new Where(mEscapedName + " <> " + value);
+        private Condition isNotEqualTo(@NonNls @NonNull final String value) {
+            return new Condition(mEscapedName + " <> " + value);
         }
 
         @NonNull
-        private Where isLessThan(@NonNls @NonNull final String value) {
-            return new Where(mEscapedName + " < " + value);
+        private Condition isLessThan(@NonNls @NonNull final String value) {
+            return new Condition(mEscapedName + " < " + value);
         }
 
         @NonNull
-        private Where isLessOrEqualThan(@NonNls @NonNull final String value) {
-            return new Where(mEscapedName + " <= " + value);
+        private Condition isLessOrEqualThan(@NonNls @NonNull final String value) {
+            return new Condition(mEscapedName + " <= " + value);
         }
 
         @NonNull
-        private Where isGreaterThan(@NonNls @NonNull final String value) {
-            return new Where(mEscapedName + " > " + value);
+        private Condition isGreaterThan(@NonNls @NonNull final String value) {
+            return new Condition(mEscapedName + " > " + value);
         }
 
         @NonNull
-        private Where isGreaterOrEqualThan(@NonNls @NonNull final String value) {
-            return new Where(mEscapedName + " >= " + value);
+        private Condition isGreaterOrEqualThan(@NonNls @NonNull final String value) {
+            return new Condition(mEscapedName + " >= " + value);
         }
 
         @NonNull
-        private Where isBetween(@NonNls @NonNull final String min,
-                                @NonNls @NonNull final String max) {
-            return new Where(mEscapedName + " between " + min + " and " + max);
+        private Condition isBetween(@NonNls @NonNull final String min,
+                                    @NonNls @NonNull final String max) {
+            return new Condition(mEscapedName + " between " + min + " and " + max);
         }
 
         @NonNull
-        private Where isNotBetween(@NonNls @NonNull final String min,
-                                   @NonNls @NonNull final String max) {
-            return new Where(mEscapedName + " not between " + min + " and " + max);
+        private Condition isNotBetween(@NonNls @NonNull final String min,
+                                       @NonNls @NonNull final String max) {
+            return new Condition(mEscapedName + " not between " + min + " and " + max);
         }
 
         @NonNls
@@ -376,33 +376,33 @@ public class Where implements Fragment {
         }
 
         @NonNull
-        public final Where isLike(@NonNull final String pattern) {
-            return new Where(mEscapedName + " like " + escape(pattern));
+        public final Condition isLike(@NonNull final String pattern) {
+            return new Condition(mEscapedName + " like " + escape(pattern));
         }
 
         @NonNull
-        public final Where isNotLike(@NonNull final String pattern) {
-            return new Where(mEscapedName + " not like " + escape(pattern));
+        public final Condition isNotLike(@NonNull final String pattern) {
+            return new Condition(mEscapedName + " not like " + escape(pattern));
         }
 
         @NonNull
-        public final Where isLikeGlob(@NonNull final String pattern) {
-            return new Where(mEscapedName + " glob " + escape(pattern));
+        public final Condition isLikeGlob(@NonNull final String pattern) {
+            return new Condition(mEscapedName + " glob " + escape(pattern));
         }
 
         @NonNull
-        public final Where isNotLikeGlob(@NonNull final String pattern) {
-            return new Where(mEscapedName + " not glob " + escape(pattern));
+        public final Condition isNotLikeGlob(@NonNull final String pattern) {
+            return new Condition(mEscapedName + " not glob " + escape(pattern));
         }
 
         @NonNull
-        public final Where isLikeRegexp(@NonNull final String pattern) {
-            return new Where(mEscapedName + " regexp " + escape(pattern));
+        public final Condition isLikeRegexp(@NonNull final String pattern) {
+            return new Condition(mEscapedName + " regexp " + escape(pattern));
         }
 
         @NonNull
-        public final Where isNotLikeRegexp(@NonNull final String pattern) {
-            return new Where(mEscapedName + " not regexp " + escape(pattern));
+        public final Condition isNotLikeRegexp(@NonNull final String pattern) {
+            return new Condition(mEscapedName + " not regexp " + escape(pattern));
         }
     }
 
@@ -411,42 +411,42 @@ public class Where implements Fragment {
         protected abstract void write(@NonNull final V v, @NonNull final Writable writable);
 
         @NonNull
-        public final Where isEqualTo(@NonNull final V value) {
+        public final Condition isEqualTo(@NonNull final V value) {
             final Builder builder = new Builder.IsEqualTo();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Where isNotEqualTo(@NonNull final V value) {
+        public final Condition isNotEqualTo(@NonNull final V value) {
             final Builder builder = new Builder.IsNotEqualTo();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Where isLessThan(@NonNull final V value) {
+        public final Condition isLessThan(@NonNull final V value) {
             final Builder builder = new Builder.IsLessThan();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Where isLessOrEqualThan(@NonNull final V value) {
+        public final Condition isLessOrEqualThan(@NonNull final V value) {
             final Builder builder = new Builder.IsLessOrEqualThan();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Where isGreaterThan(@NonNull final V value) {
+        public final Condition isGreaterThan(@NonNull final V value) {
             final Builder builder = new Builder.IsGreaterThan();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Where isGreaterOrEqualThan(@NonNull final V value) {
+        public final Condition isGreaterOrEqualThan(@NonNull final V value) {
             final Builder builder = new Builder.IsGreaterOrEqualThan();
             write(value, builder);
             return builder.result();
@@ -458,14 +458,14 @@ public class Where implements Fragment {
             protected abstract void write(@Nullable final V v, @NonNull final Writable writable);
 
             @NonNull
-            public final Where isNull() {
+            public final Condition isNull() {
                 final ComplexPart.Builder builder = new ComplexPart.Builder.IsEqualTo();
                 write(null, builder);
                 return builder.result();
             }
 
             @NonNull
-            public final Where isNotNull() {
+            public final Condition isNotNull() {
                 final ComplexPart.Builder builder = new ComplexPart.Builder.IsNotEqualTo();
                 write(null, builder);
                 return builder.result();
@@ -475,11 +475,11 @@ public class Where implements Fragment {
         private abstract static class Builder implements Writable {
 
             @NonNull
-            private Where mWhere = None;
+            private Condition mCondition = None;
 
             @Nullable
-            protected abstract <V> Where operation(@NonNull final SimplePart<V> part,
-                                                   @Nullable final V value);
+            protected abstract <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                       @Nullable final V value);
 
             @Override
             public final void putNull(@NonNls @NonNull final String key) {
@@ -501,8 +501,8 @@ public class Where implements Fragment {
                 add(operation(new SimplePart<>(key, Real), value));
             }
 
-            private void add(@Nullable final Where where) {
-                mWhere = (where == null) ? mWhere : mWhere.and(where);
+            private void add(@Nullable final Condition condition) {
+                mCondition = (condition == null) ? mCondition : mCondition.and(condition);
             }
 
             @Override
@@ -534,15 +534,15 @@ public class Where implements Fragment {
             }
 
             @NonNull
-            public final Where result() {
-                return mWhere;
+            public final Condition result() {
+                return mCondition;
             }
 
             public static class IsEqualTo extends ComplexPart.Builder {
                 @NonNull
                 @Override
-                protected final <V> Where operation(@NonNull final SimplePart<V> part,
-                                                    @Nullable final V value) {
+                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                        @Nullable final V value) {
                     return (value == null) ? part.isNull() : part.isEqualTo(value);
                 }
             }
@@ -550,8 +550,8 @@ public class Where implements Fragment {
             public static class IsNotEqualTo extends ComplexPart.Builder {
                 @NonNull
                 @Override
-                protected final <V> Where operation(@NonNull final SimplePart<V> part,
-                                                    @Nullable final V value) {
+                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                        @Nullable final V value) {
                     return (value == null) ? part.isNotNull() : part.isNotEqualTo(value);
                 }
             }
@@ -559,8 +559,8 @@ public class Where implements Fragment {
             public static class IsLessThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Where operation(@NonNull final SimplePart<V> part,
-                                                    @Nullable final V value) {
+                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                        @Nullable final V value) {
                     return (value == null) ? null : part.isLessThan(value);
                 }
             }
@@ -568,8 +568,8 @@ public class Where implements Fragment {
             public static class IsLessOrEqualThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Where operation(@NonNull final SimplePart<V> part,
-                                                    @Nullable final V value) {
+                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                        @Nullable final V value) {
                     return (value == null) ? null : part.isLessOrEqualThan(value);
                 }
             }
@@ -577,8 +577,8 @@ public class Where implements Fragment {
             public static class IsGreaterThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Where operation(@NonNull final SimplePart<V> part,
-                                                    @Nullable final V value) {
+                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                        @Nullable final V value) {
                     return (value == null) ? null : part.isGreaterThan(value);
                 }
             }
@@ -586,8 +586,8 @@ public class Where implements Fragment {
             public static class IsGreaterOrEqualThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Where operation(@NonNull final SimplePart<V> part,
-                                                    @Nullable final V value) {
+                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                                                        @Nullable final V value) {
                     return (value == null) ? null : part.isGreaterOrEqualThan(value);
                 }
             }
@@ -600,40 +600,40 @@ public class Where implements Fragment {
         Builder<V> not();
 
         @NonNull
-        Builder<V> and(@NonNull final Where other);
+        Builder<V> and(@NonNull final Condition other);
 
         @NonNull
         Builder<V> and(@NonNull final Builder<? super V> other);
 
         @NonNull
-        Builder<V> or(@NonNull final Where other);
+        Builder<V> or(@NonNull final Condition other);
 
         @NonNull
         Builder<V> or(@NonNull final Builder<? super V> other);
 
         @NonNull
-        Where build(@NonNull final V value);
+        Condition build(@NonNull final V value);
 
-        Builder<Object> None = builder(new Function<Object, Where>() {
+        Builder<Object> None = builder(new Function<Object, Condition>() {
             @NonNull
             @Override
-            public Where invoke(@NonNull final Object argument) {
-                return Where.None;
+            public Condition invoke(@NonNull final Object argument) {
+                return Condition.None;
             }
         });
     }
 
     @NonNull
-    public static <V> Builder<V> builder(@NonNull final Function<V, Where> factory) {
+    public static <V> Builder<V> builder(@NonNull final Function<V, Condition> factory) {
         return new Builder<V>() {
 
             @NonNull
             @Override
             public Builder<V> not() {
-                return builder(new Function<V, Where>() {
+                return builder(new Function<V, Condition>() {
                     @NonNull
                     @Override
-                    public Where invoke(@NonNull final V value) {
+                    public Condition invoke(@NonNull final V value) {
                         return factory.invoke(value).not();
                     }
                 });
@@ -641,11 +641,11 @@ public class Where implements Fragment {
 
             @NonNull
             @Override
-            public Builder<V> and(@NonNull final Where other) {
-                return builder(new Function<V, Where>() {
+            public Builder<V> and(@NonNull final Condition other) {
+                return builder(new Function<V, Condition>() {
                     @NonNull
                     @Override
-                    public Where invoke(@NonNull final V value) {
+                    public Condition invoke(@NonNull final V value) {
                         return factory.invoke(value).and(other);
                     }
                 });
@@ -654,10 +654,10 @@ public class Where implements Fragment {
             @NonNull
             @Override
             public Builder<V> and(@NonNull final Builder<? super V> other) {
-                return builder(new Function<V, Where>() {
+                return builder(new Function<V, Condition>() {
                     @NonNull
                     @Override
-                    public Where invoke(@NonNull final V value) {
+                    public Condition invoke(@NonNull final V value) {
                         return factory.invoke(value).and(other.build(value));
                     }
                 });
@@ -665,11 +665,11 @@ public class Where implements Fragment {
 
             @NonNull
             @Override
-            public Builder<V> or(@NonNull final Where other) {
-                return builder(new Function<V, Where>() {
+            public Builder<V> or(@NonNull final Condition other) {
+                return builder(new Function<V, Condition>() {
                     @NonNull
                     @Override
-                    public Where invoke(@NonNull final V value) {
+                    public Condition invoke(@NonNull final V value) {
                         return factory.invoke(value).or(other);
                     }
                 });
@@ -678,10 +678,10 @@ public class Where implements Fragment {
             @NonNull
             @Override
             public Builder<V> or(@NonNull final Builder<? super V> other) {
-                return builder(new Function<V, Where>() {
+                return builder(new Function<V, Condition>() {
                     @NonNull
                     @Override
-                    public Where invoke(@NonNull final V value) {
+                    public Condition invoke(@NonNull final V value) {
                         return factory.invoke(value).or(other.build(value));
                     }
                 });
@@ -689,7 +689,7 @@ public class Where implements Fragment {
 
             @NonNull
             @Override
-            public Where build(@NonNull final V value) {
+            public Condition build(@NonNull final V value) {
                 return factory.invoke(value);
             }
         };

@@ -19,10 +19,10 @@ package android.orm.dao.async;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.model.Plan;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -73,12 +73,12 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Result<Boolean> exists(@NonNull final Where where) {
+        public final Result<Boolean> exists(@NonNull final Condition condition) {
             return mExecutionContext.execute(new ExecutionContext.Task<Boolean>() {
                 @NonNull
                 @Override
                 public Maybe<Boolean> run() {
-                    return mDirect.exists(where);
+                    return mDirect.exists(condition);
                 }
             });
         }
@@ -86,7 +86,7 @@ public final class Executors {
         @NonNull
         @Override
         public final <M> Result<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                                          @NonNull final Where where,
+                                                          @NonNull final Condition condition,
                                                           @Nullable final Order order,
                                                           @Nullable final Limit limit,
                                                           @Nullable final Offset offset) {
@@ -94,7 +94,7 @@ public final class Executors {
                 @NonNull
                 @Override
                 public Maybe<Producer<Maybe<M>>> run() {
-                    return mDirect.query(plan, where, order, limit, offset);
+                    return mDirect.query(plan, condition, order, limit, offset);
                 }
             });
         }
@@ -113,24 +113,24 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Result<Integer> delete(@NonNull final Where where) {
+        public final Result<Integer> delete(@NonNull final Condition condition) {
             return mExecutionContext.execute(new ExecutionContext.Task<Integer>() {
                 @NonNull
                 @Override
                 public Maybe<Integer> run() {
-                    return mDirect.delete(where);
+                    return mDirect.delete(condition);
                 }
             });
         }
 
         @NonNull
         @Override
-        public final Result<U> update(@NonNull final Where where, @NonNull final Plan.Write plan) {
+        public final Result<U> update(@NonNull final Condition condition, @NonNull final Plan.Write plan) {
             return mExecutionContext.execute(new ExecutionContext.Task<U>() {
                 @NonNull
                 @Override
                 public Maybe<U> run() {
-                    return mDirect.update(where, plan);
+                    return mDirect.update(condition, plan);
                 }
             });
         }

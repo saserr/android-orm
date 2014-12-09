@@ -23,6 +23,7 @@ import android.orm.Remote;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
 import android.orm.remote.Watchers;
+import android.orm.sql.fragment.Condition;
 import android.orm.tasks.model.Task;
 import android.orm.tasks.view.Form;
 import android.orm.tasks.view.List;
@@ -39,7 +40,6 @@ import android.widget.Toast;
 
 import java.util.Collection;
 
-import static android.orm.sql.fragment.Where.where;
 import static android.orm.tasks.data.Provider.Routes.TaskById;
 import static android.orm.tasks.data.Provider.Routes.Tasks;
 import static android.widget.Toast.LENGTH_SHORT;
@@ -144,7 +144,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
 
         switch (item.getItemId()) {
             case R.id.action_clear:
-                mTasks.delete(where(Task.Finished).isEqualTo(true))
+                mTasks.delete(Condition.on(Task.Finished).isEqualTo(true))
                         .onComplete(mShowDeleted);
                 handled = true;
                 break;

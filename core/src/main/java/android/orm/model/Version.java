@@ -19,7 +19,7 @@ package android.orm.model;
 import android.orm.sql.Column;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -28,7 +28,6 @@ import android.support.annotation.Nullable;
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.sql.Value.Write.Operation.Update;
-import static android.orm.sql.fragment.Where.where;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
@@ -178,7 +177,7 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
 
     private static class Write extends Plan.Write {
 
-        private static final Where FAIL = new Where("0 <> 0");
+        private static final Condition FAIL = new Condition("0 <> 0");
 
         @NonNull
         private final Column<Long> mColumn;
@@ -204,10 +203,10 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
         }
 
         @NonNull
-        private static Where onUpdate(@NonNull final Column<Long> column,
-                                      @NonNull final Maybe<Long> value) {
+        private static Condition onUpdate(@NonNull final Column<Long> column,
+                                          @NonNull final Maybe<Long> value) {
             final Long current = value.getOrElse(null);
-            return (current == null) ? FAIL : where(column).isEqualTo(current);
+            return (current == null) ? FAIL : Condition.on(column).isEqualTo(current);
         }
     }
 }

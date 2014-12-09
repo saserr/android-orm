@@ -22,7 +22,7 @@ import android.orm.sql.Column;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Writable;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -67,41 +67,20 @@ public class Path {
     @NonNull
     private final Select.Projection mProjection;
     @NonNull
-    private final Where.Builder<?>[] mWhere;
+    private final Condition.Builder<?>[] mConditions;
 
     private Path(@NonNull final List<Segment> segments,
                  @NonNull final SparseArray<Segment.Argument<?>> arguments,
                  @NonNls @NonNull final String path,
                  @NonNull final Select.Projection projection,
-                 @NonNull final Where.Builder<?>... where) {
+                 @NonNull final Condition.Builder<?>... conditions) {
         super();
 
         mSegments = segments;
         mPath = path;
         mArguments = arguments;
         mProjection = projection;
-        mWhere = where;
-    }
-
-    @NonNull
-    public final Where getWhere(@NonNull final Uri uri) {
-        return getWhere(parseArguments(uri));
-    }
-
-    @NonNull
-    @SuppressWarnings("unchecked")
-    public final Where getWhere(@NonNull final Object... arguments) {
-        if (mWhere.length != arguments.length) {
-            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mWhere.length, arguments.length}));
-        }
-
-        Where where = Where.None;
-
-        for (int i = 0; i < mWhere.length; i++) {
-            where = where.and(((Where.Builder<Object>) mWhere[i]).build(arguments[i]));
-        }
-
-        return where;
+        mConditions = conditions;
     }
 
     @NonNull
@@ -129,7 +108,7 @@ public class Path {
 
         final SparseArray<Segment.Argument<?>> arguments;
         final Select.Projection projection;
-        final Where.Builder<?>[] where;
+        final Condition.Builder<?>[] conditions;
 
         if (segment instanceof Segment.Argument) {
             final Segment.Argument<?> argument = (Segment.Argument<?>) segment;
@@ -142,16 +121,16 @@ public class Path {
 
             projection = mProjection.and(argument.getProjection());
 
-            where = new Where.Builder<?>[mWhere.length + 1];
-            arraycopy(mWhere, 0, where, 0, mWhere.length);
-            where[mWhere.length] = argument.getWhere();
+            conditions = new Condition.Builder<?>[mConditions.length + 1];
+            arraycopy(mConditions, 0, conditions, 0, mConditions.length);
+            conditions[mConditions.length] = argument.getCondition();
         } else {
             arguments = mArguments;
             projection = mProjection;
-            where = mWhere;
+            conditions = mConditions;
         }
 
-        return new Path(segments, arguments, path, projection, where);
+        return new Path(segments, arguments, path, projection, conditions);
     }
 
     @NonNull
@@ -193,6 +172,32 @@ public class Path {
     }
 
     @NonNull
+    public final Condition createCondition(@NonNull final Uri uri) {
+        return createCondition(parseArguments(uri));
+    }
+
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public final Condition createCondition(@NonNull final Object... arguments) {
+        if (mConditions.length != arguments.length) {
+            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mConditions.length, arguments.length}));
+        }
+
+        Condition condition = Condition.None;
+
+        for (int i = 0; i < mConditions.length; i++) {
+            condition = condition.and(((Condition.Builder<Object>) mConditions[i]).build(arguments[i]));
+        }
+
+        return condition;
+    }
+
+    @NonNull
+    public final ContentValues createValues(@NonNull final Uri uri) {
+        return createValues(parseArguments(uri));
+    }
+
+    @NonNull
     @SuppressWarnings("unchecked")
     public final ContentValues createValues(@NonNull final Object... arguments) {
         if (mArguments.size() != arguments.length) {
@@ -210,11 +215,6 @@ public class Path {
         }
 
         return result;
-    }
-
-    @NonNull
-    public final ContentValues parseValues(@NonNull final Uri uri) {
-        return createValues(parseArguments(uri));
     }
 
     @Override

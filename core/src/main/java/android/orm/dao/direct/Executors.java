@@ -21,10 +21,10 @@ import android.orm.dao.Executor;
 import android.orm.model.Plan;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
@@ -43,26 +43,26 @@ public final class Executors {
     @NonNull
     public static <K> Executor.Direct.Single<K> single(@NonNull final android.orm.sql.Executor executor,
                                                        @NonNls @NonNull final String table,
-                                                       @NonNull final Where where,
+                                                       @NonNull final Condition condition,
                                                        @NonNull final ContentValues onInsert,
                                                        @NonNull final Value.Read<K> key) {
-        return new Single<>(executor, escape(table), where, onInsert, key);
+        return new Single<>(executor, escape(table), condition, onInsert, key);
     }
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
                                                    @NonNls @NonNull final String table,
                                                    @NonNull final Value.Read<K> key) {
-        return new Many<>(executor, escape(table), Where.None, EMPTY, key);
+        return new Many<>(executor, escape(table), Condition.None, EMPTY, key);
     }
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
                                                    @NonNls @NonNull final String table,
-                                                   @NonNull final Where where,
+                                                   @NonNull final Condition condition,
                                                    @NonNull final ContentValues onInsert,
                                                    @NonNull final Value.Read<K> key) {
-        return new Many<>(executor, escape(table), where, onInsert, key);
+        return new Many<>(executor, escape(table), condition, onInsert, key);
     }
 
     private static class Single<K> extends Some<K, K> implements Executor.Direct.Single<K> {
@@ -73,7 +73,7 @@ public final class Executors {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
         @NonNull
         private final ContentValues mOnInsert;
         @NonNull
@@ -81,26 +81,26 @@ public final class Executors {
 
         private Single(@NonNull final android.orm.sql.Executor executor,
                        @NonNls @NonNull final String table,
-                       @NonNull final Where where,
+                       @NonNull final Condition condition,
                        @NonNull final ContentValues onInsert,
                        @NonNull final Value.Read<K> key) {
-            super(executor, table, where, onInsert, key);
+            super(executor, table, condition, onInsert, key);
 
             mExecutor = executor;
             mTable = table;
-            mWhere = where;
+            mCondition = condition;
             mOnInsert = onInsert;
             mKey = key;
         }
 
         @NonNull
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                                         @NonNull final Where where,
+                                                         @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
             final Select select = select(mTable)
-                    .with(mWhere.and(where))
+                    .with(mCondition.and(condition))
                     .with(Limit.Single)
                     .build();
             return mExecutor.execute(new Query<>(plan, select));
@@ -108,11 +108,11 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<K> update(@NonNull final Where where,
+        public final Maybe<K> update(@NonNull final Condition condition,
                                      @NonNull final Plan.Write plan) {
             return plan.isEmpty() ?
                     Maybes.<K>nothing() :
-                    mExecutor.execute(new Update.Single<>(mTable, mWhere.and(where), plan, mOnInsert, mKey));
+                    mExecutor.execute(new Update.Single<>(mTable, mCondition.and(condition), plan, mOnInsert, mKey));
         }
     }
 
@@ -124,28 +124,28 @@ public final class Executors {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
 
         private Many(@NonNull final android.orm.sql.Executor executor,
                      @NonNls @NonNull final String table,
-                     @NonNull final Where where,
+                     @NonNull final Condition condition,
                      @NonNull final ContentValues onInsert,
                      @NonNull final Value.Read<K> key) {
-            super(executor, table, where, onInsert, key);
+            super(executor, table, condition, onInsert, key);
 
             mExecutor = executor;
             mTable = table;
-            mWhere = where;
+            mCondition = condition;
         }
 
         @NonNull
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                                         @NonNull final Where where,
+                                                         @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
             final Select select = select(mTable)
-                    .with(mWhere.and(where))
+                    .with(mCondition.and(condition))
                     .with(order)
                     .with(limit)
                     .with(offset)
@@ -155,11 +155,11 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> update(@NonNull final Where where,
+        public final Maybe<Integer> update(@NonNull final Condition condition,
                                            @NonNull final Plan.Write plan) {
             return plan.isEmpty() ?
                     Maybes.<Integer>nothing() :
-                    mExecutor.execute(new Update.Many(mTable, mWhere.and(where), plan));
+                    mExecutor.execute(new Update.Many(mTable, mCondition.and(condition), plan));
         }
     }
 
@@ -171,7 +171,7 @@ public final class Executors {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
         @NonNull
         private final ContentValues mOnInsert;
         @NonNull
@@ -179,22 +179,22 @@ public final class Executors {
 
         protected Some(@NonNull final android.orm.sql.Executor executor,
                        @NonNls @NonNull final String table,
-                       @NonNull final Where where,
+                       @NonNull final Condition condition,
                        @NonNull final ContentValues onInsert,
                        @NonNull final Value.Read<K> key) {
             super();
 
             mExecutor = executor;
             mTable = table;
-            mWhere = where;
+            mCondition = condition;
             mOnInsert = onInsert;
             mKey = key;
         }
 
         @NonNull
         @Override
-        public final Maybe<Boolean> exists(@NonNull final Where where) {
-            return mExecutor.execute(new Exists(mTable, mWhere.and(where)));
+        public final Maybe<Boolean> exists(@NonNull final Condition condition) {
+            return mExecutor.execute(new Exists(mTable, mCondition.and(condition)));
         }
 
         @NonNull
@@ -207,8 +207,8 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> delete(@NonNull final Where where) {
-            return mExecutor.execute(new Delete(mTable, mWhere.and(where)));
+        public final Maybe<Integer> delete(@NonNull final Condition condition) {
+            return mExecutor.execute(new Delete(mTable, mCondition.and(condition)));
         }
     }
 

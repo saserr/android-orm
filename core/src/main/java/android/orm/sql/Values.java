@@ -16,7 +16,7 @@
 
 package android.orm.sql;
 
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -181,8 +181,8 @@ public final class Values {
 
         @NonNull
         @Override
-        public final Where onUpdate() {
-            return Where.None;
+        public final Condition onUpdate() {
+            return Condition.None;
         }
 
         @Override
@@ -244,7 +244,7 @@ public final class Values {
         @NonNull
         private final String mName;
         @NonNull
-        private final Where mOnUpdate;
+        private final Condition mOnUpdate;
 
         private ConstantComposition(@NonNull final Value.Constant first,
                                     @NonNull final Value.Constant second) {
@@ -265,7 +265,7 @@ public final class Values {
 
         @NonNull
         @Override
-        public final Where onUpdate() {
+        public final Condition onUpdate() {
             return mOnUpdate;
         }
 

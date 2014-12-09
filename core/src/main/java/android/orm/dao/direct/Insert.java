@@ -25,8 +25,8 @@ import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -39,7 +39,6 @@ import static android.orm.sql.Select.select;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Values.RowId;
 import static android.orm.sql.Writables.writable;
-import static android.orm.sql.fragment.Where.where;
 import static android.orm.util.Legacy.getKeys;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
@@ -48,7 +47,7 @@ import static android.util.Log.INFO;
 public class Insert<K> implements Expression<K> {
 
     private static final String TAG = Insert.class.getSimpleName();
-    private static final Where.ComplexPart.WithNull<Long> WHERE_ROW_ID = where(RowId);
+    private static final Condition.ComplexPart.WithNull<Long> WHERE_ROW_ID = Condition.on(RowId);
 
     @NonNls
     @NonNull
@@ -95,8 +94,8 @@ public class Insert<K> implements Expression<K> {
             if (remaining.isEmpty()) {
                 result = mKey.read(readable(values));
             } else {
-                final Where where = WHERE_ROW_ID.isEqualTo(id);
-                final Select select = select(mTable).with(where).with(Limit.Single).build();
+                final Condition condition = WHERE_ROW_ID.isEqualTo(id);
+                final Select select = select(mTable).with(condition).with(Limit.Single).build();
                 final Readable input = select.execute(remaining, database);
                 if ((input == null) || !input.start()) {
                     result = nothing();

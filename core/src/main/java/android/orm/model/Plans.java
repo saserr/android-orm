@@ -22,7 +22,7 @@ import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -51,7 +51,7 @@ public final class Plans {
 
     private static final String TAG = Plan.Read.class.getSimpleName();
 
-    public static final Plan.Write EmptyWrite = new Plan.Write(Where.None) {
+    public static final Plan.Write EmptyWrite = new Plan.Write(Condition.None) {
 
         @Override
         public boolean isEmpty() {
@@ -245,7 +245,7 @@ public final class Plans {
     @NonNull
     public static <V> Plan.Write write(@NonNull final Maybe<V> model,
                                        @NonNull final Value.Write<V> value) {
-        return new Plan.Write(Where.None) {
+        return new Plan.Write(Condition.None) {
 
             @Override
             public boolean isEmpty() {
@@ -262,7 +262,7 @@ public final class Plans {
 
     @NonNull
     public static Plan.Write write(@NonNull final ContentValues values) {
-        return new Plan.Write(Where.None) {
+        return new Plan.Write(Condition.None) {
 
             private final boolean mIsEmpty = values.size() > 0;
 
@@ -500,8 +500,8 @@ public final class Plans {
         }
 
         @NonNull
-        private static Where onUpdate(@NonNull final Iterable<Plan.Write> plans) {
-            Where onUpdate = Where.None;
+        private static Condition onUpdate(@NonNull final Iterable<Plan.Write> plans) {
+            Condition onUpdate = Condition.None;
 
             for (final Plan.Write plan : plans) {
                 onUpdate = onUpdate.and(plan.onUpdate());

@@ -27,10 +27,10 @@ import android.orm.remote.dao.direct.Insert;
 import android.orm.remote.dao.direct.Query;
 import android.orm.remote.dao.direct.Update;
 import android.orm.sql.Writer;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -92,11 +92,11 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Uri> update(@NonNull final Where where,
+        public final Maybe<Uri> update(@NonNull final Condition condition,
                                        @NonNull final Plan.Write plan) {
             return plan.isEmpty() ?
                     Maybes.<Uri>nothing() :
-                    mUpdate.invoke(Pair.<Where, Writer>create(where, plan)).flatMap(mToUri);
+                    mUpdate.invoke(Pair.<Condition, Writer>create(condition, plan)).flatMap(mToUri);
         }
     }
 
@@ -113,11 +113,11 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> update(@NonNull final Where where,
+        public final Maybe<Integer> update(@NonNull final Condition condition,
                                            @NonNull final Plan.Write plan) {
             return plan.isEmpty() ?
                     Maybes.<Integer>nothing() :
-                    mUpdate.invoke(Pair.<Where, Writer>create(where, plan));
+                    mUpdate.invoke(Pair.<Condition, Writer>create(condition, plan));
         }
     }
 
@@ -143,19 +143,19 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Boolean> exists(@NonNull final Where where) {
-            return mExists.invoke(where);
+        public final Maybe<Boolean> exists(@NonNull final Condition condition) {
+            return mExists.invoke(condition);
         }
 
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                                         @NonNull final Where where,
+                                                         @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
-            final Query.Arguments<M> arguments = new Query.Arguments<>(plan, where, order, limit, offset);
+            final Query.Arguments<M> arguments = new Query.Arguments<>(plan, condition, order, limit, offset);
             return ((Query<M>) mQuery).invoke(arguments);
         }
 
@@ -167,8 +167,8 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> delete(@NonNull final Where where) {
-            return mDelete.invoke(where);
+        public final Maybe<Integer> delete(@NonNull final Condition condition) {
+            return mDelete.invoke(condition);
         }
     }
 

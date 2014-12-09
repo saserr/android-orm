@@ -20,7 +20,7 @@ import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
@@ -81,9 +81,9 @@ public final class Plan {
     public abstract static class Write implements Writer {
 
         @NonNull
-        private final Where mOnUpdate;
+        private final Condition mOnUpdate;
 
-        protected Write(@NonNull final Where onUpdate) {
+        protected Write(@NonNull final Condition onUpdate) {
             super();
 
             mOnUpdate = onUpdate;
@@ -93,7 +93,7 @@ public final class Plan {
 
         @NonNull
         @Override
-        public final Where onUpdate() {
+        public final Condition onUpdate() {
             return mOnUpdate;
         }
 

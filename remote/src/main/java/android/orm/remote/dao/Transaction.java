@@ -27,7 +27,7 @@ import android.orm.model.Plan;
 import android.orm.remote.Route;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -144,8 +144,8 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final Access update(@NonNull final Where where, @NonNull final Model model) {
-            return update(where, Model.toInstance(model));
+        public final Access update(@NonNull final Condition condition, @NonNull final Model model) {
+            return update(condition, Model.toInstance(model));
         }
 
         @NonNull
@@ -156,9 +156,9 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final Access update(@NonNull final Where where,
+        public final Access update(@NonNull final Condition condition,
                                    @NonNull final Instance.Writable model) {
-            return update(where, write(model));
+            return update(condition, write(model));
         }
 
         @NonNull
@@ -169,9 +169,9 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final Access update(@NonNull final Where where,
+        public final Access update(@NonNull final Condition condition,
                                    @NonNull final Writer writer) {
-            return update(where, write(writer));
+            return update(condition, write(writer));
         }
 
         @NonNull
@@ -183,10 +183,10 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M> Access update(@NonNull final Where where,
+        public final <M> Access update(@NonNull final Condition condition,
                                        @Nullable final M model,
                                        @NonNull final Value.Write<M> value) {
-            return update(where, write(something(model), value));
+            return update(condition, write(something(model), value));
         }
 
         @NonNull
@@ -198,22 +198,22 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M> Access update(@NonNull final Where where,
+        public final <M> Access update(@NonNull final Condition condition,
                                        @Nullable final M model,
                                        @NonNull final Mapper.Write<M> mapper) {
-            return update(where, mapper.prepareWrite(something(model)));
+            return update(condition, mapper.prepareWrite(something(model)));
         }
 
         @NonNull
         @Override
         public final Access delete() {
-            return delete(Where.None);
+            return delete(Condition.None);
         }
 
         @NonNull
         @Override
-        public final Access delete(@NonNull final Where where) {
-            mBatch.add(new Delete(mUri, where));
+        public final Access delete(@NonNull final Condition condition) {
+            mBatch.add(new Delete(mUri, condition));
             return this;
         }
 
@@ -227,14 +227,14 @@ public abstract class Transaction<R> {
 
         @NonNull
         private Access update(@NonNull final Plan.Write plan) {
-            return update(Where.None, plan);
+            return update(Condition.None, plan);
         }
 
         @NonNull
-        private Access update(@NonNull final Where where,
+        private Access update(@NonNull final Condition condition,
                               @NonNull final Plan.Write plan) {
             if (!plan.isEmpty()) {
-                mBatch.add(new Update(mUri, plan, where));
+                mBatch.add(new Update(mUri, plan, condition));
             }
             return this;
         }
@@ -270,16 +270,16 @@ public abstract class Transaction<R> {
         @NonNull
         private final Writer mWriter;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
 
         private Update(@NonNull final Uri uri,
                        @NonNull final Writer writer,
-                       @NonNull final Where where) {
+                       @NonNull final Condition condition) {
             super();
 
             mUri = uri;
             mWriter = writer;
-            mWhere = where;
+            mCondition = condition;
         }
 
         @NonNull
@@ -288,7 +288,7 @@ public abstract class Transaction<R> {
             final ContentValues values = new ContentValues();
             mWriter.write(Update, writable(values));
             return ContentProviderOperation.newUpdate(mUri)
-                    .withSelection(mWhere.toSQL(), null)
+                    .withSelection(mCondition.toSQL(), null)
                     .withValues(values)
                     .build();
         }
@@ -299,20 +299,20 @@ public abstract class Transaction<R> {
         @NonNull
         private final Uri mUri;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
 
-        private Delete(@NonNull final Uri uri, @NonNull final Where where) {
+        private Delete(@NonNull final Uri uri, @NonNull final Condition condition) {
             super();
 
             mUri = uri;
-            mWhere = where;
+            mCondition = condition;
         }
 
         @NonNull
         @Override
         public final ContentProviderOperation produce() {
             return ContentProviderOperation.newDelete(mUri)
-                    .withSelection(mWhere.toSQL(), null)
+                    .withSelection(mCondition.toSQL(), null)
                     .build();
         }
     }

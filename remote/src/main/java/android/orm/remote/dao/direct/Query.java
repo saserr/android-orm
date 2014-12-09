@@ -22,10 +22,10 @@ import android.net.Uri;
 import android.orm.model.Plan;
 import android.orm.sql.Reader;
 import android.orm.sql.Select;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -68,7 +68,7 @@ public class Query<V> implements Function<Query.Arguments<V>, Maybe<Producer<May
                 Log.i(TAG, "Nothing was queried"); //NON-NLS
             }
         } else {
-            final String where = arguments.getWhere().toSQL();
+            final String where = arguments.getCondition().toSQL();
             final Order order = arguments.getOrder();
             final Cursor cursor = mResolver.query(mUri, projection.asArray(), where, null, (order == null) ? null : order.toSQL());
             if (cursor == null) {
@@ -92,7 +92,7 @@ public class Query<V> implements Function<Query.Arguments<V>, Maybe<Producer<May
         @NonNull
         private final Reader<V> mReader;
         @NonNull
-        private final Where mWhere;
+        private final Condition mCondition;
         @Nullable
         private final Order mOrder;
         @Nullable
@@ -101,18 +101,18 @@ public class Query<V> implements Function<Query.Arguments<V>, Maybe<Producer<May
         private final Offset mOffset;
 
         public Arguments(@NonNull final Reader<V> reader) {
-            this(reader, Where.None, null, null, null);
+            this(reader, Condition.None, null, null, null);
         }
 
         public Arguments(@NonNull final Reader<V> reader,
-                         @NonNull final Where where,
+                         @NonNull final Condition condition,
                          @Nullable final Order order,
                          @Nullable final Limit limit,
                          @Nullable final Offset offset) {
             super();
 
             mReader = reader;
-            mWhere = where;
+            mCondition = condition;
             mOrder = order;
             mLimit = limit;
             mOffset = offset;
@@ -120,7 +120,7 @@ public class Query<V> implements Function<Query.Arguments<V>, Maybe<Producer<May
 
         @NonNull
         public final <T> Arguments<T> copy(@NonNull final Plan.Read<T> plan) {
-            return new Arguments<>(plan, mWhere, mOrder, mLimit, mOffset);
+            return new Arguments<>(plan, mCondition, mOrder, mLimit, mOffset);
         }
 
         @NonNull
@@ -129,8 +129,8 @@ public class Query<V> implements Function<Query.Arguments<V>, Maybe<Producer<May
         }
 
         @NonNull
-        private Where getWhere() {
-            return mWhere;
+        private Condition getCondition() {
+            return mCondition;
         }
 
         @Nullable

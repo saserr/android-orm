@@ -24,9 +24,9 @@ import android.orm.sql.Column;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -55,7 +55,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
     @NonNull
     private final String mTable;
     @NonNull
-    private final Where mWhere;
+    private final Condition mCondition;
     @NonNull
     private final Path mPath;
     @NonNls
@@ -81,7 +81,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
     private Route(@NonNull final Manager manager,
                   @NonNls @NonNull final String table,
-                  @NonNull final Where where,
+                  @NonNull final Condition condition,
                   @Nullable final Order order,
                   @Nullable final Limit limit,
                   @NonNull final Path path) {
@@ -89,7 +89,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         mManager = manager;
         mTable = table;
-        mWhere = where;
+        mCondition = condition;
         mOrder = order;
         mLimit = limit;
         mPath = path;
@@ -148,8 +148,8 @@ public abstract class Route extends Value.Read.Base<Uri> {
     }
 
     @NonNull
-    public final Where createWhere(@NonNull final Object... arguments) {
-        return mWhere.and(mPath.getWhere(arguments));
+    public final Condition createCondition(@NonNull final Object... arguments) {
+        return mCondition.and(mPath.createCondition(arguments));
     }
 
     @NonNull
@@ -176,11 +176,11 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         public Many(@NonNull final Manager manager,
                     @NonNull final Single singleRoute,
-                    @NonNull final Where where,
+                    @NonNull final Condition condition,
                     @Nullable final Order order,
                     @Nullable final Limit limit,
                     @NonNull final Path path) {
-            super(manager, singleRoute.getTable(), where, order, limit, path);
+            super(manager, singleRoute.getTable(), condition, order, limit, path);
 
             mSingleRoute = singleRoute;
         }
@@ -199,18 +199,18 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         public Single(@NonNull final Manager manager,
                       @NonNls @NonNull final String table,
-                      @NonNull final Where where,
+                      @NonNull final Condition condition,
                       @NonNull final Path path) {
-            super(manager, table, where, null, Limit.Single, path);
+            super(manager, table, condition, null, Limit.Single, path);
 
             mSingleRoute = this;
         }
 
         public Single(@NonNull final Manager manager,
                       @NonNull final Single singleRoute,
-                      @NonNull final Where where,
+                      @NonNull final Condition condition,
                       @NonNull final Path path) {
-            super(manager, singleRoute.getTable(), where, singleRoute.getOrder(), Limit.Single, path);
+            super(manager, singleRoute.getTable(), condition, singleRoute.getOrder(), Limit.Single, path);
 
             mSingleRoute = singleRoute;
         }
@@ -293,39 +293,39 @@ public abstract class Route extends Value.Read.Base<Uri> {
                                @Nullable final Order order,
                                @Nullable final Limit limit,
                                @NonNull final Path path) {
-            return many(singleRoute, Where.None, order, limit, path);
+            return many(singleRoute, Condition.None, order, limit, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Where where,
+                               @NonNull final Condition condition,
                                @NonNull final Path path) {
-            return many(singleRoute, where, null, null, path);
+            return many(singleRoute, condition, null, null, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Where where,
+                               @NonNull final Condition condition,
                                @NonNull final Order order,
                                @NonNull final Path path) {
-            return many(singleRoute, where, order, null, path);
+            return many(singleRoute, condition, order, null, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Where where,
+                               @NonNull final Condition condition,
                                @NonNull final Limit limit,
                                @NonNull final Path path) {
-            return many(singleRoute, where, null, limit, path);
+            return many(singleRoute, condition, null, limit, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Where where,
+                               @NonNull final Condition condition,
                                @Nullable final Order order,
                                @Nullable final Limit limit,
                                @NonNull final Path path) {
-            final Many route = new Many(this, singleRoute, where, order, limit, path);
+            final Many route = new Many(this, singleRoute, condition, order, limit, path);
             with(route);
             return route;
         }
@@ -342,14 +342,14 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         @NonNull
         public final Single single(@NonNls @NonNull final String table, @NonNull final Path path) {
-            return single(table, Where.None, path);
+            return single(table, Condition.None, path);
         }
 
         @NonNull
         public final Single single(@NonNls @NonNull final String table,
-                                   @NonNull final Where where,
+                                   @NonNull final Condition condition,
                                    @NonNull final Path path) {
-            final Single route = new Single(this, table, where, path);
+            final Single route = new Single(this, table, condition, path);
             with(route);
             return route;
         }
@@ -368,14 +368,14 @@ public abstract class Route extends Value.Read.Base<Uri> {
         @NonNull
         public final Single single(@NonNull final Single singleRoute,
                                    @NonNull final Path path) {
-            return single(singleRoute, Where.None, path);
+            return single(singleRoute, Condition.None, path);
         }
 
         @NonNull
         public final Single single(@NonNull final Single singleRoute,
-                                   @NonNull final Where where,
+                                   @NonNull final Condition condition,
                                    @NonNull final Path path) {
-            final Single route = new Single(this, singleRoute, where, path);
+            final Single route = new Single(this, singleRoute, condition, path);
             with(route);
             return route;
         }

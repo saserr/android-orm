@@ -26,10 +26,10 @@ import android.orm.sql.Expression;
 import android.orm.sql.Readable;
 import android.orm.sql.Reader;
 import android.orm.sql.Select;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -100,7 +100,7 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
         private final Reading<M> mReading;
 
         @NonNull
-        private Where mWhere = Where.None;
+        private Condition mCondition = Condition.None;
         @Nullable
         private Order mOrder;
         @Nullable
@@ -123,8 +123,8 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
 
         @NonNull
         @Override
-        public final Builder<M> with(@Nullable final Where where) {
-            mWhere = (where == null) ? Where.None : where;
+        public final Builder<M> with(@Nullable final Condition condition) {
+            mCondition = (condition == null) ? Condition.None : condition;
             return this;
         }
 
@@ -169,7 +169,7 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
                 Observer.afterRead(mModel);
                 result = (mModel == null) ? Maybes.<M>nothing() : something(mModel);
             } else {
-                result = mExecutor.query(plan, mWhere, mOrder, mLimit, mOffset).flatMap(mAfterRead);
+                result = mExecutor.query(plan, mCondition, mOrder, mLimit, mOffset).flatMap(mAfterRead);
             }
 
             return result;

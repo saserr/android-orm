@@ -23,10 +23,10 @@ import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -88,13 +88,13 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Single<V> with(@Nullable final Where where);
+                    Single<V> with(@Nullable final Condition condition);
 
                     interface Refreshable<V> extends Single<V>, Access.Query.Builder.Single.Refreshable<V, Maybe<V>> {
 
                         @NonNull
                         @Override
-                        Single.Refreshable<V> with(@Nullable final Where where);
+                        Single.Refreshable<V> with(@Nullable final Condition condition);
 
                         @NonNull
                         @Override
@@ -106,7 +106,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Where where);
+                    Many<V> with(@Nullable final Condition condition);
 
                     @NonNull
                     @Override
@@ -124,7 +124,7 @@ public final class Access {
 
                         @NonNull
                         @Override
-                        Many.Refreshable<V> with(@Nullable final Where where);
+                        Many.Refreshable<V> with(@Nullable final Condition condition);
 
                         @NonNull
                         @Override
@@ -269,13 +269,13 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Single<V> with(@Nullable final Where where);
+                    Single<V> with(@Nullable final Condition condition);
 
                     interface Refreshable<V> extends Single<V>, Access.Query.Builder.Single.Refreshable<V, Result<V>> {
 
                         @NonNull
                         @Override
-                        Single.Refreshable<V> with(@Nullable final Where where);
+                        Single.Refreshable<V> with(@Nullable final Condition condition);
 
                         @NonNull
                         @Override
@@ -287,7 +287,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Where where);
+                    Many<V> with(@Nullable final Condition condition);
 
                     @NonNull
                     @Override
@@ -305,7 +305,7 @@ public final class Access {
 
                         @NonNull
                         @Override
-                        Many.Refreshable<V> with(@Nullable final Where where);
+                        Many.Refreshable<V> with(@Nullable final Condition condition);
 
                         @NonNull
                         @Override
@@ -403,7 +403,7 @@ public final class Access {
         R exists();
 
         @NonNull
-        R exists(@NonNull final Where where);
+        R exists(@NonNull final Condition condition);
     }
 
     public static final class Query {
@@ -440,7 +440,7 @@ public final class Access {
             public interface Single<V, R> {
 
                 @NonNull
-                Single<V, R> with(@Nullable final Where where);
+                Single<V, R> with(@Nullable final Condition condition);
 
                 @NonNull
                 R execute();
@@ -449,7 +449,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Refreshable<V, R> with(@Nullable final Where where);
+                    Refreshable<V, R> with(@Nullable final Condition condition);
 
                     @NonNull
                     Refreshable<V, R> using(@Nullable final V v);
@@ -460,7 +460,7 @@ public final class Access {
 
                 @NonNull
                 @Override
-                Many<V, R> with(@Nullable final Where where);
+                Many<V, R> with(@Nullable final Condition condition);
 
                 @NonNull
                 Many<V, R> with(@Nullable final Order order);
@@ -475,7 +475,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Many.Refreshable<V, R> with(@Nullable final Where where);
+                    Many.Refreshable<V, R> with(@Nullable final Condition condition);
 
                     @NonNull
                     @Override
@@ -542,25 +542,25 @@ public final class Access {
         R update(@NonNull final Model model);
 
         @NonNull
-        R update(@NonNull final Where where, @NonNull final Model model);
+        R update(@NonNull final Condition condition, @NonNull final Model model);
 
         @NonNull
         R update(@NonNull final Instance.Writable model);
 
         @NonNull
-        R update(@NonNull final Where where, @NonNull final Instance.Writable model);
+        R update(@NonNull final Condition condition, @NonNull final Instance.Writable model);
 
         @NonNull
         R update(@NonNull final Writer writer);
 
         @NonNull
-        R update(@NonNull final Where where, @NonNull final Writer writer);
+        R update(@NonNull final Condition condition, @NonNull final Writer writer);
 
         @NonNull
         <M> R update(@Nullable final M model, @NonNull final Value.Write<M> value);
 
         @NonNull
-        <M> R update(@NonNull final Where where,
+        <M> R update(@NonNull final Condition condition,
                      @Nullable final M model,
                      @NonNull final Value.Write<M> value);
 
@@ -568,7 +568,7 @@ public final class Access {
         <M> R update(@Nullable final M model, @NonNull final Mapper.Write<M> mapper);
 
         @NonNull
-        <M> R update(@NonNull final Where where,
+        <M> R update(@NonNull final Condition condition,
                      @Nullable final M model,
                      @NonNull final Mapper.Write<M> mapper);
     }
@@ -579,7 +579,7 @@ public final class Access {
         R delete();
 
         @NonNull
-        R delete(@NonNull final Where where);
+        R delete(@NonNull final Condition condition);
     }
 
     public interface Some<E, I, D> extends Exists<E>, Insert<I>, Delete<D> {

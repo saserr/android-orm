@@ -33,10 +33,10 @@ import android.orm.remote.watch.executor.DispatcherPerUriExecutor;
 import android.orm.remote.watch.executor.LimitedSizeExecutor;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Value;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Cancelable;
 import android.orm.util.Lazy;
 import android.os.Handler;
@@ -268,7 +268,7 @@ public class Watchers {
             private final Reading<M> mReading;
 
             @NonNull
-            private Where mWhere = Where.None;
+            private Condition mCondition = Condition.None;
             @Nullable
             private Order mOrder;
             @Nullable
@@ -291,8 +291,8 @@ public class Watchers {
             }
 
             @NonNull
-            public final Query<M> with(@Nullable final Where where) {
-                mWhere = (where == null) ? Where.None : where;
+            public final Query<M> with(@Nullable final Condition condition) {
+                mCondition = (condition == null) ? Condition.None : condition;
                 return this;
             }
 
@@ -323,7 +323,7 @@ public class Watchers {
             @NonNull
             @Override
             public final Cancelable onChange(@NonNull final Result.Callback<? super M> callback) {
-                return mObservable.onChange(new Watcher<>(mExecutor, mHandler, mModel, mReading, mWhere, mOrder, mLimit, mOffset, callback));
+                return mObservable.onChange(new Watcher<>(mExecutor, mHandler, mModel, mReading, mCondition, mOrder, mLimit, mOffset, callback));
             }
         }
 

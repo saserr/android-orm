@@ -17,10 +17,10 @@
 package android.orm.dao;
 
 import android.orm.model.Plan;
+import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
-import android.orm.sql.fragment.Where;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -29,22 +29,22 @@ import android.support.annotation.Nullable;
 public interface Executor<E, I, U, D> {
 
     @NonNull
-    E exists(@NonNull final Where where);
+    E exists(@NonNull final Condition condition);
 
     @NonNull
     I insert(@NonNull final Plan.Write plan);
 
     @NonNull
-    U update(@NonNull final Where where, @NonNull final Plan.Write plan);
+    U update(@NonNull final Condition condition, @NonNull final Plan.Write plan);
 
     @NonNull
-    D delete(@NonNull final Where where);
+    D delete(@NonNull final Condition condition);
 
     interface Direct<I, U> extends Executor<Maybe<Boolean>, Maybe<I>, Maybe<U>, Maybe<Integer>> {
 
         @NonNull
         <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                            @NonNull final Where where,
+                                            @NonNull final Condition condition,
                                             @Nullable final Order order,
                                             @Nullable final Limit limit,
                                             @Nullable final Offset offset);
@@ -68,7 +68,7 @@ public interface Executor<E, I, U, D> {
 
         @NonNull
         <M> Result<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
-                                             @NonNull final Where where,
+                                             @NonNull final Condition condition,
                                              @Nullable final Order order,
                                              @Nullable final Limit limit,
                                              @Nullable final Offset offset);

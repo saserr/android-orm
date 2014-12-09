@@ -19,14 +19,14 @@ package android.orm.remote.dao.direct;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.orm.sql.fragment.Where;
+import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Exists implements Function<Where, Maybe<Boolean>> {
+public class Exists implements Function<Condition, Maybe<Boolean>> {
 
     private static final String[] PROJECTION = {"1"};
 
@@ -44,12 +44,12 @@ public class Exists implements Function<Where, Maybe<Boolean>> {
 
     @NonNull
     @Override
-    public final Maybe<Boolean> invoke(@NonNull final Where where) {
+    public final Maybe<Boolean> invoke(@NonNull final Condition condition) {
         final Maybe<Boolean> result;
 
         Cursor cursor = null;
         try {
-            cursor = mResolver.query(mUri, PROJECTION, where.toSQL(), null, null);
+            cursor = mResolver.query(mUri, PROJECTION, condition.toSQL(), null, null);
             result = something((cursor != null) && (cursor.getCount() > 0));
         } finally {
             if (cursor != null) {
