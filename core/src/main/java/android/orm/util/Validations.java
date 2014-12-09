@@ -92,7 +92,7 @@ public final class Validations {
     public static final Validation<CharSequence> IsNotEmpty = new Validation.Value<CharSequence>("text is empty") {
         @Override
         public boolean isValid(@Nullable final CharSequence value) {
-            return !isEmpty(value);
+            return (value != null) && !isEmpty(value.toString().trim());
         }
     };
 

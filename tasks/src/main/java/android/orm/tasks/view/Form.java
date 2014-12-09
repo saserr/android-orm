@@ -34,7 +34,6 @@ import android.widget.EditText;
 import org.jetbrains.annotations.NotNull;
 
 import static android.orm.util.Validations.IsNotEmpty;
-import static android.orm.util.Validations.IsSomething;
 
 public class Form extends Fragment {
 
@@ -94,7 +93,7 @@ public class Form extends Fragment {
         mTitle.setOnKeyListener(mSave);
 
         mValidator = Validator.instance()
-                .with(IsSomething.and(IsNotEmpty), Bindings.text(mTitle), new Validator.Callback<Maybe<String>>() {
+                .with(IsNotEmpty, Bindings.text(mTitle), new Validator.Callback<Maybe<String>>() {
 
                     @Override
                     public void onValid(@Nullable final Maybe<String> title) {
