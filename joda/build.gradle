@@ -18,7 +18,7 @@ apply plugin: 'com.android.library'
 
 dependencies {
     compile(project(':core'))
-    compile 'joda-time:joda-time:2.5'
+    compile 'joda-time:joda-time:2.6'
 }
 
 android {
@@ -32,7 +32,6 @@ android {
         versionName project.versionName
         minSdkVersion project.minSdkVersion
         targetSdkVersion project.targetSdkVersion
-        applicationId project.rootPackage + ".joda"
     }
 
     compileOptions {

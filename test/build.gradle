@@ -32,7 +32,6 @@ android {
         versionName project.versionName
         minSdkVersion project.minSdkVersion
         targetSdkVersion project.targetSdkVersion
-        applicationId project.rootPackage + ".test"
     }
 
     compileOptions {

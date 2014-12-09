@@ -18,7 +18,7 @@ apply plugin: 'com.android.library'
 
 dependencies {
     compile(project(':core'))
-    compile 'com.google.code.gson:gson:2.3'
+    compile 'com.google.code.gson:gson:2.3.1'
 }
 
 android {
@@ -32,7 +32,6 @@ android {
         versionName project.versionName
         minSdkVersion project.minSdkVersion
         targetSdkVersion project.targetSdkVersion
-        applicationId project.rootPackage + ".gson"
     }
 
     compileOptions {
