@@ -21,11 +21,14 @@ import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public interface Validation<V> {
 
     boolean isValid(@NonNull final Maybe<? extends V> v);
 
-    void isValidOrThrow(@NonNull final Maybe<? extends V> v);
+    void validate(@NonNull final Maybe<? extends V> v);
 
     @NonNull
     <T extends V> Validation<T> and(@NonNull final Validation<T> other);
@@ -38,6 +41,9 @@ public interface Validation<V> {
 
     @NonNull
     <M> Validation<M> on(@NonNull final Lens.Read<M, Maybe<V>> lens);
+
+    @NonNull
+    <T extends V> Validation<T> with(@NonNull final Callback<T> callback);
 
     @NonNull
     <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter);
@@ -66,13 +72,13 @@ public interface Validation<V> {
         @NonNull
         @Override
         public final <T extends V> Validation<T> and(@NonNull final Validation<T> other) {
-            return Validations.both(this, other);
+            return Validations.all(this, other);
         }
 
         @NonNull
         @Override
         public final <T extends V> Validation<T> or(@NonNull final Validation<T> other) {
-            return Validations.either(this, other);
+            return Validations.any(this, other);
         }
 
         @NonNull
@@ -85,6 +91,12 @@ public interface Validation<V> {
         @Override
         public final <M> Validation<M> on(@NonNull final Lens.Read<M, Maybe<V>> lens) {
             return Validations.extend(this, lens);
+        }
+
+        @NonNull
+        @Override
+        public final <T extends V> Validation<T> with(@NonNull final Callback<T> callback) {
+            return Validations.combine(this, callback);
         }
 
         @NonNull
@@ -126,10 +138,34 @@ public interface Validation<V> {
         }
 
         @Override
-        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
+        public final void validate(@NonNull final Maybe<? extends V> value) {
             if (!isValid(value)) {
                 throw new Failure(mError);
             }
+        }
+    }
+
+    interface Callback<V> {
+
+        void onValid(@NonNull final Maybe<V> v);
+
+        void onInvalid(@NonNull final Maybe<V> v);
+    }
+
+    class Builder<V> {
+
+        private final List<Validation<? super V>> mValidations = new ArrayList<>();
+
+        @NonNull
+        public final Builder<V> with(@NonNull final Validation<? super V> validation) {
+            mValidations.add(validation);
+            return this;
+        }
+
+        @NonNull
+        @SuppressWarnings("unchecked")
+        public final Validation<V> build() {
+            return Validations.all(mValidations.toArray(new Validation[mValidations.size()]));
         }
     }
 }

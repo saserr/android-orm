@@ -22,6 +22,7 @@ import android.orm.model.Validator;
 import android.orm.tasks.R;
 import android.orm.tasks.model.Task;
 import android.orm.util.Maybe;
+import android.orm.util.Validation;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -32,6 +33,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
+import static android.orm.model.Validators.validator;
 import static android.orm.util.Validations.IsNotEmpty;
 
 public class Form extends Fragment {
@@ -42,7 +44,7 @@ public class Form extends Fragment {
     private Task mEdited;
 
     private EditText mTitle;
-    private Validator.Instance mValidator;
+    private Validator mValidator;
 
     private final View.OnKeyListener mSave = new View.OnKeyListener() {
         @Override
@@ -91,21 +93,19 @@ public class Form extends Fragment {
         mTitle = (EditText) view.findViewById(R.id.edit_task_title);
         mTitle.setOnKeyListener(mSave);
 
-        mValidator = Validator.instance()
-                .with(IsNotEmpty, Bindings.text(mTitle), new Validator.Callback<Maybe<String>>() {
+        mValidator = validator(Bindings.text(mTitle), IsNotEmpty.with(new Validation.Callback<String>() {
 
-                    @Override
-                    public void onValid(@Nullable final Maybe<String> title) {
-                        mTitle.setError(null);
-                    }
+            @Override
+            public void onValid(@Nullable final Maybe<String> title) {
+                mTitle.setError(null);
+            }
 
-                    @Override
-                    public void onInvalid(@Nullable final Maybe<String> title) {
-                        mTitle.setError(getResources().getString(R.string.error_task_title_required));
-                        mTitle.requestFocus();
-                    }
-                })
-                .build();
+            @Override
+            public void onInvalid(@Nullable final Maybe<String> title) {
+                mTitle.setError(getResources().getString(R.string.error_task_title_required));
+                mTitle.requestFocus();
+            }
+        }));
 
         clear();
 

@@ -75,7 +75,7 @@ public final class Validations {
         public final void afterRead(@NonNls @NonNull final String name,
                                     @NonNull final Maybe<? extends V> value) {
             if (value.isSomething()) {
-                mValidation.isValidOrThrow(value);
+                mValidation.validate(value);
             }
         }
 
@@ -84,7 +84,7 @@ public final class Validations {
                                       @NonNls @NonNull final String name,
                                       @NonNull final Maybe<? extends V> value) {
             if (value.isSomething()) {
-                mValidation.isValidOrThrow(value);
+                mValidation.validate(value);
             }
         }
     }

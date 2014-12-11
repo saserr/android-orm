@@ -50,7 +50,7 @@ public final class Validations {
         }
 
         @Override
-        public void isValidOrThrow(@NonNull final Maybe<?> value) {
+        public void validate(@NonNull final Maybe<?> value) {
             if (!isValid(value)) {
                 throw new Failure(Error);
             }
@@ -68,7 +68,7 @@ public final class Validations {
         }
 
         @Override
-        public void isValidOrThrow(@NonNull final Maybe<?> value) {
+        public void validate(@NonNull final Maybe<?> value) {
             if (!isValid(value)) {
                 throw new Failure(Error);
             }
@@ -201,33 +201,39 @@ public final class Validations {
     }
 
     @NonNull
+    @SafeVarargs
+    public static <V> Validation<V> all(@NonNull final Validation<? super V>... validations) {
+        return new All<>(validations);
+    }
+
+    @NonNull
+    @SafeVarargs
+    public static <V> Validation<V> any(@NonNull final Validation<? super V>... validations) {
+        return new Any<>(validations);
+    }
+
+    @NonNull
     public static <V> Validation<V> name(@NonNls @NonNull final String name,
                                          @NonNull final Validation<V> validation) {
         return new Name<>(name, validation);
     }
 
     @NonNull
-    public static <M, V> Validation<M> extend(@NonNull final Validation<V> validation,
+    public static <M, V> Validation<M> extend(@NonNull final Validation<? super V> validation,
                                               @NonNull final Lens.Read<M, Maybe<V>> lens) {
         return new Extension<>(validation, lens);
     }
 
     @NonNull
-    public static <V, T> Validation<T> convert(@NonNull final Validation<V> validation,
+    public static <V> Validation<V> combine(@NonNull final Validation<? super V> validation,
+                                            @NonNull final Validation.Callback<V> callback) {
+        return new Combination<>(validation, callback);
+    }
+
+    @NonNull
+    public static <V, T> Validation<T> convert(@NonNull final Validation<? super V> validation,
                                                @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
         return new Conversion<>(validation, converter);
-    }
-
-    @NonNull
-    public static <V, T extends V> Validation<T> both(@NonNull final Validation<V> first,
-                                                      @NonNull final Validation<T> second) {
-        return new Both<>(first, second);
-    }
-
-    @NonNull
-    public static <V, T extends V> Validation<T> either(@NonNull final Validation<V> first,
-                                                        @NonNull final Validation<T> second) {
-        return new Either<>(first, second);
     }
 
     public static final class OnLong {
@@ -297,6 +303,90 @@ public final class Validations {
         }
     }
 
+    private static class All<V> extends Validation.Base<V> {
+
+        @NonNull
+        private final Validation<? super V>[] mValidations;
+        private final int mLength;
+
+        @SafeVarargs
+        private All(@NonNull final Validation<? super V>... validations) {
+            super();
+
+            mValidations = validations;
+            mLength = validations.length;
+        }
+
+        @Override
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            boolean valid = true;
+
+            for (int i = 0; (i < mLength) && valid; i++) {
+                valid = mValidations[i].isValid(value);
+            }
+
+            return valid;
+        }
+
+        @Override
+        public final void validate(@NonNull final Maybe<? extends V> value) {
+            for (int i = 0; i < mLength; i++) {
+                mValidations[i].validate(value);
+            }
+        }
+    }
+
+    private static class Any<V> extends Validation.Base<V> {
+
+        @NonNull
+        private final Validation<? super V>[] mValidations;
+        private final int mLength;
+
+        @SafeVarargs
+        private Any(@NonNull final Validation<? super V>... validations) {
+            super();
+
+            if (validations.length < 1) {
+                throw new IllegalArgumentException("Any requires at least one validations");
+            }
+
+            mValidations = validations;
+            mLength = validations.length;
+        }
+
+        @Override
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            boolean valid = false;
+
+            for (int i = 0; (i < mLength) && !valid; i++) {
+                valid = mValidations[i].isValid(value);
+            }
+
+            return valid;
+        }
+
+        @Override
+        public final void validate(@NonNull final Maybe<? extends V> value) {
+
+            try {
+                mValidations[0].validate(value);
+            } catch (final Failure failure) {
+                boolean invalid = true;
+
+                for (int i = 0; (i < mLength) && invalid; i++) {
+                    try {
+                        mValidations[i].validate(value);
+                        invalid = false;
+                    } catch (final Failure ignored) {/* do nothing */}
+                }
+
+                if (invalid) {
+                    throw failure;
+                }
+            }
+        }
+    }
+
     private static class Name<V> implements Validation<V> {
 
         @NonNls
@@ -318,9 +408,9 @@ public final class Validations {
         }
 
         @Override
-        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
+        public final void validate(@NonNull final Maybe<? extends V> value) {
             try {
-                mValidation.isValidOrThrow(value);
+                mValidation.validate(value);
             } catch (final Failure ex) {
                 throw new Failure(mName + ": " + ex.getMessage(), ex);
             }
@@ -352,6 +442,12 @@ public final class Validations {
 
         @NonNull
         @Override
+        public final <T extends V> Validation<T> with(@NonNull final Callback<T> callback) {
+            return new Name<>(mName, mValidation.with(callback));
+        }
+
+        @NonNull
+        @Override
         public final <T> Validation<T> map(@NonNull final Function<? super T, ? extends V> converter) {
             return new Name<>(mName, mValidation.map(converter));
         }
@@ -372,11 +468,11 @@ public final class Validations {
     private static class Extension<M, V> extends Validation.Base<M> {
 
         @NonNull
-        private final Validation<V> mValidation;
+        private final Validation<? super V> mValidation;
         @NonNull
         private final Lens.Read<M, Maybe<V>> mLens;
 
-        private Extension(@NonNull final Validation<V> validation,
+        private Extension(@NonNull final Validation<? super V> validation,
                           @NonNull final Lens.Read<M, Maybe<V>> lens) {
             super();
 
@@ -390,19 +486,59 @@ public final class Validations {
         }
 
         @Override
-        public final void isValidOrThrow(@NonNull final Maybe<? extends M> value) {
-            mValidation.isValidOrThrow(Lenses.get(value, mLens));
+        public final void validate(@NonNull final Maybe<? extends M> value) {
+            mValidation.validate(Lenses.get(value, mLens));
+        }
+    }
+
+    private static class Combination<V> extends Validation.Base<V> {
+
+        @NonNull
+        private final Validation<? super V> mValidation;
+        @NonNull
+        private final Callback<V> mCallback;
+
+        private Combination(@NonNull final Validation<? super V> validation,
+                            @NonNull final Callback<V> callback) {
+            super();
+
+            mValidation = validation;
+            mCallback = callback;
+        }
+
+        @Override
+        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
+            final boolean valid = mValidation.isValid(value);
+
+            if (valid) {
+                mCallback.onValid(Maybes.safeCast(value));
+            } else {
+                mCallback.onInvalid(Maybes.safeCast(value));
+            }
+
+            return valid;
+        }
+
+        @Override
+        public final void validate(@NonNull final Maybe<? extends V> value) {
+            try {
+                mValidation.validate(value);
+                mCallback.onValid(Maybes.safeCast(value));
+            } catch (final Failure failure) {
+                mCallback.onInvalid(Maybes.safeCast(value));
+                throw failure;
+            }
         }
     }
 
     private static class Conversion<V, T> extends Validation.Base<T> {
 
         @NonNull
-        private final Validation<V> mValidation;
+        private final Validation<? super V> mValidation;
         @NonNull
         private final Function<Maybe<T>, Maybe<V>> mConverter;
 
-        private Conversion(@NonNull final Validation<V> validation,
+        private Conversion(@NonNull final Validation<? super V> validation,
                            @NonNull final Function<Maybe<T>, Maybe<V>> converter) {
             super();
 
@@ -416,69 +552,8 @@ public final class Validations {
         }
 
         @Override
-        public final void isValidOrThrow(@NonNull final Maybe<? extends T> value) {
-            mValidation.isValidOrThrow(mConverter.invoke(Maybes.safeCast(value)));
-        }
-    }
-
-    private static class Both<V> extends Validation.Base<V> {
-
-        @NonNull
-        private final Validation<? super V> mFirst;
-        @NonNull
-        private final Validation<V> mSecond;
-
-        private Both(@NonNull final Validation<? super V> first,
-                     @NonNull final Validation<V> second) {
-            super();
-
-            mFirst = first;
-            mSecond = second;
-        }
-
-        @Override
-        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
-            return mFirst.isValid(value) && mSecond.isValid(value);
-        }
-
-        @Override
-        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
-            mFirst.isValidOrThrow(value);
-            mSecond.isValidOrThrow(value);
-        }
-    }
-
-    private static class Either<V> extends Validation.Base<V> {
-
-        @NonNull
-        private final Validation<? super V> mFirst;
-        @NonNull
-        private final Validation<V> mSecond;
-
-        private Either(@NonNull final Validation<? super V> first,
-                       @NonNull final Validation<V> second) {
-            super();
-
-            mFirst = first;
-            mSecond = second;
-        }
-
-        @Override
-        public final boolean isValid(@NonNull final Maybe<? extends V> value) {
-            return mFirst.isValid(value) || mSecond.isValid(value);
-        }
-
-        @Override
-        public final void isValidOrThrow(@NonNull final Maybe<? extends V> value) {
-            try {
-                mFirst.isValidOrThrow(value);
-            } catch (final Failure first) {
-                try {
-                    mSecond.isValidOrThrow(value);
-                } catch (final Failure ignored) {
-                    throw first;
-                }
-            }
+        public final void validate(@NonNull final Maybe<? extends T> value) {
+            mValidation.validate(mConverter.invoke(Maybes.safeCast(value)));
         }
     }
 

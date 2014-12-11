@@ -33,6 +33,7 @@ import static android.orm.util.Converters.from;
 import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.something;
 import static android.text.TextUtils.isEmpty;
+import static java.lang.Math.min;
 
 public final class Bindings {
 
@@ -50,22 +51,21 @@ public final class Bindings {
 
             @Override
             public void set(@NonNull final Maybe<V> value) {
-                int position = 0;
+                int position = -1;
 
                 if (value.isSomething()) {
                     final V v = value.get();
                     if (v != null) {
                         final int count = adapter.getCount();
-                        for (int i = 0; i < count; i++) {
+                        for (int i = 0; (i < count) && (position < 0); i++) {
                             if (v.equals(adapter.getItemAtPosition(i))) {
                                 position = i;
-                                break;
                             }
                         }
                     }
                 }
 
-                adapter.setSelection(position);
+                adapter.setSelection(min(position, 0));
             }
         };
     }

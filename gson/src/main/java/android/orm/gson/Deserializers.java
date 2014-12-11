@@ -96,7 +96,7 @@ public final class Deserializers {
             @Override
             public V get(@NonNull final JsonElement json) {
                 final V value = gson.fromJson(json, klass);
-                mValidation.isValidOrThrow(something(value));
+                mValidation.validate(something(value));
                 return value;
             }
         });
@@ -130,7 +130,7 @@ public final class Deserializers {
             @NonNull
             @Override
             public Maybe<V> invoke(@NonNull final Maybe<V> value) {
-                mValidation.isValidOrThrow(value);
+                mValidation.validate(value);
                 return value;
             }
         });
