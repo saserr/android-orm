@@ -46,15 +46,15 @@ public interface Reading<M> {
     Plan.Read<M> preparePlan();
 
     @NonNull
-    Plan.Read<M> preparePlan(@NonNull final M m);
-
-    @NonNull
     <N> Reading<N> map(@NonNull final Converter<M, N> converter);
 
     @NonNull
     <N> Reading<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
 
     interface Single<M> extends Reading<M> {
+
+        @NonNull
+        Plan.Read<M> preparePlan(@NonNull final M m);
 
         @NonNull
         <N> Single<Pair<M, N>> and(@NonNull final Single<N> other);

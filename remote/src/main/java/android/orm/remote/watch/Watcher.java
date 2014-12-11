@@ -61,6 +61,8 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
     private final Offset mOffset;
     @NonNull
     private final Result.Callback<R> mCallback;
+    @Nullable
+    private final Reading.Single<M> mSingleReading;
     @NonNull
     private final AtomicReference<Plan.Read<M>> mPlan;
 
@@ -87,9 +89,10 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         mOffset = offset;
         mCallback = callback;
 
-        final Plan.Read<M> plan = (model == null) ?
+        mSingleReading = (reading instanceof Reading.Single) ? (Reading.Single<M>) reading : null;
+        final Plan.Read<M> plan = ((mSingleReading == null) || (model == null)) ?
                 reading.preparePlan() :
-                reading.preparePlan(model);
+                mSingleReading.preparePlan(model);
         mPlan = new AtomicReference<>(plan);
     }
 
@@ -98,11 +101,11 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         final Maybe<M> current = result.flatMap(mAfterRead);
         final M model = current.getOrElse(null);
 
-        if (model == null) {
+        if ((mSingleReading == null) || (model == null)) {
             mPlan.set(mReading.preparePlan());
         } else {
             beforeRead(model);
-            mPlan.set(mReading.preparePlan(model));
+            mPlan.set(mSingleReading.preparePlan(model));
         }
 
         mCallback.onResult(Maybes.<R>safeCast(current));

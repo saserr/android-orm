@@ -102,13 +102,17 @@ public final class Plans {
                                               @NonNull final Reading.Item.Create<V> reading) {
         return reading.isEmpty() ?
                 Plans.<List<V>>emptyRead() :
-                new Plan.Read<List<V>>(reading.getProjection()) {
+                new Many<V, List<V>>(name, reading) {
+
                     @NonNull
                     @Override
-                    public Producer<Maybe<List<V>>> read(@NonNull final Readable input) {
-                        final List<V> values = new ArrayList<>(input.size());
-                        Many.read(name, reading, input, values);
-                        return Producers.constant(something(values));
+                    protected List<V> create(final int size) {
+                        return new ArrayList<>(size);
+                    }
+
+                    @Override
+                    protected void add(@NonNull final List<V> to, @NonNull final V value) {
+                        to.add(value);
                     }
                 };
     }
@@ -118,13 +122,17 @@ public final class Plans {
                                             @NonNull final Reading.Item.Create<V> reading) {
         return reading.isEmpty() ?
                 Plans.<Set<V>>emptyRead() :
-                new Plan.Read<Set<V>>(reading.getProjection()) {
+                new Many<V, Set<V>>(name, reading) {
+
                     @NonNull
                     @Override
-                    public Producer<Maybe<Set<V>>> read(@NonNull final Readable input) {
-                        final Set<V> values = new HashSet<>(input.size());
-                        Many.read(name, reading, input, values);
-                        return Producers.constant(something(values));
+                    protected Set<V> create(final int size) {
+                        return new HashSet<>(size);
+                    }
+
+                    @Override
+                    protected void add(@NonNull final Set<V> to, @NonNull final V value) {
+                        to.add(value);
                     }
                 };
     }
@@ -135,11 +143,18 @@ public final class Plans {
                                                   @NonNull final Reading.Item.Create<V> value) {
         return (key.isEmpty() || value.isEmpty()) ?
                 Plans.<Map<K, V>>emptyRead() :
-                new Many.Map<K, V>(name, key, value) {
+                new Many<Pair<K, V>, Map<K, V>>(name, key.and(value)) {
+
                     @NonNull
                     @Override
-                    public Producer<Maybe<Map<K, V>>> read(@NonNull final Readable input) {
-                        return eager(new HashMap<K, V>(input.size()), input);
+                    protected Map<K, V> create(final int size) {
+                        return new HashMap<>(size);
+                    }
+
+                    @Override
+                    protected void add(@NonNull final Map<K, V> to,
+                                       @NonNull final Pair<K, V> pair) {
+                        to.put(pair.first, pair.second);
                     }
                 };
     }
@@ -150,58 +165,18 @@ public final class Plans {
                                                             @NonNull final Reading.Item.Create<V> value) {
         return (key.isEmpty() || value.isEmpty()) ?
                 Plans.<SparseArray<V>>emptyRead() :
-                new Many.SparseArray<V>(name, key, value) {
-                    @NonNull
-                    @Override
-                    public Producer<Maybe<SparseArray<V>>> read(@NonNull final Readable input) {
-                        return eager(new SparseArray<V>(input.size()), input);
-                    }
-                };
-    }
+                new Many<Pair<Integer, V>, SparseArray<V>>(name, key.and(value)) {
 
-    @NonNull
-    public static <V, C extends Collection<V>> Plan.Read<C> many(@NonNls @NonNull final String name,
-                                                                 @NonNull final C values,
-                                                                 @NonNull final Reading.Item.Create<V> reading) {
-        return reading.isEmpty() ?
-                Plans.<C>emptyRead() :
-                new Many.Collection<V, C>(name, reading) {
                     @NonNull
                     @Override
-                    public Producer<Maybe<C>> read(@NonNull final Readable input) {
-                        return lazy(values, input);
+                    protected SparseArray<V> create(final int size) {
+                        return new SparseArray<>(size);
                     }
-                };
-    }
 
-    @NonNull
-    public static <K, V> Plan.Read<Map<K, V>> many(@NonNls @NonNull final String name,
-                                                   @NonNull final Map<K, V> values,
-                                                   @NonNull final Reading.Item.Create<K> key,
-                                                   @NonNull final Reading.Item.Create<V> value) {
-        return (key.isEmpty() || value.isEmpty()) ?
-                Plans.<Map<K, V>>emptyRead() :
-                new Many.Map<K, V>(name, key, value) {
-                    @NonNull
                     @Override
-                    public Producer<Maybe<Map<K, V>>> read(@NonNull final Readable input) {
-                        return lazy(values, input);
-                    }
-                };
-    }
-
-    @NonNull
-    public static <V> Plan.Read<SparseArray<V>> many(@NonNls @NonNull final String name,
-                                                     @NonNull final SparseArray<V> values,
-                                                     @NonNull final Reading.Item.Create<Integer> key,
-                                                     @NonNull final Reading.Item.Create<V> value) {
-        return (key.isEmpty() || value.isEmpty()) ?
-                Plans.<SparseArray<V>>emptyRead() :
-                new Many.SparseArray<V>(name, key, value) {
-                    @NonNull
-                    @Override
-                    public Producer<Maybe<SparseArray<V>>> read(@NonNull final Readable input) {
-                        return lazy(values, input);
+                    protected void add(@NonNull final SparseArray<V> to,
+                                       @NonNull final Pair<Integer, V> pair) {
+                        to.put(pair.first, pair.second);
                     }
                 };
     }
@@ -358,95 +333,31 @@ public final class Plans {
             mReading = reading;
         }
 
-        protected abstract void copy(@NonNull final List<V> from, @NonNull final C to);
+        @NonNull
+        protected abstract C create(final int size);
+
+        protected abstract void add(@NonNull final C to, @NonNull final V v);
 
         @NonNull
-        public final Producer<Maybe<C>> eager(@NonNull final C result,
-                                              @NonNull final Readable input) {
-            final List<V> values = new ArrayList<>(input.size());
-            read(mName, mReading, input, values);
-            copy(values, result);
-            return Producers.constant(something(result));
-        }
+        @Override
+        public final Producer<Maybe<C>> read(@NonNull final Readable input) {
+            final C result = create(input.size());
 
-        @NonNull
-        public final Producer<Maybe<C>> lazy(@NonNull final C result,
-                                             @NonNull final Readable input) {
-            final List<V> values = new ArrayList<>(input.size());
-            read(mName, mReading, input, values);
-            return Reading.Item.lazy(result, new Runnable() {
-                @Override
-                public void run() {
-                    copy(values, result);
-                }
-            });
-        }
-
-        private static <V> void read(@NonNls @NonNull final String name,
-                                     @NonNull final Reading.Item.Create<V> reading,
-                                     @NonNull final Readable input,
-                                     @NonNull final java.util.Collection<V> values) {
             @NonNls final int size = input.size();
             if (Log.isLoggable(TAG, DEBUG)) {
-                Log.d(TAG, "Rows in input for " + name + ": " + size); //NON-NLS
+                Log.d(TAG, "Rows in input for " + mName + ": " + size); //NON-NLS
             }
 
             if (input.start()) {
                 do {
-                    final V model = reading.read(input).produce().getOrElse(null);
+                    final V model = mReading.read(input).produce().getOrElse(null);
                     if (model != null) {
-                        values.add(model);
+                        add(result, model);
                     }
                 } while (input.next());
             }
-        }
 
-        private abstract static class Collection<V, C extends java.util.Collection<V>> extends Many<V, C> {
-
-            private Collection(@NonNls @NonNull final String name,
-                               @NonNull final Reading.Item.Create<V> reading) {
-                super(name, reading);
-            }
-
-            @Override
-            protected final void copy(@NonNull final List<V> from, @NonNull final C to) {
-                to.clear();
-                to.addAll(from);
-            }
-        }
-
-        private abstract static class Map<K, V> extends Many<Pair<K, V>, java.util.Map<K, V>> {
-
-            private Map(@NonNls @NonNull final String name,
-                        @NonNull final Reading.Item.Create<K> key,
-                        @NonNull final Reading.Item.Create<V> value) {
-                super(name, key.and(value));
-            }
-
-            @Override
-            protected final void copy(@NonNull final List<Pair<K, V>> from,
-                                      @NonNull final java.util.Map<K, V> to) {
-                for (final Pair<K, V> pair : from) {
-                    to.put(pair.first, pair.second);
-                }
-            }
-        }
-
-        private abstract static class SparseArray<V> extends Many<Pair<Integer, V>, android.util.SparseArray<V>> {
-
-            private SparseArray(@NonNls @NonNull final String name,
-                                @NonNull final Reading.Item.Create<Integer> key,
-                                @NonNull final Reading.Item.Create<V> value) {
-                super(name, key.and(value));
-            }
-
-            @Override
-            protected final void copy(@NonNull final List<Pair<Integer, V>> from,
-                                      @NonNull final android.util.SparseArray<V> to) {
-                for (final Pair<Integer, V> pair : from) {
-                    to.put(pair.first, pair.second);
-                }
-            }
+            return Producers.constant(something(result));
         }
     }
 

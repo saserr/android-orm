@@ -19,13 +19,16 @@ package android.orm.dao.direct;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.Access;
 import android.orm.dao.Executor;
+import android.orm.model.Mapper;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.model.Reading;
+import android.orm.sql.AggregateFunction;
 import android.orm.sql.Expression;
 import android.orm.sql.Readable;
 import android.orm.sql.Reader;
 import android.orm.sql.Select;
+import android.orm.sql.Value;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -37,7 +40,11 @@ import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.List;
+
 import static android.orm.model.Observer.beforeRead;
+import static android.orm.model.Readings.list;
+import static android.orm.model.Readings.single;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
@@ -92,87 +99,161 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
         return (Function<Producer<Maybe<V>>, Maybe<V>>) AfterRead;
     }
 
-    public static class Builder<M> implements Access.Direct.Query.Builder.Many.Refreshable<M> {
+    public static final class Builder {
 
-        @NonNull
-        private final Executor.Direct<?, ?> mExecutor;
-        @NonNull
-        private final Reading<M> mReading;
+        public static class Single implements Access.Direct.Query.Builder.Single {
 
-        @NonNull
-        private Condition mCondition = Condition.None;
-        @Nullable
-        private Order mOrder;
-        @Nullable
-        private Limit mLimit;
-        @Nullable
-        private Offset mOffset;
-        @Nullable
-        private M mModel;
+            @NonNull
+            private final Executor.Direct<?, ?> mExecutor;
 
-        @SuppressWarnings("unchecked")
-        private final Function<Producer<Maybe<M>>, Maybe<M>> mAfterRead = afterRead();
+            @NonNull
+            private Condition mCondition = Condition.None;
 
-        public Builder(@NonNull final Executor.Direct<?, ?> executor,
-                       @NonNull final Reading<M> reading) {
-            super();
+            public Single(@NonNull final Executor.Direct<?, ?> executor) {
+                super();
 
-            mExecutor = executor;
-            mReading = reading;
-        }
-
-        @NonNull
-        @Override
-        public final Builder<M> with(@Nullable final Condition condition) {
-            mCondition = (condition == null) ? Condition.None : condition;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public final Builder<M> with(@Nullable final Order order) {
-            mOrder = order;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public final Builder<M> with(@Nullable final Limit limit) {
-            mLimit = limit;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public final Builder<M> with(@Nullable final Offset offset) {
-            mOffset = offset;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public final Builder<M> using(@Nullable final M model) {
-            mModel = model;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public final Maybe<M> execute() {
-            beforeRead(mModel);
-            final Plan.Read<M> plan = (mModel == null) ?
-                    mReading.preparePlan() :
-                    mReading.preparePlan(mModel);
-            final Maybe<M> result;
-
-            if (plan.isEmpty()) {
-                Observer.afterRead(mModel);
-                result = (mModel == null) ? Maybes.<M>nothing() : something(mModel);
-            } else {
-                result = mExecutor.query(plan, mCondition, mOrder, mLimit, mOffset).flatMap(mAfterRead);
+                mExecutor = executor;
             }
 
-            return result;
+            @NonNull
+            @Override
+            public final Single with(@Nullable final Condition condition) {
+                mCondition = (condition == null) ? Condition.None : condition;
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final <V> Maybe<V> select(@NonNull final Value.Read<V> value) {
+                return select(single(value));
+            }
+
+            @NonNull
+            @Override
+            public final <M> Maybe<M> select(@NonNull final Mapper.Read<M> mapper) {
+                return select(single(mapper));
+            }
+
+            @NonNull
+            @Override
+            public final <M> Maybe<M> select(@NonNull final M model,
+                                             @NonNull final Mapper.Read<M> mapper) {
+                return select(model, single(mapper));
+            }
+
+            @NonNull
+            @Override
+            public final <M> Maybe<M> select(@NonNull final Reading.Single<M> reading) {
+                return select(null, reading.preparePlan());
+            }
+
+            @NonNull
+            @Override
+            public final <M> Maybe<M> select(@NonNull final M model,
+                                             @NonNull final Reading.Single<M> reading) {
+                beforeRead(model);
+                return select(model, reading.preparePlan(model));
+            }
+
+            @NonNull
+            private <M> Maybe<M> select(@Nullable final M model,
+                                        @NonNull final Plan.Read<M> plan) {
+                final Maybe<M> result;
+
+                if (plan.isEmpty()) {
+                    Observer.afterRead(model);
+                    result = (model == null) ? Maybes.<M>nothing() : something(model);
+                } else {
+                    result = mExecutor.query(plan, mCondition, null, Limit.Single, null).flatMap(Query.<M>afterRead());
+                }
+
+                return result;
+            }
+        }
+
+        public static class Many implements Access.Direct.Query.Builder.Many {
+
+            @NonNull
+            private final Executor.Direct<?, ?> mExecutor;
+
+            @NonNull
+            private Condition mCondition = Condition.None;
+            @Nullable
+            private Order mOrder;
+            @Nullable
+            private Limit mLimit;
+            @Nullable
+            private Offset mOffset;
+
+            public Many(@NonNull final Executor.Direct<?, ?> executor) {
+                super();
+
+                mExecutor = executor;
+            }
+
+            @NonNull
+            @Override
+            public final Many with(@Nullable final Condition condition) {
+                mCondition = (condition == null) ? Condition.None : condition;
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final Many with(@Nullable final Order order) {
+                mOrder = order;
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final Many with(@Nullable final Limit limit) {
+                mLimit = limit;
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final Many with(@Nullable final Offset offset) {
+                mOffset = offset;
+                return this;
+            }
+
+            @NonNull
+            @Override
+            public final <V> Maybe<V> select(@NonNull final AggregateFunction<V> function) {
+                return select(single(function));
+            }
+
+            @NonNull
+            @Override
+            public final <V> Maybe<List<V>> select(@NonNull final Value.Read<V> value) {
+                return select(list(value));
+            }
+
+            @NonNull
+            @Override
+            public final <M> Maybe<List<M>> select(@NonNull final Mapper.Read<M> mapper) {
+                return select(list(mapper));
+            }
+
+            @NonNull
+            @Override
+            public final <M> Maybe<M> select(@NonNull final Reading.Many<M> reading) {
+                return select((Reading<M>) reading);
+            }
+
+            @NonNull
+            private <M> Maybe<M> select(@NonNull final Reading<M> reading) {
+                final Plan.Read<M> plan = reading.preparePlan();
+                return plan.isEmpty() ?
+                        Maybes.<M>nothing() :
+                        mExecutor.query(plan, mCondition, mOrder, mLimit, mOffset).flatMap(Query.<M>afterRead());
+            }
+        }
+
+        private Builder() {
+            super();
         }
     }
 }

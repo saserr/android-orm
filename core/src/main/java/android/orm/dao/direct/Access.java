@@ -19,14 +19,12 @@ package android.orm.dao.direct;
 import android.orm.Model;
 import android.orm.dao.Executor;
 import android.orm.model.Instance;
-import android.orm.model.Mapper;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.model.Plans;
 import android.orm.model.Reading;
-import android.orm.sql.AggregateFunction;
-import android.orm.sql.Value;
 import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Limit;
 import android.orm.util.Function;
 import android.orm.util.Functions;
 import android.orm.util.Maybe;
@@ -34,12 +32,8 @@ import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.util.List;
-
 import static android.orm.dao.direct.Query.afterRead;
 import static android.orm.model.Observer.beforeRead;
-import static android.orm.model.Readings.list;
-import static android.orm.model.Readings.single;
 import static android.orm.util.Maybes.something;
 
 public final class Access {
@@ -73,7 +67,7 @@ public final class Access {
                 result = something(model);
             } else {
                 final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
-                result = mExecutor.query(plan, Condition.None, null, null, null).flatMap(afterRead);
+                result = mExecutor.query(plan, Condition.None, null, Limit.Single, null).flatMap(afterRead);
             }
 
             return result;
@@ -81,20 +75,8 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M> Query.Builder<M> query(@NonNull final Value.Read<M> value) {
-            return query(single(value));
-        }
-
-        @NonNull
-        @Override
-        public final <M> Query.Builder<M> query(@NonNull final Mapper.Read<M> mapper) {
-            return query(single(mapper));
-        }
-
-        @NonNull
-        @Override
-        public final <M> Query.Builder<M> query(@NonNull final Reading.Single<M> reading) {
-            return new Query.Builder<>(mExecutor, reading);
+        public final Query.Builder.Single query() {
+            return new Query.Builder.Single(mExecutor);
         }
 
         @Override
@@ -131,26 +113,8 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M> Query.Builder<M> query(@NonNull final AggregateFunction<M> function) {
-            return new Query.Builder<>(mExecutor, single(function));
-        }
-
-        @NonNull
-        @Override
-        public final <M> Query.Builder<List<M>> query(@NonNull final Value.Read<M> value) {
-            return query(list(value));
-        }
-
-        @NonNull
-        @Override
-        public final <M> Query.Builder<List<M>> query(@NonNull final Mapper.Read<M> mapper) {
-            return query(list(mapper));
-        }
-
-        @NonNull
-        @Override
-        public final <M> Query.Builder<M> query(@NonNull final Reading.Many<M> reading) {
-            return new Query.Builder<>(mExecutor, reading);
+        public final Query.Builder.Many query() {
+            return new Query.Builder.Many(mExecutor);
         }
 
         @Override

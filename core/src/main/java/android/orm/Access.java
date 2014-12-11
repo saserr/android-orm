@@ -45,103 +45,88 @@ public final class Access {
             public interface Single extends Access.Query.Single {
 
                 @NonNull
+                @Override
                 <M extends Model> Maybe<M> query(@NonNull final M model);
 
                 @NonNull
+                @Override
                 <M extends Instance.Readable> Maybe<M> query(@NonNull final M model);
 
                 @NonNull
                 @Override
-                <M> Builder.Single<M> query(@NonNull final Value.Read<M> value);
-
-                @NonNull
-                @Override
-                <M> Builder.Single.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
-
-                @NonNull
-                @Override
-                <M> Builder.Single.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+                Builder.Single query();
             }
 
             public interface Many extends Access.Query.Many {
-
                 @NonNull
                 @Override
-                <M> Builder.Many<M> query(@NonNull final AggregateFunction<M> function);
-
-                @NonNull
-                @Override
-                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
-
-                @NonNull
-                @Override
-                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
-
-                @NonNull
-                @Override
-                <M> Builder.Many.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+                Builder.Many query();
             }
 
             public static final class Builder {
 
-                public interface Single<V> extends Access.Query.Builder.Single<V, Maybe<V>> {
+                public interface Single extends Access.Query.Builder.Single {
 
                     @NonNull
                     @Override
-                    Single<V> with(@Nullable final Condition condition);
+                    Single with(@Nullable final Condition condition);
 
-                    interface Refreshable<V> extends Single<V>, Access.Query.Builder.Single.Refreshable<V, Maybe<V>> {
+                    @NonNull
+                    @Override
+                    <V> Maybe<V> select(@NonNull final Value.Read<V> value);
 
-                        @NonNull
-                        @Override
-                        Single.Refreshable<V> with(@Nullable final Condition condition);
+                    @NonNull
+                    @Override
+                    <M> Maybe<M> select(@NonNull final Mapper.Read<M> mapper);
 
-                        @NonNull
-                        @Override
-                        Single.Refreshable<V> using(@Nullable final V v);
-                    }
+                    @NonNull
+                    @Override
+                    <M> Maybe<M> select(@NonNull final M model,
+                                        @NonNull final Mapper.Read<M> mapper);
+
+                    @NonNull
+                    @Override
+                    <M> Maybe<M> select(@NonNull final Reading.Single<M> reading);
+
+                    @NonNull
+                    @Override
+                    <M> Maybe<M> select(@NonNull final M model,
+                                        @NonNull final Reading.Single<M> reading);
                 }
 
-                public interface Many<V> extends Access.Query.Builder.Many<V, Maybe<V>>, Single<V> {
+                public interface Many extends Access.Query.Builder.Many {
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Condition condition);
+                    Many with(@Nullable final Condition condition);
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Order order);
+                    Many with(@Nullable final Order order);
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Limit limit);
+                    Many with(@Nullable final Limit limit);
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Offset offset);
+                    Many with(@Nullable final Offset offset);
 
-                    interface Refreshable<V> extends Many<V>, Access.Query.Builder.Many.Refreshable<V, Maybe<V>>, Single.Refreshable<V> {
+                    @NonNull
+                    @Override
+                    <V> Maybe<V> select(@NonNull final AggregateFunction<V> function);
 
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Condition condition);
+                    @NonNull
+                    @Override
+                    <V> Maybe<List<V>> select(@NonNull final Value.Read<V> value);
 
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Order order);
+                    @NonNull
+                    @Override
+                    <M> Maybe<List<M>> select(@NonNull final Mapper.Read<M> mapper);
 
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Limit limit);
-
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Offset offset);
-
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> using(@Nullable final V v);
-                    }
+                    @NonNull
+                    @Override
+                    <M> Maybe<M> select(@NonNull final Reading.Many<M> reading);
                 }
 
                 private Builder() {
@@ -226,103 +211,88 @@ public final class Access {
             public interface Single extends Access.Query.Single {
 
                 @NonNull
+                @Override
                 <M extends Model> Result<M> query(@NonNull final M model);
 
                 @NonNull
+                @Override
                 <M extends Instance.Readable> Result<M> query(@NonNull final M model);
 
                 @NonNull
                 @Override
-                <M> Builder.Single<M> query(@NonNull final Value.Read<M> value);
-
-                @NonNull
-                @Override
-                <M> Builder.Single.Refreshable<M> query(@NonNull final Mapper.Read<M> mapper);
-
-                @NonNull
-                @Override
-                <M> Builder.Single.Refreshable<M> query(@NonNull final Reading.Single<M> reading);
+                Builder.Single query();
             }
 
             public interface Many extends Access.Query.Many {
-
                 @NonNull
                 @Override
-                <M> Builder.Many<M> query(@NonNull final AggregateFunction<M> function);
-
-                @NonNull
-                @Override
-                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Value.Read<M> value);
-
-                @NonNull
-                @Override
-                <M> Builder.Many.Refreshable<List<M>> query(@NonNull final Mapper.Read<M> mapper);
-
-                @NonNull
-                @Override
-                <M> Builder.Many.Refreshable<M> query(@NonNull final Reading.Many<M> reading);
+                Builder.Many query();
             }
 
             public static final class Builder {
 
-                public interface Single<V> extends Access.Query.Builder.Single<V, Result<V>> {
+                public interface Single extends Access.Query.Builder.Single {
 
                     @NonNull
                     @Override
-                    Single<V> with(@Nullable final Condition condition);
+                    Single with(@Nullable final Condition condition);
 
-                    interface Refreshable<V> extends Single<V>, Access.Query.Builder.Single.Refreshable<V, Result<V>> {
+                    @NonNull
+                    @Override
+                    <V> Result<V> select(@NonNull final Value.Read<V> value);
 
-                        @NonNull
-                        @Override
-                        Single.Refreshable<V> with(@Nullable final Condition condition);
+                    @NonNull
+                    @Override
+                    <M> Result<M> select(@NonNull final Mapper.Read<M> mapper);
 
-                        @NonNull
-                        @Override
-                        Single.Refreshable<V> using(@Nullable final V v);
-                    }
+                    @NonNull
+                    @Override
+                    <M> Result<M> select(@NonNull final M model,
+                                         @NonNull final Mapper.Read<M> mapper);
+
+                    @NonNull
+                    @Override
+                    <M> Result<M> select(@NonNull final Reading.Single<M> reading);
+
+                    @NonNull
+                    @Override
+                    <M> Result<M> select(@NonNull final M model,
+                                         @NonNull final Reading.Single<M> reading);
                 }
 
-                public interface Many<V> extends Access.Query.Builder.Many<V, Result<V>>, Single<V> {
+                public interface Many extends Access.Query.Builder.Many {
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Condition condition);
+                    Many with(@Nullable final Condition condition);
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Order order);
+                    Many with(@Nullable final Order order);
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Limit limit);
+                    Many with(@Nullable final Limit limit);
 
                     @NonNull
                     @Override
-                    Many<V> with(@Nullable final Offset offset);
+                    Many with(@Nullable final Offset offset);
 
-                    interface Refreshable<V> extends Many<V>, Access.Query.Builder.Many.Refreshable<V, Result<V>>, Single.Refreshable<V> {
+                    @NonNull
+                    @Override
+                    <V> Result<V> select(@NonNull final AggregateFunction<V> function);
 
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Condition condition);
+                    @NonNull
+                    @Override
+                    <V> Result<List<V>> select(@NonNull final Value.Read<V> value);
 
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Order order);
+                    @NonNull
+                    @Override
+                    <M> Result<List<M>> select(@NonNull final Mapper.Read<M> mapper);
 
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Limit limit);
-
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> with(@Nullable final Offset offset);
-
-                        @NonNull
-                        @Override
-                        Many.Refreshable<V> using(@Nullable final V v);
-                    }
+                    @NonNull
+                    @Override
+                    <M> Result<M> select(@NonNull final Reading.Many<M> reading);
                 }
 
                 private Builder() {
@@ -411,88 +381,68 @@ public final class Access {
         public interface Single {
 
             @NonNull
-            <M> Builder.Single<M, ?> query(@NonNull final Value.Read<M> value);
+            <M extends Model> Object query(@NonNull final M model);
 
             @NonNull
-            <M> Builder.Single.Refreshable<M, ?> query(@NonNull final Mapper.Read<M> mapper);
+            <M extends Instance.Readable> Object query(@NonNull final M model);
 
             @NonNull
-            <M> Builder.Single.Refreshable<M, ?> query(@NonNull final Reading.Single<M> reading);
+            Builder.Single query();
         }
 
         public interface Many {
-
             @NonNull
-            <M> Builder.Many<M, ?> query(@NonNull final AggregateFunction<M> function);
-
-            @NonNull
-            <M> Builder.Many<List<M>, ?> query(@NonNull final Value.Read<M> value);
-
-            @NonNull
-            <M> Builder.Many.Refreshable<List<M>, ?> query(@NonNull final Mapper.Read<M> mapper);
-
-            @NonNull
-            <M> Builder.Many.Refreshable<M, ?> query(@NonNull final Reading.Many<M> reading);
+            Builder.Many query();
         }
 
         public static final class Builder {
 
-            public interface Single<V, R> {
+            public interface Single {
 
                 @NonNull
-                Single<V, R> with(@Nullable final Condition condition);
+                Single with(@Nullable final Condition condition);
 
                 @NonNull
-                R execute();
+                <V> Object select(@NonNull final Value.Read<V> value);
 
-                interface Refreshable<V, R> extends Single<V, R> {
+                @NonNull
+                <M> Object select(@NonNull final Mapper.Read<M> mapper);
 
-                    @NonNull
-                    @Override
-                    Refreshable<V, R> with(@Nullable final Condition condition);
+                @NonNull
+                <M> Object select(@NonNull final M model, @NonNull final Mapper.Read<M> mapper);
 
-                    @NonNull
-                    Refreshable<V, R> using(@Nullable final V v);
-                }
+                @NonNull
+                <M> Object select(@NonNull final Reading.Single<M> reading);
+
+                @NonNull
+                <M> Object select(@NonNull final M model, @NonNull final Reading.Single<M> reading);
             }
 
-            public interface Many<V, R> extends Single<V, R> {
+            public interface Many {
 
                 @NonNull
-                @Override
-                Many<V, R> with(@Nullable final Condition condition);
+                Many with(@Nullable final Condition condition);
 
                 @NonNull
-                Many<V, R> with(@Nullable final Order order);
+                Many with(@Nullable final Order order);
 
                 @NonNull
-                Many<V, R> with(@Nullable final Limit limit);
+                Many with(@Nullable final Limit limit);
 
                 @NonNull
-                Many<V, R> with(@Nullable final Offset offset);
+                Many with(@Nullable final Offset offset);
 
-                interface Refreshable<V, R> extends Many<V, R>, Single.Refreshable<V, R> {
+                @NonNull
+                <V> Object select(@NonNull final AggregateFunction<V> function);
 
-                    @NonNull
-                    @Override
-                    Many.Refreshable<V, R> with(@Nullable final Condition condition);
+                @NonNull
+                <V> Object select(@NonNull final Value.Read<V> value);
 
-                    @NonNull
-                    @Override
-                    Many.Refreshable<V, R> with(@Nullable final Order order);
+                @NonNull
+                <M> Object select(@NonNull final Mapper.Read<M> mapper);
 
-                    @NonNull
-                    @Override
-                    Many.Refreshable<V, R> with(@Nullable final Limit limit);
-
-                    @NonNull
-                    @Override
-                    Many.Refreshable<V, R> with(@Nullable final Offset offset);
-
-                    @NonNull
-                    @Override
-                    Many.Refreshable<V, R> using(@Nullable final V v);
-                }
+                @NonNull
+                <M> Object select(@NonNull final Reading.Many<M> reading);
             }
 
             private Builder() {

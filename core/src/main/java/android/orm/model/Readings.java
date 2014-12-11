@@ -27,7 +27,6 @@ import android.util.SparseArray;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,76 +47,115 @@ public final class Readings {
 
     @NonNull
     public static <V> Reading.Many<List<V>> list(@NonNull final Value.Read<V> value) {
-        return new Many<>(value, Plans.list(value.getName(), Reading.Item.Create.from(value)));
+        return new Many<>(Plans.list(value.getName(), Reading.Item.Create.from(value)));
     }
 
     @NonNull
     public static <M> Reading.Many<List<M>> list(@NonNull final Mapper.Read<M> mapper) {
-        return new Many<>(mapper, Plans.list(mapper.getName(), mapper.prepareRead()));
+        return new Many<>(Plans.list(mapper.getName(), mapper.prepareRead()));
     }
 
     @NonNull
     public static <V> Reading.Many<Set<V>> set(@NonNull final Value.Read<V> value) {
-        return new Many<>(value, Plans.set(value.getName(), Reading.Item.Create.from(value)));
+        return new Many<>(Plans.set(value.getName(), Reading.Item.Create.from(value)));
     }
 
     @NonNull
     public static <M> Reading.Many<Set<M>> set(@NonNull final Mapper.Read<M> mapper) {
-        return new Many<>(mapper, Plans.set(mapper.getName(), mapper.prepareRead()));
+        return new Many<>(Plans.set(mapper.getName(), mapper.prepareRead()));
     }
 
     @NonNull
     public static <M> Reading.Many<Set<M>> difference(@NonNull final Reading.Many<Set<M>> reading,
                                                       @NonNull final Set<M> subtrahend) {
-        return new Subtraction<>(reading, subtrahend);
+        return new Many<>(reading.preparePlan().map(new Function<Set<M>, Set<M>>() {
+            @NonNull
+            @Override
+            public Set<M> invoke(@NonNull final Set<M> minuend) {
+                minuend.removeAll(subtrahend);
+                return minuend;
+            }
+        }));
     }
 
     @NonNull
     public static <K, V> Reading.Many<Map<K, V>> map(@NonNull final Value.Read<K> key,
                                                      @NonNull final Value.Read<V> value) {
-        return new MapReading<>(key, value);
+        return new Many<>(Plans.map(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                Reading.Item.Create.from(key),
+                Reading.Item.Create.from(value)
+        ));
     }
 
     @NonNull
     public static <K, V> Reading.Many<Map<K, V>> map(@NonNull final Mapper.Read<K> key,
                                                      @NonNull final Value.Read<V> value) {
-        return new MapReading<>(key, value);
+        return new Many<>(Plans.map(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                key.prepareRead(),
+                Reading.Item.Create.from(value)
+        ));
     }
 
     @NonNull
     public static <K, V> Reading.Many<Map<K, V>> map(@NonNull final Value.Read<K> key,
                                                      @NonNull final Mapper.Read<V> value) {
-        return new MapReading<>(key, value);
+        return new Many<>(Plans.map(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                Reading.Item.Create.from(key),
+                value.prepareRead()
+        ));
     }
 
     @NonNull
     public static <K, V> Reading.Many<Map<K, V>> map(@NonNull final Mapper.Read<K> key,
                                                      @NonNull final Mapper.Read<V> value) {
-        return new MapReading<>(key, value);
+        return new Many<>(Plans.map(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                key.prepareRead(),
+                value.prepareRead()
+        ));
     }
 
     @NonNull
     public static <V> Reading.Many<SparseArray<V>> sparseArray(@NonNull final Value.Read<Integer> key,
                                                                @NonNull final Value.Read<V> value) {
-        return new SparseArrayReading<>(key, value);
+        return new Many<>(Plans.sparseArray(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                Reading.Item.Create.from(key),
+                Reading.Item.Create.from(value)
+        ));
     }
 
     @NonNull
     public static <V> Reading.Many<SparseArray<V>> sparseArray(@NonNull final Mapper.Read<Integer> key,
                                                                @NonNull final Value.Read<V> value) {
-        return new SparseArrayReading<>(key, value);
+        return new Many<>(Plans.sparseArray(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                key.prepareRead(),
+                Reading.Item.Create.from(value)
+        ));
     }
 
     @NonNull
     public static <V> Reading.Many<SparseArray<V>> sparseArray(@NonNull final Value.Read<Integer> key,
                                                                @NonNull final Mapper.Read<V> value) {
-        return new SparseArrayReading<>(key, value);
+        return new Many<>(Plans.sparseArray(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                Reading.Item.Create.from(key),
+                value.prepareRead()
+        ));
     }
 
     @NonNull
     public static <V> Reading.Many<SparseArray<V>> sparseArray(@NonNull final Mapper.Read<Integer> key,
                                                                @NonNull final Mapper.Read<V> value) {
-        return new SparseArrayReading<>(key, value);
+        return new Many<>(Plans.sparseArray(
+                '(' + key.getName() + ", " + value.getName() + ')',
+                key.prepareRead(),
+                value.prepareRead()
+        ));
     }
 
     @NonNull
@@ -129,7 +167,7 @@ public final class Readings {
     @NonNull
     public static <V, T> Reading.Many<Pair<V, T>> compose(@NonNull final Reading.Many<V> first,
                                                           @NonNull final Reading.Many<T> second) {
-        return new ManyComposition<>(first, second);
+        return new Many<>(first.preparePlan().and(second.preparePlan()));
     }
 
     @NonNull
@@ -141,7 +179,7 @@ public final class Readings {
     @NonNull
     public static <V, T> Reading.Many<T> convert(@NonNull final Reading.Many<V> reading,
                                                  @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
-        return new ManyConversion<>(reading, converter);
+        return new Many<>(reading.preparePlan().convert(Converters.from(converter)));
     }
 
     private static class Single<V> extends Reading.Single.Base<V> {
@@ -179,222 +217,22 @@ public final class Readings {
         }
     }
 
-    private static class Many<V, C extends Collection<V>> extends Reading.Many.Base<C> {
+    private static class Many<V> extends Reading.Many.Base<V> {
 
-        @NonNls
         @NonNull
-        private final String mName;
-        @NonNull
-        private final Item.Create<V> mReading;
-        @NonNull
-        private final Plan.Read<C> mCreate;
+        private final Plan.Read<V> mPlan;
 
-        private Many(@NonNull final Value.Read<V> value,
-                     @NonNull final Plan.Read<C> create) {
+
+        private Many(@NonNull final Plan.Read<V> create) {
             super();
 
-            mName = value.getName();
-            mReading = Item.Create.from(value);
-            mCreate = create;
-        }
-
-        private Many(@NonNull final Mapper.Read<V> mapper,
-                     @NonNull final Plan.Read<C> create) {
-            super();
-
-            mName = mapper.getName();
-            mReading = mapper.prepareRead();
-            mCreate = create;
+            mPlan = create;
         }
 
         @NonNull
         @Override
-        public final Plan.Read<C> preparePlan() {
-            return mCreate;
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<C> preparePlan(@NonNull final C values) {
-            return Plans.many(mName, values, mReading);
-        }
-    }
-
-    private static class Subtraction<M> extends Reading.Many.Base<Set<M>> {
-
-        @NonNull
-        private final Many<Set<M>> mReading;
-        @NonNull
-        private final Function<Set<M>, Set<M>> mSubtract;
-
-        private Subtraction(@NonNull final Many<Set<M>> reading, @NonNull final Set<M> subtrahend) {
-            super();
-
-            mReading = reading;
-            mSubtract = new Function<Set<M>, Set<M>>() {
-                @NonNull
-                @Override
-                public Set<M> invoke(@NonNull final Set<M> minuend) {
-                    minuend.removeAll(subtrahend);
-                    return minuend;
-                }
-            };
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<Set<M>> preparePlan() {
-            return Plans.eagerly(mReading.preparePlan().map(mSubtract));
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<Set<M>> preparePlan(@NonNull final Set<M> minuend) {
-            return mReading.preparePlan(minuend).map(mSubtract);
-        }
-    }
-
-    private static class MapReading<K, V> extends Reading.Many.Base<Map<K, V>> {
-
-        @NonNls
-        @NonNull
-        private final String mName;
-        @NonNull
-        private final Item.Create<K> mKey;
-        @NonNull
-        private final Item.Create<V> mValue;
-        @NonNull
-        private final Plan.Read<Map<K, V>> mCreate;
-
-        private MapReading(@NonNull final Value.Read<K> key,
-                           @NonNull final Value.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    Item.Create.from(key),
-                    Item.Create.from(value)
-            );
-        }
-
-        private MapReading(@NonNull final Mapper.Read<K> key,
-                           @NonNull final Value.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    key.prepareRead(),
-                    Item.Create.from(value)
-            );
-        }
-
-        private MapReading(@NonNull final Value.Read<K> key,
-                           @NonNull final Mapper.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    Item.Create.from(key),
-                    value.prepareRead()
-            );
-        }
-
-        private MapReading(@NonNull final Mapper.Read<K> key,
-                           @NonNull final Mapper.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    key.prepareRead(),
-                    value.prepareRead()
-            );
-        }
-
-        private MapReading(@NonNls @NonNull final String name,
-                           @NonNull final Item.Create<K> key,
-                           @NonNull final Item.Create<V> value) {
-            super();
-
-            mName = name;
-            mKey = key;
-            mValue = value;
-            mCreate = Plans.map(name, key, value);
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<Map<K, V>> preparePlan() {
-            return mCreate;
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<Map<K, V>> preparePlan(@NonNull final Map<K, V> values) {
-            return Plans.many(mName, values, mKey, mValue);
-        }
-    }
-
-    private static class SparseArrayReading<V> extends Reading.Many.Base<SparseArray<V>> {
-
-        @NonNls
-        @NonNull
-        private final String mName;
-        @NonNull
-        private final Item.Create<Integer> mKey;
-        @NonNull
-        private final Item.Create<V> mValue;
-        @NonNull
-        private final Plan.Read<SparseArray<V>> mCreate;
-
-        private SparseArrayReading(@NonNull final Value.Read<Integer> key,
-                                   @NonNull final Value.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    Item.Create.from(key),
-                    Item.Create.from(value)
-            );
-        }
-
-        private SparseArrayReading(@NonNull final Mapper.Read<Integer> key,
-                                   @NonNull final Value.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    key.prepareRead(),
-                    Item.Create.from(value)
-            );
-        }
-
-        private SparseArrayReading(@NonNull final Value.Read<Integer> key,
-                                   @NonNull final Mapper.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    Item.Create.from(key),
-                    value.prepareRead()
-            );
-        }
-
-        private SparseArrayReading(@NonNull final Mapper.Read<Integer> key,
-                                   @NonNull final Mapper.Read<V> value) {
-            this(
-                    '(' + key.getName() + ", " + value.getName() + ')',
-                    key.prepareRead(),
-                    value.prepareRead()
-            );
-        }
-
-        private SparseArrayReading(@NonNls @NonNull final String name,
-                                   @NonNull final Item.Create<Integer> key,
-                                   @NonNull final Item.Create<V> value) {
-            super();
-
-            mName = name;
-            mKey = key;
-            mValue = value;
-            mCreate = Plans.sparseArray(name, key, value);
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<SparseArray<V>> preparePlan() {
-            return mCreate;
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<SparseArray<V>> preparePlan(@NonNull final SparseArray<V> values) {
-            return Plans.many(mName, values, mKey, mValue);
+        public final Plan.Read<V> preparePlan() {
+            return mPlan;
         }
     }
 
@@ -404,6 +242,8 @@ public final class Readings {
         private final Reading.Single<V> mFirst;
         @NonNull
         private final Reading.Single<T> mSecond;
+        @NonNull
+        private final Plan.Read<Pair<V, T>> mCreate;
 
         private SingleComposition(@NonNull final Reading.Single<V> first,
                                   @NonNull final Reading.Single<T> second) {
@@ -411,56 +251,13 @@ public final class Readings {
 
             mFirst = first;
             mSecond = second;
+            mCreate = Plans.eagerly(first.preparePlan().and(second.preparePlan()));
         }
 
         @NonNull
         @Override
         public final Plan.Read<Pair<V, T>> preparePlan() {
-            return Plans.eagerly(mFirst.preparePlan().and(mSecond.preparePlan()));
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<Pair<V, T>> preparePlan(@NonNull final Pair<V, T> pair) {
-            final Plan.Read<Pair<V, T>> result;
-
-            final V v = pair.first;
-            final T t = pair.second;
-            if ((v == null) && (t == null)) {
-                result = preparePlan();
-            } else {
-                final Plan.Read<V> plan1 = (v == null) ?
-                        mFirst.preparePlan() :
-                        mFirst.preparePlan(v);
-                final Plan.Read<T> plan2 = (t == null) ?
-                        mSecond.preparePlan() :
-                        mSecond.preparePlan(t);
-                result = plan1.and(plan2);
-            }
-
-            return result;
-        }
-    }
-
-    private static class ManyComposition<V, T> extends Reading.Many.Base<Pair<V, T>> {
-
-        @NonNull
-        private final Reading.Many<V> mFirst;
-        @NonNull
-        private final Reading.Many<T> mSecond;
-
-        private ManyComposition(@NonNull final Reading.Many<V> first,
-                                @NonNull final Reading.Many<T> second) {
-            super();
-
-            mFirst = first;
-            mSecond = second;
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<Pair<V, T>> preparePlan() {
-            return Plans.eagerly(mFirst.preparePlan().and(mSecond.preparePlan()));
+            return mCreate;
         }
 
         @NonNull
@@ -494,6 +291,8 @@ public final class Readings {
         private final Converter<Maybe<V>, Maybe<T>> mConverter;
         @NonNull
         private final Function<Maybe<V>, Maybe<T>> mFrom;
+        @NonNull
+        private final Plan.Read<T> mCreate;
 
         private SingleConversion(@NonNull final Reading.Single<V> reading,
                                  @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
@@ -502,53 +301,13 @@ public final class Readings {
             mReading = reading;
             mConverter = converter;
             mFrom = Converters.from(converter);
+            mCreate = Plans.eagerly(reading.preparePlan().convert(mFrom));
         }
 
         @NonNull
         @Override
         public final Plan.Read<T> preparePlan() {
-            return Plans.eagerly(mReading.preparePlan().convert(mFrom));
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<T> preparePlan(@NonNull final T t) {
-            final Plan.Read<T> result;
-
-            final Maybe<V> value = mConverter.to(something(t));
-            if (value.isSomething()) {
-                final V v = value.get();
-                result = (v == null) ? preparePlan() : mReading.preparePlan(v).convert(mFrom);
-            } else {
-                result = preparePlan();
-            }
-
-            return result;
-        }
-    }
-
-    private static class ManyConversion<T, V> extends Reading.Many.Base<T> {
-
-        @NonNull
-        private final Reading.Many<V> mReading;
-        @NonNull
-        private final Converter<Maybe<V>, Maybe<T>> mConverter;
-        @NonNull
-        private final Function<Maybe<V>, Maybe<T>> mFrom;
-
-        private ManyConversion(@NonNull final Reading.Many<V> reading,
-                               @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
-            super();
-
-            mReading = reading;
-            mConverter = converter;
-            mFrom = Converters.from(converter);
-        }
-
-        @NonNull
-        @Override
-        public final Plan.Read<T> preparePlan() {
-            return Plans.eagerly(mReading.preparePlan().convert(mFrom));
+            return mCreate;
         }
 
         @NonNull
