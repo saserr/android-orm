@@ -83,7 +83,7 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         mValidation = validation;
 
         mProjection = Select.projection(name, null);
-        mSQL = sql(name, type, notNull, unique, defaultValue, reference);
+        mSQL = new SQL(name, type, notNull, unique, defaultValue, reference);
         mNullable = mNotNull == null;
     }
 
@@ -275,32 +275,46 @@ public class Column<V> extends Value.ReadWrite.Base<V> implements Fragment {
         return new Column<>(name, type, null, null, null, null, null);
     }
 
-    @NonNull
-    private static <V> Lazy<String> sql(@NonNls @NonNull final String name,
-                                        @NonNull final Type<V> type,
-                                        @NonNull final Constraint... constraints) {
-        return new Lazy.Volatile<String>() {
-            @NonNls
-            @NonNull
-            @Override
-            protected String produce() {
-                @NonNls final StringBuilder result = new StringBuilder();
+    private static class SQL extends Lazy.Volatile<String> {
 
-                result.append(Helper.escape(name))
-                        .append(' ')
-                        .append(type.toSQL());
+        @NonNls
+        @NonNull
+        private final String mName;
+        @NonNull
+        private final Type<?> mType;
+        @NonNull
+        private final Constraint[] mConstraints;
 
-                for (final Constraint constraint : constraints) {
-                    if (constraint != null) {
-                        final String sql = constraint.toSQL();
-                        if (sql != null) {
-                            result.append(' ').append(sql);
-                        }
+        private SQL(@NonNls @NonNull final String name,
+                    @NonNull final Type<?> type,
+                    @NonNull final Constraint... constraints) {
+            super();
+
+            mName = name;
+            mType = type;
+            mConstraints = constraints;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        protected final String produce() {
+            @NonNls final StringBuilder result = new StringBuilder();
+
+            result.append(Helper.escape(mName))
+                    .append(' ')
+                    .append(mType.toSQL());
+
+            for (final Constraint constraint : mConstraints) {
+                if (constraint != null) {
+                    final String sql = constraint.toSQL();
+                    if (sql != null) {
+                        result.append(' ').append(sql);
                     }
                 }
-
-                return result.toString();
             }
-        };
+
+            return result.toString();
+        }
     }
 }

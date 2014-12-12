@@ -93,7 +93,7 @@ public final class Mapper {
                 super();
 
                 mName = value.getName();
-                mReading = Reading.Item.builder(value);
+                mReading = new Reading.Item.Builder<>(value);
             }
 
             @NonNull
@@ -198,7 +198,7 @@ public final class Mapper {
             @NonNls
             @NonNull
             private final String mName;
-            private final Plan.Write.Builder<M> mWrite = Plan.Write.builder();
+            private final Plan.Write.Builder<M> mWrite = new Plan.Write.Builder<>();
 
             public Builder(@NonNls @NonNull final String name) {
                 super();
@@ -350,15 +350,15 @@ public final class Mapper {
                            @NonNull final Producer<M> producer) {
                 super();
 
-                mRead = read(name, producer);
-                mWrite = write(name);
+                mRead = new Read.Builder<>(name, producer);
+                mWrite = new Write.Builder<>(name);
             }
 
             public Builder(@NonNull final Value.Read<M> value) {
                 super();
 
-                mRead = read(value);
-                mWrite = write(value.getName());
+                mRead = new Read.Builder<>(value);
+                mWrite = new Write.Builder<>(value.getName());
             }
 
             @NonNull
@@ -416,33 +416,6 @@ public final class Mapper {
                 return Mappers.combine(mRead.build(), mWrite.build());
             }
         }
-    }
-
-    @NonNull
-    public static <M> Read.Builder<M> read(@NonNls @NonNull final String name,
-                                           @NonNull final Producer<M> producer) {
-        return new Read.Builder<>(name, producer);
-    }
-
-    @NonNull
-    public static <M> Read.Builder<M> read(@NonNull final Value.Read<M> value) {
-        return new Read.Builder<>(value);
-    }
-
-    @NonNull
-    public static <M> Write.Builder<M> write(@NonNls @NonNull final String name) {
-        return new Write.Builder<>(name);
-    }
-
-    @NonNull
-    public static <M> ReadWrite.Builder<M> builder(@NonNls @NonNull final String name,
-                                                   @NonNull final Producer<M> producer) {
-        return new ReadWrite.Builder<>(name, producer);
-    }
-
-    @NonNull
-    public static <M> ReadWrite.Builder<M> builder(@NonNull final Value.Read<M> value) {
-        return new ReadWrite.Builder<>(value);
     }
 
     private Mapper() {

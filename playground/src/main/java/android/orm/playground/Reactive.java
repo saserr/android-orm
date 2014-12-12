@@ -46,14 +46,15 @@ public final class Reactive {
     @NonNull
     public static Executor.Direct.Single.Factory<android.orm.sql.Executor, Uri> at(@NonNull final Route.Single route,
                                                                                    @NonNull final Object... arguments) {
+        final String table = route.getTable();
+        final Condition condition = route.createCondition(arguments);
+        final ContentValues onInsert = route.createValues(arguments);
+        final Route.Single key = route.getSingleRoute();
+
         return new Executor.Direct.Single.Factory<android.orm.sql.Executor, Uri>() {
             @NonNull
             @Override
             public Executor.Direct.Single<Uri> create(@NonNull final android.orm.sql.Executor executor) {
-                final String table = route.getTable();
-                final Condition condition = route.createCondition(arguments);
-                final ContentValues onInsert = route.createValues(arguments);
-                final Route.Single key = route.getSingleRoute();
                 return single(executor, table, condition, onInsert, key);
             }
         };
@@ -62,14 +63,15 @@ public final class Reactive {
     @NonNull
     public static Executor.Direct.Many.Factory<android.orm.sql.Executor, Uri> at(@NonNull final Route.Many route,
                                                                                  @NonNull final Object... arguments) {
+        final String table = route.getTable();
+        final Condition condition = route.createCondition(arguments);
+        final ContentValues onInsert = route.createValues(arguments);
+        final Route.Single key = route.getSingleRoute();
+
         return new Executor.Direct.Many.Factory<android.orm.sql.Executor, Uri>() {
             @NonNull
             @Override
             public Executor.Direct.Many<Uri> create(@NonNull final android.orm.sql.Executor executor) {
-                final String table = route.getTable();
-                final Condition condition = route.createCondition(arguments);
-                final ContentValues onInsert = route.createValues(arguments);
-                final Route.Single key = route.getSingleRoute();
                 return many(executor, table, condition, onInsert, key);
             }
         };

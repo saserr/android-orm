@@ -619,21 +619,6 @@ public final class Instance {
         }
     }
 
-    @NonNull
-    public static Readable.Builder readable(@NonNls @NonNull final String name) {
-        return new Readable.Builder(name);
-    }
-
-    @NonNull
-    public static Writable.Builder writable(@NonNls @NonNull final String name) {
-        return new Writable.Builder(name);
-    }
-
-    @NonNull
-    public static ReadWrite.Builder builder(@NonNls @NonNull final String name) {
-        return new ReadWrite.Builder(name);
-    }
-
     private Instance() {
         super();
     }

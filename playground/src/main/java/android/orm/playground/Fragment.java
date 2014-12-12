@@ -80,7 +80,7 @@ public abstract class Fragment extends DialogFragment {
 
     @NonNull
     protected static Form.Builder form(@NonNls @NonNull final String name) {
-        return Form.builder(name);
+        return new Form.Builder(name);
     }
 
     protected void afterAttach(@NonNull final Activity activity) {

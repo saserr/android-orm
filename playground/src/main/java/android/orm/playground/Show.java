@@ -64,10 +64,6 @@ public class Show extends Instance.Readable.Base {
         return Reading.Item.compose(actions);
     }
 
-    public static Builder builder(@NonNls @NonNull final String name) {
-        return new Builder(name);
-    }
-
     public static class Builder {
 
         @NonNls

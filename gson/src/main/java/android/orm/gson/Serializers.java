@@ -57,7 +57,9 @@ public final class Serializers {
     @NonNull
     public static Serializer<JsonElement> from(@NonNull final Gson gson,
                                                @NonNull final Value.Read<?> value) {
-        return new Serializer<>(value.getName(), Reading.Item.builder(value.mapTo(new ToJson<>(gson))));
+        return new Serializer<>(value.getName(), new Reading.Item.Builder<>(
+                value.mapTo(new ToJson<>(gson))
+        ));
     }
 
     @NonNull

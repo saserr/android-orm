@@ -21,14 +21,11 @@ import android.orm.sql.Column;
 import android.orm.sql.Statement;
 import android.orm.sql.Statements;
 import android.orm.sql.Table;
-import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import static android.orm.sql.Statements.createTable;
@@ -93,7 +90,7 @@ public final class Migrations {
     }
 
     @NonNull
-    public static Migration compose(@NonNull final Collection<Migration> migrations) {
+    public static Migration compose(@NonNull final List<Migration> migrations) {
         return new Composition(migrations);
     }
 
@@ -137,20 +134,17 @@ public final class Migrations {
     private static class Composition implements Migration {
 
         @NonNull
-        private final Iterable<Migration> mUp;
-        @NonNull
-        private final Lazy<Collection<Migration>> mDown;
+        private final List<Migration> mMigrations;
 
-        private Composition(@NonNull final Collection<Migration> migrations) {
+        private Composition(@NonNull final List<Migration> migrations) {
             super();
 
-            mUp = new ArrayList<>(migrations);
-            mDown = reverse(migrations);
+            mMigrations = new ArrayList<>(migrations);
         }
 
         @Override
         public final void create(@NonNull final DAO.Direct dao, final int version) {
-            for (final Migration migration : mUp) {
+            for (final Migration migration : mMigrations) {
                 migration.create(dao, version);
             }
         }
@@ -159,7 +153,7 @@ public final class Migrations {
         public final void upgrade(@NonNull final DAO.Direct dao,
                                   final int oldVersion,
                                   final int newVersion) {
-            for (final Migration migration : mUp) {
+            for (final Migration migration : mMigrations) {
                 migration.upgrade(dao, oldVersion, newVersion);
             }
         }
@@ -168,21 +162,10 @@ public final class Migrations {
         public final void downgrade(@NonNull final DAO.Direct dao,
                                     final int oldVersion,
                                     final int newVersion) {
-            for (final Migration migration : mDown.get()) {
-                migration.downgrade(dao, oldVersion, newVersion);
+            final int size = mMigrations.size();
+            for (int i = size - 1; i >= 0; i--) {
+                mMigrations.get(i).downgrade(dao, oldVersion, newVersion);
             }
-        }
-
-        private static Lazy<Collection<Migration>> reverse(@NonNull final Collection<Migration> migrations) {
-            return new Lazy.Volatile<Collection<Migration>>() {
-                @NonNull
-                @Override
-                protected List<Migration> produce() {
-                    final List<Migration> result = new ArrayList<>(migrations);
-                    Collections.reverse(result);
-                    return result;
-                }
-            };
         }
     }
 

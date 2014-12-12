@@ -562,11 +562,6 @@ public interface Reading<M> {
             });
         }
 
-        @NonNull
-        public static <M> Builder<M> builder(@NonNull final Value.Read<M> producer) {
-            return new Builder<>(producer);
-        }
-
         public static class Builder<M> {
 
             @NonNull

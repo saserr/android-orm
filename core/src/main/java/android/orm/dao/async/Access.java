@@ -104,7 +104,7 @@ public final class Access {
                         @Override
                         public void onResult(@NonNull final Maybe<K> key) {
                             if (key.getOrElse(null) != null) {
-                                Observer.afterCreate(model);
+                                Observer.afterUpdate(model);
                             }
                         }
                     }) :

@@ -104,11 +104,6 @@ public final class Plan {
                     (isEmpty() ? other : Plans.compose(asList(this, other)));
         }
 
-        @NonNull
-        public static <M> Builder<M> builder() {
-            return new Builder<>();
-        }
-
         public static class Builder<M> {
 
             @NonNull

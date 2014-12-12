@@ -34,8 +34,8 @@ import android.util.Log;
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
@@ -69,7 +69,7 @@ public class Database {
     @NonNull
     private final Function<SQLiteDatabase, DAO.Direct> mFactory;
 
-    private final Collection<Migration> mMigrations = new ArrayList<>();
+    private final List<Migration> mMigrations = new ArrayList<>();
 
     public Database(@NonNls @Nullable final String name, final int version) {
         this(name, version, IntegrityChecks.None, DEFAULT_FACTORY);

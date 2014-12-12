@@ -68,12 +68,6 @@ public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
         return mReading.build(element);
     }
 
-    @NonNull
-    public static Builder builder(@NonNls @NonNull final String name,
-                                  @NonNull final Gson gson) {
-        return new Builder(name, gson);
-    }
-
     public static class Builder {
 
         private static final Producer<JsonObject> PRODUCER = new Producer<JsonObject>() {

@@ -63,11 +63,6 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
         return mPlan.build(value);
     }
 
-    @NonNull
-    public static Builder builder(@NonNls @NonNull final String name, @NonNull final Gson gson) {
-        return new Builder(name, gson);
-    }
-
     public static class Builder {
 
         @NonNls
@@ -84,7 +79,7 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
 
             mName = name;
             mGson = gson;
-            mPlan = Plan.Write.builder();
+            mPlan = new Plan.Write.Builder<>();
         }
 
         @NonNull

@@ -109,10 +109,6 @@ public class Form extends Instance.ReadWrite.Base {
         return compose(plans);
     }
 
-    public static Builder builder(@NonNls @NonNull final String name) {
-        return new Builder(name);
-    }
-
     public static class Builder {
 
         @NonNls

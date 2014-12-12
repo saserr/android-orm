@@ -74,8 +74,8 @@ public class Annotated {
     public final <M> Mapper.ReadWrite<M> mapper(@NonNull final Class<M> klass,
                                                 @NonNull final Producer<M> producer) {
         final String name = klass.getSimpleName();
-        final Mapper.Read.Builder<M> read = Mapper.read(name, producer);
-        final Mapper.Write.Builder<M> write = Mapper.write(name);
+        final Mapper.Read.Builder<M> read = new Mapper.Read.Builder<>(name, producer);
+        final Mapper.Write.Builder<M> write = new Mapper.Write.Builder<>(name);
 
         for (final Field field : klass.getDeclaredFields()) {
             final int modifiers = field.getModifiers();
