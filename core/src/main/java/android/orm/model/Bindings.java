@@ -19,18 +19,16 @@ package android.orm.model;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
+import android.util.Pair;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import static android.orm.util.Converters.from;
-import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.something;
 import static android.text.TextUtils.isEmpty;
 import static java.lang.Math.min;
@@ -39,109 +37,39 @@ public final class Bindings {
 
     @NonNull
     public static <V> Binding.ReadWrite<V> value(@NonNull final AdapterView<? extends Adapter> adapter) {
-        return new Binding.ReadWrite.Base<V>() {
-
-            @NonNull
-            @Override
-            @SuppressWarnings("unchecked")
-            public Maybe<V> get() {
-                final V item = (V) adapter.getSelectedItem();
-                return (item == null) ? Maybes.<V>nothing() : something(item);
-            }
-
-            @Override
-            public void set(@NonNull final Maybe<V> value) {
-                int position = -1;
-
-                if (value.isSomething()) {
-                    final V v = value.get();
-                    if (v != null) {
-                        final int count = adapter.getCount();
-                        for (int i = 0; (i < count) && (position < 0); i++) {
-                            if (v.equals(adapter.getItemAtPosition(i))) {
-                                position = i;
-                            }
-                        }
-                    }
-                }
-
-                adapter.setSelection(min(position, 0));
-            }
-        };
+        return new AdapterBinding<>(adapter);
     }
 
     @NonNull
     public static Binding.ReadWrite<String> text(@NonNull final TextView text) {
-        return new Binding.ReadWrite.Base<String>() {
-
-            @NonNull
-            @Override
-            public Maybe<String> get() {
-                final CharSequence chars = text.getText();
-                return isEmpty(chars) ? Maybes.<String>nothing() : something(chars.toString());
-            }
-
-            @Override
-            public void set(@NonNull final Maybe<String> value) {
-                if (value.isSomething()) {
-                    text.setText(value.get());
-                }
-            }
-        };
+        return new TextBinding(text);
     }
 
     @NonNull
-    public static Binding.Write<Uri> uri(@NonNull final ImageView view) {
-        return new Binding.Write.Base<Uri>() {
-            @Override
-            public void set(@NonNull final Maybe<Uri> value) {
-                if (value.isSomething()) {
-                    final Uri uri = value.get();
-                    if (uri == null) {
-                        view.setImageDrawable(null);
-                    } else {
-                        view.setImageURI(uri);
-                    }
-                }
-            }
-        };
+    public static Binding.Write<Uri> uri(@NonNull final ImageView image) {
+        return new ImageUriBinding(image);
     }
 
     @NonNull
-    public static Binding.Write<Bitmap> bitmap(@NonNull final ImageView view) {
-        return new Binding.Write.Base<Bitmap>() {
-            @Override
-            public void set(@NonNull final Maybe<Bitmap> value) {
-                if (value.isSomething()) {
-                    final Bitmap bitmap = value.get();
-                    if (bitmap == null) {
-                        view.setImageDrawable(null);
-                    } else {
-                        view.setImageBitmap(bitmap);
-                    }
-                }
-            }
-        };
+    public static Binding.Write<Bitmap> bitmap(@NonNull final ImageView image) {
+        return new ImageBitmapBinding(image);
     }
 
     @NonNull
-    public static Binding.ReadWrite<Drawable> drawable(@NonNull final ImageView view) {
-        return new Binding.ReadWrite.Base<Drawable>() {
+    public static Binding.ReadWrite<Drawable> drawable(@NonNull final ImageView image) {
+        return new ImageDrawableBinding(image);
+    }
 
-            @NonNull
-            @Override
-            public Maybe<Drawable> get() {
-                final Drawable drawable = view.getDrawable();
-                return (drawable == null) ? Maybes.<Drawable>nothing() : something(drawable);
-            }
+    @NonNull
+    public static <V, T> Binding.Read<Pair<V, T>> compose(@NonNull final Binding.Read<V> first,
+                                                          @NonNull final Binding.Read<T> second) {
+        return new ReadComposition<>(first, second);
+    }
 
-            @Override
-            public void set(@NonNull final Maybe<Drawable> value) {
-                if (value.isSomething()) {
-                    view.setImageDrawable(value.get());
-                }
-            }
-        };
+    @NonNull
+    public static <V, T> Binding.Write<Pair<V, T>> compose(@NonNull final Binding.Write<V> first,
+                                                           @NonNull final Binding.Write<T> second) {
+        return new WriteComposition<>(first, second);
     }
 
     @NonNull
@@ -157,18 +85,201 @@ public final class Bindings {
     }
 
     @NonNull
-    public static <V, T> Binding.ReadWrite<T> convert(@NonNull final Binding.ReadWrite<V> binding,
-                                                      @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
-        return combine(
-                new ReadConversion<>(binding, from(converter)),
-                new WriteConversion<>(binding, to(converter))
-        );
-    }
-
-    @NonNull
     public static <V> Binding.ReadWrite<V> combine(@NonNull final Binding.Read<V> read,
                                                    @NonNull final Binding.Write<V> write) {
-        return new Combine<>(read, write);
+        return new Combination<>(read, write);
+    }
+
+    private static class AdapterBinding<V> extends Binding.ReadWrite.Base<V> {
+
+        @NonNull
+        private final AdapterView<? extends Adapter> mAdapter;
+
+        private AdapterBinding(@NonNull final AdapterView<? extends Adapter> adapter) {
+            super();
+
+            mAdapter = adapter;
+        }
+
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public final Maybe<V> get() {
+            final V item = (V) mAdapter.getSelectedItem();
+            return (item == null) ? Maybes.<V>nothing() : something(item);
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<V> value) {
+            int position = -1;
+
+            if (value.isSomething()) {
+                final V v = value.get();
+                if (v != null) {
+                    final int count = mAdapter.getCount();
+                    for (int i = 0; (i < count) && (position < 0); i++) {
+                        if (v.equals(mAdapter.getItemAtPosition(i))) {
+                            position = i;
+                        }
+                    }
+                }
+            }
+
+            mAdapter.setSelection(min(position, 0));
+        }
+    }
+
+    private static class TextBinding extends Binding.ReadWrite.Base<String> {
+
+        @NonNull
+        private final TextView mText;
+
+        private TextBinding(@NonNull final TextView text) {
+            super();
+
+            mText = text;
+        }
+
+        @NonNull
+        @Override
+        public final Maybe<String> get() {
+            final CharSequence chars = mText.getText();
+            return isEmpty(chars) ? Maybes.<String>nothing() : something(chars.toString());
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<String> value) {
+            if (value.isSomething()) {
+                mText.setText(value.get());
+            }
+        }
+    }
+
+    private static class ImageUriBinding extends Binding.Write.Base<Uri> {
+
+        @NonNull
+        private final ImageView mImage;
+
+        private ImageUriBinding(@NonNull final ImageView image) {
+            super();
+
+            mImage = image;
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<Uri> value) {
+            if (value.isSomething()) {
+                final Uri uri = value.get();
+                if (uri == null) {
+                    mImage.setImageDrawable(null);
+                } else {
+                    mImage.setImageURI(uri);
+                }
+            }
+        }
+    }
+
+    private static class ImageBitmapBinding extends Binding.Write.Base<Bitmap> {
+
+        @NonNull
+        private final ImageView mImage;
+
+        private ImageBitmapBinding(@NonNull final ImageView image) {
+            super();
+
+            mImage = image;
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<Bitmap> value) {
+            if (value.isSomething()) {
+                final Bitmap bitmap = value.get();
+                if (bitmap == null) {
+                    mImage.setImageDrawable(null);
+                } else {
+                    mImage.setImageBitmap(bitmap);
+                }
+            }
+        }
+    }
+
+    private static class ImageDrawableBinding extends Binding.ReadWrite.Base<Drawable> {
+
+        @NonNull
+        private final ImageView mImage;
+
+        private ImageDrawableBinding(@NonNull final ImageView image) {
+            super();
+
+            mImage = image;
+        }
+
+        @NonNull
+        @Override
+        public final Maybe<Drawable> get() {
+            final Drawable drawable = mImage.getDrawable();
+            return (drawable == null) ? Maybes.<Drawable>nothing() : something(drawable);
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<Drawable> value) {
+            if (value.isSomething()) {
+                mImage.setImageDrawable(value.get());
+            }
+        }
+    }
+
+    private static class ReadComposition<V, T> extends Binding.Read.Base<Pair<V, T>> {
+
+        @NonNull
+        private final Binding.Read<V> mFirst;
+        @NonNull
+        private final Binding.Read<T> mSecond;
+        @NonNull
+        private final Function<Pair<Maybe<V>, Maybe<T>>, Maybe<Pair<V, T>>> mLift;
+
+        private ReadComposition(@NonNull final Binding.Read<V> first,
+                                @NonNull final Binding.Read<T> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+            mLift = Maybes.liftPair();
+        }
+
+        @NonNull
+        @Override
+        public final Maybe<Pair<V, T>> get() {
+            return mLift.invoke(Pair.create(mFirst.get(), mSecond.get()));
+        }
+    }
+
+    private static class WriteComposition<V, T> extends Binding.Write.Base<Pair<V, T>> {
+
+        @NonNull
+        private final Binding.Write<V> mFirst;
+        @NonNull
+        private final Binding.Write<T> mSecond;
+
+        private WriteComposition(@NonNull final Binding.Write<V> first,
+                                 @NonNull final Binding.Write<T> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+        }
+
+        @Override
+        public final void set(@NonNull final Maybe<Pair<V, T>> value) {
+            if (value.isSomething()) {
+                final Pair<V, T> pair = value.get();
+                mFirst.set(something((pair == null) ? null : pair.first));
+                mSecond.set(something((pair == null) ? null : pair.second));
+            } else {
+                mFirst.set(Maybes.<V>nothing());
+                mSecond.set(Maybes.<T>nothing());
+            }
+        }
     }
 
     private static class ReadConversion<V, T> extends Binding.Read.Base<T> {
@@ -214,15 +325,15 @@ public final class Bindings {
         }
     }
 
-    private static class Combine<V> extends Binding.ReadWrite.Base<V> {
+    private static class Combination<V> extends Binding.ReadWrite.Base<V> {
 
         @NonNull
         private final Binding.Read<V> mRead;
         @NonNull
         private final Binding.Write<V> mWrite;
 
-        private Combine(@NonNull final Binding.Read<V> read,
-                        @NonNull final Binding.Write<V> write) {
+        private Combination(@NonNull final Binding.Read<V> read,
+                            @NonNull final Binding.Write<V> write) {
             super();
 
             mRead = read;

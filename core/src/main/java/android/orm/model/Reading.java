@@ -60,6 +60,7 @@ public interface Reading<M> {
         <N> Single<Pair<M, N>> and(@NonNull final Single<N> other);
 
         @NonNull
+        @Override
         <N> Single<N> map(@NonNull final Converter<M, N> converter);
 
         @NonNull
@@ -77,7 +78,7 @@ public interface Reading<M> {
             @NonNull
             @Override
             public final <N> Single<N> map(@NonNull final Converter<M, N> converter) {
-                return Readings.convert(this, Maybes.lift(converter));
+                return convert(Maybes.lift(converter));
             }
 
             @NonNull
@@ -98,6 +99,7 @@ public interface Reading<M> {
         <N> Many<N> map(@NonNull final Converter<M, N> converter);
 
         @NonNull
+        @Override
         <N> Many<N> convert(@NonNull final Converter<Maybe<M>, Maybe<N>> converter);
 
         abstract class Base<M> implements Many<M> {
@@ -111,7 +113,7 @@ public interface Reading<M> {
             @NonNull
             @Override
             public final <N> Many<N> map(@NonNull final Converter<M, N> converter) {
-                return Readings.convert(this, Maybes.lift(converter));
+                return convert(Maybes.lift(converter));
             }
 
             @NonNull

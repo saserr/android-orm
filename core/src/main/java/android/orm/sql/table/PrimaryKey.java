@@ -34,6 +34,7 @@ public class PrimaryKey<V> extends Uniqueness<V> {
     }
 
     @NonNull
+    @Override
     public final PrimaryKey<V> onConflict(@NonNull final ConflictResolution resolution) {
         return new PrimaryKey<>(mValue, resolution);
     }

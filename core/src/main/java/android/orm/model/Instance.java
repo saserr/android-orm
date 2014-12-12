@@ -28,11 +28,7 @@ import org.jetbrains.annotations.NonNls;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static android.orm.model.Instances.combine;
-import static android.orm.model.Instances.compose;
 import static android.orm.model.Instances.instance;
-import static android.orm.model.Plans.write;
-import static android.orm.model.Reading.Item.action;
 
 public final class Instance {
 
@@ -61,7 +57,7 @@ public final class Instance {
         Readable and(@NonNull final Readable other);
 
         @NonNull
-        ReadWrite and(@NonNull final Value.Constant value);
+        ReadWrite and(@NonNull final Value.Constant other);
 
         @NonNull
         ReadWrite and(@NonNull final Writable other);
@@ -71,19 +67,19 @@ public final class Instance {
             @NonNull
             @Override
             public final Readable and(@NonNull final Readable other) {
-                return compose(this, other);
+                return Instances.compose(this, other);
             }
 
             @NonNull
             @Override
-            public final ReadWrite and(@NonNull final Value.Constant value) {
-                return combine(this, instance(value));
+            public final ReadWrite and(@NonNull final Value.Constant other) {
+                return and(instance(other));
             }
 
             @NonNull
             @Override
             public final ReadWrite and(@NonNull final Writable other) {
-                return combine(this, other);
+                return Instances.combine(this, other);
             }
         }
 
@@ -169,7 +165,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Reading.Item.Action produce() {
-                        return action(value, setter);
+                        return Reading.Item.action(value, setter);
                     }
                 };
             }
@@ -181,7 +177,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Reading.Item.Action produce() {
-                        return action(mapper, setter);
+                        return Reading.Item.action(mapper, setter);
                     }
                 };
             }
@@ -193,7 +189,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Reading.Item.Action produce() {
-                        return action(mapper, access);
+                        return Reading.Item.action(mapper, access);
                     }
                 };
             }
@@ -259,7 +255,7 @@ public final class Instance {
         Plan.Write prepareWrite();
 
         @NonNull
-        Writable and(@NonNull final Value.Constant value);
+        Writable and(@NonNull final Value.Constant other);
 
         @NonNull
         Writable and(@NonNull final Writable other);
@@ -271,20 +267,20 @@ public final class Instance {
 
             @NonNull
             @Override
-            public final Writable and(@NonNull final Value.Constant value) {
-                return compose(this, instance(value));
+            public final Writable and(@NonNull final Value.Constant other) {
+                return and(instance(other));
             }
 
             @NonNull
             @Override
             public final Writable and(@NonNull final Writable other) {
-                return compose(this, other);
+                return Instances.compose(this, other);
             }
 
             @NonNull
             @Override
             public final ReadWrite and(@NonNull final Readable other) {
-                return combine(other, this);
+                return Instances.combine(other, this);
             }
         }
 
@@ -368,7 +364,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Plan.Write produce() {
-                        return write(writer);
+                        return Plans.write(writer);
                     }
                 };
             }
@@ -380,7 +376,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Plan.Write produce() {
-                        return write(value, getter);
+                        return Plans.write(value, getter);
                     }
                 };
             }
@@ -392,7 +388,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Plan.Write produce() {
-                        return write(mapper, getter);
+                        return Plans.write(mapper, getter);
                     }
                 };
             }
@@ -474,7 +470,7 @@ public final class Instance {
 
         @NonNull
         @Override
-        ReadWrite and(@NonNull final Value.Constant value);
+        ReadWrite and(@NonNull final Value.Constant other);
 
         @NonNull
         ReadWrite and(@NonNull final ReadWrite other);
@@ -484,25 +480,28 @@ public final class Instance {
             @NonNull
             @Override
             public final ReadWrite and(@NonNull final Readable other) {
-                return combine(compose(this, other), this);
+                return Instances.combine(Instances.compose(this, other), this);
             }
 
             @NonNull
             @Override
-            public final ReadWrite and(@NonNull final Value.Constant value) {
-                return combine(this, compose(this, instance(value)));
+            public final ReadWrite and(@NonNull final Value.Constant other) {
+                return and(instance(other));
             }
 
             @NonNull
             @Override
             public final ReadWrite and(@NonNull final Writable other) {
-                return combine(this, compose(this, other));
+                return Instances.combine(this, Instances.compose(this, other));
             }
 
             @NonNull
             @Override
             public final ReadWrite and(@NonNull final ReadWrite other) {
-                return combine(compose(this, (Readable) other), compose(this, (Writable) other));
+                return Instances.combine(
+                        Instances.compose(this, (Readable) other),
+                        Instances.compose(this, (Writable) other)
+                );
             }
         }
 
@@ -615,7 +614,7 @@ public final class Instance {
 
             @NonNull
             public final ReadWrite build() {
-                return combine(mRead.build(), mWrite.build());
+                return Instances.combine(mRead.build(), mWrite.build());
             }
         }
     }

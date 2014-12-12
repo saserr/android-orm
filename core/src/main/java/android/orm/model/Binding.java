@@ -18,11 +18,13 @@ package android.orm.model;
 
 import android.orm.sql.Value;
 import android.orm.util.Converter;
+import android.orm.util.Converters;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Pair;
 
 import static android.orm.model.Instances.instance;
 import static android.orm.util.Maybes.something;
@@ -39,6 +41,9 @@ public final class Binding {
 
         @NonNull
         Instance.Writable bindTo(@NonNull final Mapper.Write<V> mapper);
+
+        @NonNull
+        <T> Read<Pair<V, T>> and(@NonNull final Read<T> other);
 
         @NonNull
         <T> Read<T> mapTo(@NonNull final Function<? super V, ? extends T> converter);
@@ -65,14 +70,20 @@ public final class Binding {
 
             @NonNull
             @Override
+            public final <T> Read<Pair<V, T>> and(@NonNull final Read<T> other) {
+                return Bindings.compose(this, other);
+            }
+
+            @NonNull
+            @Override
             public final <T> Read<T> mapTo(@NonNull final Function<? super V, ? extends T> converter) {
-                return Bindings.convert(this, Maybes.map(converter));
+                return convertTo(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> Read<T> flatMapTo(@NonNull final Function<? super V, Maybe<T>> converter) {
-                return Bindings.convert(this, Maybes.flatMap(converter));
+                return convertTo(Maybes.flatMap(converter));
             }
 
             @NonNull
@@ -94,6 +105,9 @@ public final class Binding {
 
         @NonNull
         Instance.Readable bindTo(@NonNull final Mapper.Read<V> mapper);
+
+        @NonNull
+        <T> Write<Pair<V, T>> and(@NonNull final Write<T> other);
 
         @NonNull
         <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter);
@@ -125,14 +139,20 @@ public final class Binding {
 
             @NonNull
             @Override
+            public final <T> Write<Pair<V, T>> and(@NonNull final Write<T> other) {
+                return Bindings.compose(this, other);
+            }
+
+            @NonNull
+            @Override
             public final <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter) {
-                return Bindings.convert(this, Maybes.map(converter));
+                return convertFrom(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> Write<T> flatMapFrom(@NonNull final Function<? super T, Maybe<V>> converter) {
-                return Bindings.convert(this, Maybes.flatMap(converter));
+                return convertFrom(Maybes.flatMap(converter));
             }
 
             @NonNull
@@ -152,6 +172,9 @@ public final class Binding {
         Instance.ReadWrite bindTo(@NonNull final Mapper.ReadWrite<V> mapper);
 
         @NonNull
+        <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other);
+
+        @NonNull
         <T> ReadWrite<T> map(@NonNull final Converter<V, T> converter);
 
         @NonNull
@@ -166,31 +189,34 @@ public final class Binding {
 
             @NonNull
             @Override
-            public final Instance.Writable bindTo(@NonNull final Value.Write<V> value) {
-                return instance(this, value);
-            }
-
-            @NonNull
-            @Override
             public final Instance.Readable bindTo(@NonNull final Value.Read<V> value) {
                 return instance(this, value);
             }
 
             @NonNull
             @Override
-            public final Instance.ReadWrite bindTo(@NonNull final Value.ReadWrite<V> value) {
+            public final Instance.Writable bindTo(@NonNull final Value.Write<V> value) {
                 return instance(this, value);
             }
 
             @NonNull
             @Override
-            public final Instance.Writable bindTo(@NonNull final Mapper.Write<V> mapper) {
-                return instance(this, mapper);
+            public final Instance.ReadWrite bindTo(@NonNull final Value.ReadWrite<V> value) {
+                return Instances.combine(
+                        instance((Write<V>) this, value),
+                        instance((Read<V>) this, value)
+                );
             }
 
             @NonNull
             @Override
             public final Instance.Readable bindTo(@NonNull final Mapper.Read<V> mapper) {
+                return instance(this, mapper);
+            }
+
+            @NonNull
+            @Override
+            public final Instance.Writable bindTo(@NonNull final Mapper.Write<V> mapper) {
                 return instance(this, mapper);
             }
 
@@ -202,32 +228,53 @@ public final class Binding {
 
             @NonNull
             @Override
+            public final <T> Read<Pair<V, T>> and(@NonNull final Read<T> other) {
+                return Bindings.compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final <T> Write<Pair<V, T>> and(@NonNull final Write<T> other) {
+                return Bindings.compose(this, other);
+            }
+
+            @NonNull
+            @Override
+            public final <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other) {
+                return Bindings.combine(
+                        Bindings.compose((Read<V>) this, other),
+                        Bindings.compose((Write<V>) this, other)
+                );
+            }
+
+            @NonNull
+            @Override
             public final <T> Read<T> mapTo(@NonNull final Function<? super V, ? extends T> converter) {
-                return Bindings.convert(this, Maybes.map(converter));
+                return convertTo(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter) {
-                return Bindings.convert(this, Maybes.map(converter));
+                return convertFrom(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> ReadWrite<T> map(@NonNull final Converter<V, T> converter) {
-                return Bindings.convert(this, Maybes.lift(converter));
+                return convert(Maybes.lift(converter));
             }
 
             @NonNull
             @Override
             public final <T> Read<T> flatMapTo(@NonNull final Function<? super V, Maybe<T>> converter) {
-                return Bindings.convert(this, Maybes.flatMap(converter));
+                return convertTo(Maybes.flatMap(converter));
             }
 
             @NonNull
             @Override
             public final <T> Write<T> flatMapFrom(@NonNull final Function<? super T, Maybe<V>> converter) {
-                return Bindings.convert(this, Maybes.flatMap(converter));
+                return convertFrom(Maybes.flatMap(converter));
             }
 
             @NonNull
@@ -245,7 +292,10 @@ public final class Binding {
             @NonNull
             @Override
             public final <T> ReadWrite<T> convert(@NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
-                return Bindings.convert(this, converter);
+                return Bindings.combine(
+                        Bindings.convert(this, Converters.from(converter)),
+                        Bindings.convert(this, Converters.to(converter))
+                );
             }
         }
     }

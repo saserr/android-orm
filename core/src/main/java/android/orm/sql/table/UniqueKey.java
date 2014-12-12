@@ -34,6 +34,7 @@ public class UniqueKey<V> extends Uniqueness<V> {
     }
 
     @NonNull
+    @Override
     public final UniqueKey<V> onConflict(@NonNull final ConflictResolution resolution) {
         return new UniqueKey<>(mValue, resolution);
     }

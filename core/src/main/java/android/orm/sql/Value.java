@@ -17,6 +17,7 @@
 package android.orm.sql;
 
 import android.orm.util.Converter;
+import android.orm.util.Converters;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -172,13 +173,13 @@ public final class Value {
             @NonNull
             @Override
             public final <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter) {
-                return Values.convert(this, Maybes.map(converter));
+                return convertFrom(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> Write<T> flatMapFrom(@NonNull final Function<? super T, Maybe<V>> converter) {
-                return Values.convert(this, Maybes.flatMap(converter));
+                return convertFrom(Maybes.flatMap(converter));
             }
 
             @NonNull
@@ -243,37 +244,40 @@ public final class Value {
             @NonNull
             @Override
             public final <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other) {
-                return Values.compose(this, other);
+                return Values.combine(
+                        Values.compose((Read<V>) this, other),
+                        Values.compose((Write<V>) this, other)
+                );
             }
 
             @NonNull
             @Override
             public final <T> Read<T> mapTo(@NonNull final Function<? super V, ? extends T> converter) {
-                return Values.convert(this, Maybes.map(converter));
+                return convertTo(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter) {
-                return Values.convert(this, Maybes.map(converter));
+                return convertFrom(Maybes.map(converter));
             }
 
             @NonNull
             @Override
             public final <T> ReadWrite<T> map(@NonNull final Converter<V, T> converter) {
-                return Values.convert(this, Maybes.lift(converter));
+                return convert(Maybes.lift(converter));
             }
 
             @NonNull
             @Override
             public final <T> Read<T> flatMapTo(@NonNull final Function<? super V, Maybe<T>> converter) {
-                return Values.convert(this, Maybes.flatMap(converter));
+                return convertTo(Maybes.flatMap(converter));
             }
 
             @NonNull
             @Override
             public final <T> Write<T> flatMapFrom(@NonNull final Function<? super T, Maybe<V>> converter) {
-                return Values.convert(this, Maybes.flatMap(converter));
+                return convertFrom(Maybes.flatMap(converter));
             }
 
             @NonNull
@@ -291,7 +295,10 @@ public final class Value {
             @NonNull
             @Override
             public final <T> ReadWrite<T> convert(@NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
-                return Values.convert(this, converter);
+                return Values.combine(
+                        Values.convert(this, Converters.from(converter)),
+                        Values.convert(this, Converters.to(converter))
+                );
             }
         }
     }

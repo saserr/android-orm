@@ -137,6 +137,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
     }
 
     @NonNull
+    @Override
     public final Select.Projection getProjection() {
         return mProjection;
     }

@@ -94,6 +94,7 @@ public final class Executors {
         }
 
         @NonNull
+        @Override
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
@@ -139,6 +140,7 @@ public final class Executors {
         }
 
         @NonNull
+        @Override
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,

@@ -17,7 +17,6 @@
 package android.orm.sql;
 
 import android.orm.sql.fragment.Condition;
-import android.orm.util.Converter;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -27,8 +26,6 @@ import android.util.Pair;
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.sql.Types.Integer;
-import static android.orm.util.Converters.from;
-import static android.orm.util.Converters.to;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
@@ -73,12 +70,6 @@ public final class Values {
     }
 
     @NonNull
-    public static <V, T> Value.ReadWrite<Pair<V, T>> compose(@NonNull final Value.ReadWrite<V> first,
-                                                             @NonNull final Value.ReadWrite<T> second) {
-        return combine(new ReadComposition<>(first, second), new WriteComposition<>(first, second));
-    }
-
-    @NonNull
     public static <V, T> Value.Read<T> convert(@NonNull final Value.Read<V> value,
                                                @NonNull final Function<Maybe<V>, Maybe<T>> converter) {
         return new ReadConversion<>(value, converter);
@@ -91,18 +82,9 @@ public final class Values {
     }
 
     @NonNull
-    public static <V, T> Value.ReadWrite<T> convert(@NonNull final Value.ReadWrite<V> value,
-                                                    @NonNull final Converter<Maybe<V>, Maybe<T>> converter) {
-        return combine(
-                new ReadConversion<>(value, from(converter)),
-                new WriteConversion<>(value, to(converter))
-        );
-    }
-
-    @NonNull
     public static <V> Value.ReadWrite<V> combine(@NonNull final Value.Read<V> read,
                                                  @NonNull final Value.Write<V> write) {
-        return new Combine<>(read, write);
+        return new Combination<>(read, write);
     }
 
     private static class NamedType<V> extends Value.ReadWrite.Base<V> {
@@ -434,14 +416,15 @@ public final class Values {
         }
     }
 
-    private static class Combine<V> extends Value.ReadWrite.Base<V> {
+    private static class Combination<V> extends Value.ReadWrite.Base<V> {
 
         @NonNull
         private final Value.Read<V> mRead;
         @NonNull
         private final Value.Write<V> mWrite;
 
-        private Combine(@NonNull final Value.Read<V> read, @NonNull final Value.Write<V> write) {
+        private Combination(@NonNull final Value.Read<V> read,
+                            @NonNull final Value.Write<V> write) {
             super();
 
             mRead = read;

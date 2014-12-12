@@ -19,6 +19,7 @@ package android.orm.model;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Converter;
+import android.orm.util.Converters;
 import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
@@ -28,11 +29,6 @@ import android.support.annotation.NonNull;
 import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
-
-import static android.orm.model.Mappers.combine;
-import static android.orm.util.Converters.from;
-import static android.orm.util.Converters.to;
-import static android.orm.util.Maybes.something;
 
 public final class Mapper {
 
@@ -49,7 +45,7 @@ public final class Mapper {
         Reading.Item<M> prepareRead(@NonNull final M m);
 
         @NonNull
-        <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> value);
+        <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other);
 
         @NonNull
         <N> Read<Pair<M, N>> and(@NonNull final Read<N> other);
@@ -61,111 +57,20 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> value) {
-                return new Composition<>(this, value);
+            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other) {
+                return and(Mappers.read(other));
             }
 
             @NonNull
             @Override
             public final <N> Read<Pair<M, N>> and(@NonNull final Read<N> other) {
-                return new Composition<>(this, other);
+                return Mappers.compose(this, other);
             }
 
             @NonNull
             @Override
             public final <N> Read<N> map(@NonNull final Converter<M, N> converter) {
-                return new Converted<>(this, converter);
-            }
-
-            private static class Composition<M, N> extends Base<Pair<M, N>> {
-
-                @NonNull
-                private final Read<M> mFirst;
-                @NonNull
-                private final Read<N> mSecond;
-                @NonNls
-                @NonNull
-                private final String mName;
-
-                private Composition(@NonNull final Read<M> first,
-                                    @NonNull final Value.Read<N> second) {
-                    this(first, Mappers.read(second));
-                }
-
-                private Composition(@NonNull final Read<M> first, @NonNull final Read<N> second) {
-                    super();
-
-                    mFirst = first;
-                    mSecond = second;
-                    mName = '(' + first.getName() + ", " + second.getName() + ')';
-                }
-
-                @NonNls
-                @NonNull
-                @Override
-                public final String getName() {
-                    return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Reading.Item.Create<Pair<M, N>> prepareRead() {
-                    return mFirst.prepareRead().and(mSecond.prepareRead());
-                }
-
-                @NonNull
-                @Override
-                public final Reading.Item<Pair<M, N>> prepareRead(@NonNull final Pair<M, N> pair) {
-                    final Reading.Item<M> first = (pair.first == null) ?
-                            mFirst.prepareRead() :
-                            mFirst.prepareRead(pair.first);
-                    final Reading.Item<N> second = (pair.second == null) ?
-                            mSecond.prepareRead() :
-                            mSecond.prepareRead(pair.second);
-                    return first.and(second);
-                }
-            }
-
-            private static class Converted<M, N> extends Base<N> {
-
-                @NonNull
-                private final Read<M> mRead;
-                @NonNull
-                private final Converter<M, N> mConverter;
-                @NonNull
-                private final Function<Maybe<M>, Maybe<N>> mFrom;
-                @NonNls
-                @NonNull
-                private final String mName;
-
-                private Converted(@NonNull final Read<M> read,
-                                  @NonNull final Converter<M, N> converter) {
-                    super();
-
-                    mRead = read;
-                    mConverter = converter;
-                    mFrom = Maybes.map(from(converter));
-                    mName = read.getName();
-                }
-
-                @NonNls
-                @NonNull
-                @Override
-                public final String getName() {
-                    return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Reading.Item.Create<N> prepareRead() {
-                    return mRead.prepareRead().convert(mFrom);
-                }
-
-                @NonNull
-                @Override
-                public final Reading.Item<N> prepareRead(@NonNull final N model) {
-                    return mRead.prepareRead(mConverter.to(model)).convert(mFrom);
-                }
+                return Mappers.convert(this, converter);
             }
         }
 
@@ -250,10 +155,10 @@ public final class Mapper {
         Plan.Write prepareWrite(@NonNull final Maybe<M> value);
 
         @NonNull
-        Write<M> and(@NonNull final Value.Constant value);
+        Write<M> and(@NonNull final Value.Constant other);
 
         @NonNull
-        <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> value);
+        <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other);
 
         @NonNull
         <N> Write<Pair<M, N>> and(@NonNull final Write<N> other);
@@ -265,142 +170,26 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final Write<M> and(@NonNull final Value.Constant value) {
-                return new ConstantComposition<>(this, value);
+            public final Write<M> and(@NonNull final Value.Constant other) {
+                return Mappers.compose(this, other);
             }
 
             @NonNull
             @Override
-            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> value) {
-                return new Composition<>(this, value);
+            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other) {
+                return and(Mappers.write(other));
             }
 
             @NonNull
             @Override
             public final <N> Write<Pair<M, N>> and(@NonNull final Write<N> other) {
-                return new Composition<>(this, other);
+                return Mappers.compose(this, other);
             }
 
             @NonNull
             @Override
             public final <N> Write<N> mapFrom(@NonNull final Function<? super N, ? extends M> converter) {
-                return new Converted<>(this, converter);
-            }
-
-            private static class ConstantComposition<M> extends Base<M> {
-
-                @NonNull
-                private final Write<M> mFirst;
-                @NonNull
-                private final Value.Constant mSecond;
-                @NonNls
-                @NonNull
-                private final String mName;
-
-                private ConstantComposition(@NonNull final Write<M> first,
-                                            @NonNull final Value.Constant second) {
-                    super();
-
-                    mFirst = first;
-                    mSecond = second;
-                    mName = '(' + first.getName() + ", " + second.getName() + ')';
-                }
-
-                @NonNls
-                @NonNull
-                @Override
-                public final String getName() {
-                    return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
-                    return mFirst.prepareWrite(value).and(Plans.write(mSecond));
-                }
-            }
-
-            private static class Composition<M, N> extends Base<Pair<M, N>> {
-
-                @NonNull
-                private final Write<M> mFirst;
-                @NonNull
-                private final Write<N> mSecond;
-                @NonNls
-                @NonNull
-                private final String mName;
-
-                private Composition(@NonNull final Write<M> first,
-                                    @NonNull final Value.Write<N> second) {
-                    this(first, Mappers.write(second));
-                }
-
-                private Composition(@NonNull final Write<M> first, @NonNull final Write<N> second) {
-                    super();
-
-                    mFirst = first;
-                    mSecond = second;
-                    mName = '(' + mFirst.getName() + ", " + mSecond.getName() + ')';
-                }
-
-                @NonNls
-                @NonNull
-                @Override
-                public final String getName() {
-                    return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Plan.Write prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
-                    return mFirst.prepareWrite(first(value))
-                            .and(mSecond.prepareWrite(second(value)));
-                }
-
-                @NonNull
-                private static <M, N> Maybe<M> first(@NonNull final Maybe<Pair<M, N>> value) {
-                    final Pair<M, N> pair = value.getOrElse(null);
-                    return something((pair == null) ? null : pair.first);
-                }
-
-                @NonNull
-                private static <M, N> Maybe<N> second(@NonNull final Maybe<Pair<M, N>> value) {
-                    final Pair<M, N> pair = value.getOrElse(null);
-                    return something((pair == null) ? null : pair.second);
-                }
-            }
-
-            private static class Converted<M, N> extends Base<N> {
-
-                @NonNull
-                private final Write<M> mWrite;
-                @NonNull
-                private final Function<Maybe<N>, Maybe<M>> mConverter;
-                @NonNls
-                @NonNull
-                private final String mName;
-
-                private Converted(@NonNull final Write<M> write,
-                                  @NonNull final Function<? super N, ? extends M> converter) {
-                    super();
-
-                    mWrite = write;
-                    mConverter = Maybes.map(converter);
-                    mName = write.getName();
-                }
-
-                @NonNls
-                @NonNull
-                @Override
-                public final String getName() {
-                    return mName;
-                }
-
-                @NonNull
-                @Override
-                public final Plan.Write prepareWrite(@NonNull final Maybe<N> value) {
-                    return mWrite.prepareWrite(mConverter.invoke(value));
-                }
+                return Mappers.convert(this, converter);
             }
         }
 
@@ -468,7 +257,7 @@ public final class Mapper {
 
         @NonNull
         @Override
-        ReadWrite<M> and(@NonNull final Value.Constant value);
+        ReadWrite<M> and(@NonNull final Value.Constant other);
 
         @NonNull
         <V> ReadWrite<Pair<M, V>> and(@NonNull final Value.ReadWrite<V> other);
@@ -488,67 +277,64 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> value) {
-                return new Read.Base.Composition<>(this, value);
+            public final <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other) {
+                return and(Mappers.read(other));
             }
 
             @NonNull
             @Override
-            public final ReadWrite<M> and(@NonNull final Value.Constant value) {
-                return combine(
+            public final ReadWrite<M> and(@NonNull final Value.Constant other) {
+                return Mappers.combine(
                         this,
-                        new Write.Base.ConstantComposition<>(this, value)
+                        Mappers.compose(this, other)
                 );
             }
 
             @NonNull
             @Override
-            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> value) {
-                return new Write.Base.Composition<>(this, value);
+            public final <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other) {
+                return and(Mappers.write(other));
             }
 
             @NonNull
             @Override
             public final <V> ReadWrite<Pair<M, V>> and(@NonNull final Value.ReadWrite<V> other) {
-                return combine(
-                        new Read.Base.Composition<>(this, other),
-                        new Write.Base.Composition<>(this, other)
-                );
+                return and(Mappers.mapper(other));
             }
 
             @NonNull
             @Override
             public final <N> Read<Pair<M, N>> and(@NonNull final Read<N> other) {
-                return new Read.Base.Composition<>(this, other);
+                return Mappers.compose(this, other);
             }
 
             @NonNull
             @Override
             public final <N> Write<Pair<M, N>> and(@NonNull final Write<N> other) {
-                return new Write.Base.Composition<>(this, other);
+                return Mappers.compose(this, other);
             }
 
             @NonNull
             @Override
             public final <N> ReadWrite<Pair<M, N>> and(@NonNull final ReadWrite<N> other) {
-                return combine(
-                        new Read.Base.Composition<>(this, other),
-                        new Write.Base.Composition<>(this, other)
+                return Mappers.combine(
+                        Mappers.compose((Read<M>) this, other),
+                        Mappers.compose((Write<M>) this, other)
                 );
             }
 
             @NonNull
             @Override
             public final <N> Write<N> mapFrom(@NonNull final Function<? super N, ? extends M> converter) {
-                return new Write.Base.Converted<>(this, converter);
+                return Mappers.convert(this, converter);
             }
 
             @NonNull
             @Override
             public final <N> ReadWrite<N> map(@NonNull final Converter<M, N> converter) {
-                return combine(
-                        new Read.Base.Converted<>(this, converter),
-                        new Write.Base.Converted<>(this, to(converter))
+                return Mappers.combine(
+                        Mappers.convert(this, converter),
+                        Mappers.convert(this, Converters.to(converter))
                 );
             }
         }
@@ -627,7 +413,7 @@ public final class Mapper {
 
             @NonNull
             public final ReadWrite<M> build() {
-                return combine(mRead.build(), mWrite.build());
+                return Mappers.combine(mRead.build(), mWrite.build());
             }
         }
     }

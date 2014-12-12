@@ -25,55 +25,30 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.Arrays;
 
-import static android.orm.model.Reading.Item.action;
-
 public final class Instances {
 
     @NonNull
     public static <M, V> Instance.Getter<V> getter(@NonNull final M model,
                                                    @NonNull final Lens.Read<M, V> lens) {
-        return new Instance.Getter<V>() {
-            @Nullable
-            @Override
-            public V get() {
-                return lens.get(model);
-            }
-        };
+        return new LensGetter<>(model, lens);
     }
 
     @NonNull
     public static <M, V> Instance.Setter<V> setter(@NonNull final M model,
                                                    @NonNull final Lens.Write<M, V> lens) {
-        return new Instance.Setter<V>() {
-            @Override
-            public void set(@Nullable final V value) {
-                lens.set(model, value);
-            }
-        };
-    }
-
-    @NonNull
-    public static <V> Instance.Access<V> access(@NonNull final Instance.Getter<V> getter,
-                                                @NonNull final Instance.Setter<V> setter) {
-        return new Instance.Access<V>() {
-
-            @Nullable
-            @Override
-            public V get() {
-                return getter.get();
-            }
-
-            @Override
-            public void set(@Nullable final V value) {
-                setter.set(value);
-            }
-        };
+        return new LensSetter<>(model, lens);
     }
 
     @NonNull
     public static <M, V> Instance.Access<V> access(@NonNull final M model,
                                                    @NonNull final Lens.ReadWrite<M, V> lens) {
         return access(getter(model, lens), setter(model, lens));
+    }
+
+    @NonNull
+    public static <V> Instance.Access<V> access(@NonNull final Instance.Getter<V> getter,
+                                                @NonNull final Instance.Setter<V> setter) {
+        return new AccessCombination<>(getter, setter);
     }
 
     @NonNull
@@ -110,7 +85,7 @@ public final class Instances {
             @NonNull
             @Override
             public Reading.Item.Action prepareRead() {
-                return action(binding, Reading.Item.Create.from(value));
+                return Reading.Item.action(binding, Reading.Item.Create.from(value));
             }
         };
     }
@@ -136,15 +111,6 @@ public final class Instances {
     }
 
     @NonNull
-    public static <V> Instance.ReadWrite instance(@NonNull final Binding.ReadWrite<V> binding,
-                                                  @NonNull final Value.ReadWrite<V> value) {
-        return combine(
-                instance((Binding.Write<V>) binding, value),
-                instance((Binding.Read<V>) binding, value)
-        );
-    }
-
-    @NonNull
     public static <V> Instance.Readable instance(@NonNull final Binding.Write<V> binding,
                                                  @NonNull final Mapper.Read<V> mapper) {
         return new Instance.Readable.Base() {
@@ -159,7 +125,7 @@ public final class Instances {
             @NonNull
             @Override
             public Reading.Item.Action prepareRead() {
-                return action(binding, mapper.prepareRead());
+                return Reading.Item.action(binding, mapper.prepareRead());
             }
         };
     }
@@ -201,8 +167,8 @@ public final class Instances {
             public Reading.Item.Action prepareRead() {
                 final V value = binding.get().getOrElse(null);
                 return (value == null) ?
-                        action(binding, mapper.prepareRead()) :
-                        action(binding, mapper.prepareRead(value));
+                        Reading.Item.action(binding, mapper.prepareRead()) :
+                        Reading.Item.action(binding, mapper.prepareRead(value));
             }
 
             @NonNull
@@ -213,6 +179,7 @@ public final class Instances {
         };
     }
 
+    @NonNull
     public static Instance.Readable compose(@NonNull final Instance.Readable first,
                                             @NonNull final Instance.Readable second) {
         return new ReadableComposition(first, second);
@@ -227,7 +194,76 @@ public final class Instances {
     @NonNull
     public static Instance.ReadWrite combine(@NonNull final Instance.Readable read,
                                              @NonNull final Instance.Writable write) {
-        return new Combine(read, write);
+        return new InstanceCombination(read, write);
+    }
+
+    private static class LensGetter<M, V> implements Instance.Getter<V> {
+
+        @NonNull
+        private final M mModel;
+        @NonNull
+        private final Lens.Read<M, V> mLens;
+
+        private LensGetter(@NonNull final M model, @NonNull final Lens.Read<M, V> lens) {
+            super();
+
+            mLens = lens;
+            mModel = model;
+        }
+
+        @Nullable
+        @Override
+        public final V get() {
+            return mLens.get(mModel);
+        }
+    }
+
+    private static class LensSetter<M, V> implements Instance.Setter<V> {
+
+        @NonNull
+        private final M mModel;
+        @NonNull
+        private final Lens.Write<M, V> mLens;
+
+        private LensSetter(@NonNull final M model,
+                           @NonNull final Lens.Write<M, V> lens) {
+            super();
+
+            mModel = model;
+            mLens = lens;
+        }
+
+        @Override
+        public final void set(@Nullable final V value) {
+            mLens.set(mModel, value);
+        }
+    }
+
+    private static class AccessCombination<V> implements Instance.Access<V> {
+
+        @NonNull
+        private final Instance.Getter<V> mGetter;
+        @NonNull
+        private final Instance.Setter<V> mSetter;
+
+        private AccessCombination(@NonNull final Instance.Getter<V> getter,
+                                  @NonNull final Instance.Setter<V> setter) {
+            super();
+
+            mGetter = getter;
+            mSetter = setter;
+        }
+
+        @Nullable
+        @Override
+        public final V get() {
+            return mGetter.get();
+        }
+
+        @Override
+        public final void set(@Nullable final V value) {
+            mSetter.set(value);
+        }
     }
 
     private static class ReadableComposition extends Instance.Readable.Base implements Observer.Read {
@@ -360,7 +396,7 @@ public final class Instances {
         }
     }
 
-    private static class Combine extends Instance.ReadWrite.Base implements Observer.ReadWrite {
+    private static class InstanceCombination extends Instance.ReadWrite.Base implements Observer.ReadWrite {
 
         @NonNull
         private final Instance.Readable mRead;
@@ -369,8 +405,9 @@ public final class Instances {
         @NonNull
         private final Observer.ReadWrite mObserver;
 
-        private Combine(@NonNull final Instance.Readable read,
-                        @NonNull final Instance.Writable write) {
+        private InstanceCombination(@NonNull final Instance.Readable read,
+                                    @NonNull final Instance.Writable write) {
+            super();
 
             mRead = read;
             mWrite = write;

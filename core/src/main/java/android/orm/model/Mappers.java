@@ -18,14 +18,20 @@ package android.orm.model;
 
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.util.Converter;
+import android.orm.util.Converters;
+import android.orm.util.Function;
 import android.orm.util.Lazy;
 import android.orm.util.Maybe;
+import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
+import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
 import static android.orm.model.Plans.EmptyWrite;
+import static android.orm.util.Maybes.something;
 
 public final class Mappers {
 
@@ -57,31 +63,43 @@ public final class Mappers {
 
     @NonNull
     public static <V> Mapper.ReadWrite<V> mapper(@NonNull final Value.ReadWrite<V> value) {
-        return combine(value, value);
+        return combine(read(value), write(value));
     }
 
     @NonNull
-    public static <M> Mapper.ReadWrite<M> combine(@NonNull final Value.Read<M> read,
-                                                  @NonNull final Value.Write<M> write) {
-        return combine(read(read), write(write));
+    public static <M, N> Mapper.Read<Pair<M, N>> compose(@NonNull final Mapper.Read<M> first,
+                                                         @NonNull final Mapper.Read<N> second) {
+        return new ReadComposition<>(first, second);
     }
 
     @NonNull
-    public static <M> Mapper.ReadWrite<M> combine(@NonNull final Value.Read<M> read,
-                                                  @NonNull final Mapper.Write<M> write) {
-        return combine(read(read), write);
+    public static <M> Mapper.Write<M> compose(@NonNull final Mapper.Write<M> mapper,
+                                              @NonNull final Value.Constant constant) {
+        return new ConstantComposition<>(mapper, constant);
+    }
+
+    @NonNull
+    public static <M, N> Mapper.Write<Pair<M, N>> compose(@NonNull final Mapper.Write<M> first,
+                                                          @NonNull final Mapper.Write<N> second) {
+        return new WriteComposition<>(first, second);
+    }
+
+    @NonNull
+    public static <M, N> Mapper.Read<N> convert(@NonNull final Mapper.Read<M> mapper,
+                                                @NonNull final Converter<M, N> converter) {
+        return new ReadConversion<>(mapper, converter);
+    }
+
+    @NonNull
+    public static <M, N> Mapper.Write<N> convert(@NonNull final Mapper.Write<M> mapper,
+                                                 @NonNull final Function<? super N, ? extends M> converter) {
+        return new WriteConversion<>(mapper, converter);
     }
 
     @NonNull
     public static <M> Mapper.ReadWrite<M> combine(@NonNull final Mapper.Read<M> read,
-                                                  @NonNull final Value.Write<M> write) {
-        return combine(read, write(write));
-    }
-
-    @NonNull
-    public static <M> Mapper.ReadWrite<M> combine(@NonNull final Mapper.Read<M> read,
                                                   @NonNull final Mapper.Write<M> write) {
-        return new Composition<>(read, write);
+        return new Combination<>(read, write);
     }
 
     private static class InstanceRead<M extends Instance.Readable> extends Mapper.Read.Base<M> {
@@ -227,14 +245,213 @@ public final class Mappers {
         }
     }
 
-    private static class Composition<M> extends Mapper.ReadWrite.Base<M> {
+    private static class ReadComposition<M, N> extends Mapper.Read.Base<Pair<M, N>> {
+
+        @NonNull
+        private final Mapper.Read<M> mFirst;
+        @NonNull
+        private final Mapper.Read<N> mSecond;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private ReadComposition(@NonNull final Mapper.Read<M> first,
+                                @NonNull final Mapper.Read<N> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+            mName = '(' + first.getName() + ", " + second.getName() + ')';
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        @Override
+        public final Reading.Item.Create<Pair<M, N>> prepareRead() {
+            return mFirst.prepareRead().and(mSecond.prepareRead());
+        }
+
+        @NonNull
+        @Override
+        public final Reading.Item<Pair<M, N>> prepareRead(@NonNull final Pair<M, N> pair) {
+            final Reading.Item<M> first = (pair.first == null) ?
+                    mFirst.prepareRead() :
+                    mFirst.prepareRead(pair.first);
+            final Reading.Item<N> second = (pair.second == null) ?
+                    mSecond.prepareRead() :
+                    mSecond.prepareRead(pair.second);
+            return first.and(second);
+        }
+    }
+
+    private static class ConstantComposition<M> extends Mapper.Write.Base<M> {
+
+        @NonNull
+        private final Mapper.Write<M> mFirst;
+        @NonNull
+        private final Value.Constant mSecond;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private ConstantComposition(@NonNull final Mapper.Write<M> first,
+                                    @NonNull final Value.Constant second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+            mName = '(' + first.getName() + ", " + second.getName() + ')';
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+            return mFirst.prepareWrite(value).and(Plans.write(mSecond));
+        }
+    }
+
+    private static class WriteComposition<M, N> extends Mapper.Write.Base<Pair<M, N>> {
+
+        @NonNull
+        private final Mapper.Write<M> mFirst;
+        @NonNull
+        private final Mapper.Write<N> mSecond;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private WriteComposition(@NonNull final Mapper.Write<M> first,
+                                 @NonNull final Mapper.Write<N> second) {
+            super();
+
+            mFirst = first;
+            mSecond = second;
+            mName = '(' + mFirst.getName() + ", " + mSecond.getName() + ')';
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Write prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
+            return mFirst.prepareWrite(first(value))
+                    .and(mSecond.prepareWrite(second(value)));
+        }
+
+        @NonNull
+        private static <M, N> Maybe<M> first(@NonNull final Maybe<Pair<M, N>> value) {
+            final Pair<M, N> pair = value.getOrElse(null);
+            return something((pair == null) ? null : pair.first);
+        }
+
+        @NonNull
+        private static <M, N> Maybe<N> second(@NonNull final Maybe<Pair<M, N>> value) {
+            final Pair<M, N> pair = value.getOrElse(null);
+            return something((pair == null) ? null : pair.second);
+        }
+    }
+
+    private static class ReadConversion<M, N> extends Mapper.Read.Base<N> {
+
+        @NonNull
+        private final Mapper.Read<M> mRead;
+        @NonNull
+        private final Converter<M, N> mConverter;
+        @NonNull
+        private final Function<Maybe<M>, Maybe<N>> mFrom;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private ReadConversion(@NonNull final Mapper.Read<M> read,
+                               @NonNull final Converter<M, N> converter) {
+            super();
+
+            mRead = read;
+            mConverter = converter;
+            mFrom = Maybes.map(Converters.from(converter));
+            mName = read.getName();
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        @Override
+        public final Reading.Item.Create<N> prepareRead() {
+            return mRead.prepareRead().convert(mFrom);
+        }
+
+        @NonNull
+        @Override
+        public final Reading.Item<N> prepareRead(@NonNull final N model) {
+            return mRead.prepareRead(mConverter.to(model)).convert(mFrom);
+        }
+    }
+
+    private static class WriteConversion<M, N> extends Mapper.Write.Base<N> {
+
+        @NonNull
+        private final Mapper.Write<M> mWrite;
+        @NonNull
+        private final Function<Maybe<N>, Maybe<M>> mConverter;
+        @NonNls
+        @NonNull
+        private final String mName;
+
+        private WriteConversion(@NonNull final Mapper.Write<M> write,
+                                @NonNull final Function<? super N, ? extends M> converter) {
+            super();
+
+            mWrite = write;
+            mConverter = Maybes.map(converter);
+            mName = write.getName();
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mName;
+        }
+
+        @NonNull
+        @Override
+        public final Plan.Write prepareWrite(@NonNull final Maybe<N> value) {
+            return mWrite.prepareWrite(mConverter.invoke(value));
+        }
+    }
+
+    private static class Combination<M> extends Mapper.ReadWrite.Base<M> {
 
         @NonNull
         private final Mapper.Read<M> mRead;
         @NonNull
         private final Mapper.Write<M> mWrite;
 
-        private Composition(@NonNull final Mapper.Read<M> read,
+        private Combination(@NonNull final Mapper.Read<M> read,
                             @NonNull final Mapper.Write<M> write) {
             super();
 
