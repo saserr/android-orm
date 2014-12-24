@@ -130,10 +130,10 @@ public final class Value {
                    @NonNull final Writable output);
 
         @NonNull
-        <T> Write<Pair<V, T>> and(@NonNull final Write<T> other);
+        Write<V> and(@NonNull final Constant other);
 
         @NonNull
-        Write<V> and(@NonNull final Constant other);
+        <T> Write<Pair<V, T>> and(@NonNull final Write<T> other);
 
         @NonNull
         <T> Write<T> mapFrom(@NonNull final Function<? super T, ? extends V> converter);
@@ -160,14 +160,14 @@ public final class Value {
 
             @NonNull
             @Override
-            public final <T> Write<Pair<V, T>> and(@NonNull final Write<T> other) {
-                return Values.compose(this, other);
+            public final Write<V> and(@NonNull final Constant other) {
+                return Values.compose(other, this);
             }
 
             @NonNull
             @Override
-            public final Write<V> and(@NonNull final Constant other) {
-                return Values.compose(other, this);
+            public final <T> Write<Pair<V, T>> and(@NonNull final Write<T> other) {
+                return Values.compose(this, other);
             }
 
             @NonNull
@@ -197,11 +197,11 @@ public final class Value {
     public interface ReadWrite<V> extends Read<V>, Write<V> {
 
         @NonNull
-        <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other);
-
-        @NonNull
         @Override
         ReadWrite<V> and(@NonNull final Constant other);
+
+        @NonNull
+        <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other);
 
         @NonNull
         <T> ReadWrite<T> map(@NonNull final Converter<V, T> converter);
@@ -225,14 +225,14 @@ public final class Value {
 
             @NonNull
             @Override
-            public final <T> Read<Pair<V, T>> and(@NonNull final Read<T> other) {
-                return Values.compose(this, other);
+            public final ReadWrite<V> and(@NonNull final Constant other) {
+                return Values.combine(this, Values.compose(other, this));
             }
 
             @NonNull
             @Override
-            public final ReadWrite<V> and(@NonNull final Constant other) {
-                return Values.combine(this, Values.compose(other, this));
+            public final <T> Read<Pair<V, T>> and(@NonNull final Read<T> other) {
+                return Values.compose(this, other);
             }
 
             @NonNull

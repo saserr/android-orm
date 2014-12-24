@@ -388,6 +388,12 @@ public final class AggregateFunctions {
         return new Conversion<>(function, converter);
     }
 
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public static <V> AggregateFunction<V> safeCast(@NonNull final AggregateFunction<? extends V> function) {
+        return (AggregateFunction<V>) function;
+    }
+
     private abstract static class BaseFunction<V> extends AggregateFunction.Base<V> {
 
         @NonNls

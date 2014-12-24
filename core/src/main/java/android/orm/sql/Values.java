@@ -87,6 +87,18 @@ public final class Values {
         return new Combination<>(read, write);
     }
 
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public static <V> Value.Read<V> safeCast(@NonNull final Value.Read<? extends V> value) {
+        return (Value.Read<V>) value;
+    }
+
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public static <V> Value.Write<V> safeCast(@NonNull final Value.Write<? super V> value) {
+        return (Value.Write<V>) value;
+    }
+
     private static class NamedType<V> extends Value.ReadWrite.Base<V> {
 
         @NonNls
