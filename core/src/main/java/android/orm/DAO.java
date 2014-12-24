@@ -152,7 +152,6 @@ public final class DAO {
         return new Executor.Direct.Many.Factory<android.orm.sql.Executor, V>() {
             @NonNull
             @Override
-            @SuppressWarnings("unchecked")
             public Executor.Direct.Many<V> create(@NonNull final android.orm.sql.Executor executor) {
                 return many(executor, table, uniqueKey);
             }

@@ -19,7 +19,6 @@ package android.orm.dao;
 import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.orm.Access;
 import android.orm.DAO;
 import android.orm.Database;
@@ -128,42 +127,24 @@ public abstract class Direct implements DAO.Direct {
     public static class OutsideTransaction extends Direct {
 
         @NonNull
-        private final SQLiteOpenHelper mHelper;
+        private final Database.Helper mHelper;
 
         public OutsideTransaction(@NonNull final Context context,
                                   @NonNull final Database database) {
             super();
 
-            mHelper = database.getDatabaseHelper(context);
+            mHelper = database.getHelper(context);
         }
 
         @Override
         public final void execute(@NonNull final Statement statement) {
-            final SQLiteDatabase database = mHelper.getWritableDatabase();
-            database.beginTransaction();
-            try {
-                statement.execute(database);
-                database.setTransactionSuccessful();
-            } finally {
-                database.endTransaction();
-            }
+            mHelper.execute(statement);
         }
 
         @NonNull
         @Override
         public final <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
-            Maybe<V> result = nothing();
-
-            final SQLiteDatabase database = mHelper.getWritableDatabase();
-            database.beginTransaction();
-            try {
-                result = expression.execute(database);
-                database.setTransactionSuccessful();
-            } finally {
-                database.endTransaction();
-            }
-
-            return result;
+            return mHelper.execute(expression);
         }
 
         @NonNull

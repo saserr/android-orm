@@ -57,7 +57,7 @@ public class ContentProvider extends android.content.ContentProvider {
     private final Route.Manager[] mManagers;
 
     @NonNull
-    private SQLiteOpenHelper mHelper;
+    private Database.Helper mHelper;
     @NonNull
     private ContentResolver mContentResolver;
 
@@ -79,7 +79,7 @@ public class ContentProvider extends android.content.ContentProvider {
             throw new IllegalArgumentException("Context is null");
         }
 
-        mHelper = mDatabase.getDatabaseHelper(context);
+        mHelper = mDatabase.getHelper(context);
         mContentResolver = context.getContentResolver();
 
         return true;

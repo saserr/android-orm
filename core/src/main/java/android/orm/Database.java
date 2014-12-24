@@ -25,8 +25,12 @@ import android.orm.database.IntegrityCheck;
 import android.orm.database.IntegrityChecks;
 import android.orm.database.Migration;
 import android.orm.database.Migrations;
+import android.orm.sql.Executor;
+import android.orm.sql.Expression;
+import android.orm.sql.Statement;
 import android.orm.util.Function;
 import android.orm.util.Legacy;
+import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -110,8 +114,8 @@ public class Database {
     }
 
     @NonNull
-    public final SQLiteOpenHelper getDatabaseHelper(@NonNull final Context context) {
-        final SQLiteOpenHelper result;
+    public final Helper getHelper(@NonNull final Context context) {
+        final Helper result;
 
         sSemaphore.acquireUninterruptibly();
         try {
@@ -162,7 +166,7 @@ public class Database {
         return (mName == null) ? 0 : mName.hashCode();
     }
 
-    private static class Helper extends SQLiteOpenHelper {
+    public static class Helper extends SQLiteOpenHelper implements Executor {
 
         @NonNls
         private static final String TURN_ON_FOREIGN_KEYS_CHECK = "pragma foreign_keys=on;";
@@ -197,6 +201,35 @@ public class Database {
             if (Log.isLoggable(TAG, DEBUG)) {
                 Log.d(TAG, "Creating SQLite connection to database " + mName); //NON-NLS
             }
+        }
+
+        @Override
+        public final void execute(@NonNull final Statement statement) {
+            final SQLiteDatabase database = getWritableDatabase();
+            database.beginTransaction();
+            try {
+                statement.execute(database);
+                database.setTransactionSuccessful();
+            } finally {
+                database.endTransaction();
+            }
+        }
+
+        @NonNull
+        @Override
+        public final <V> Maybe<V> execute(@NonNull final Expression<V> expression) {
+            final SQLiteDatabase database = getWritableDatabase();
+            final Maybe<V> result;
+
+            database.beginTransaction();
+            try {
+                result = expression.execute(database);
+                database.setTransactionSuccessful();
+            } finally {
+                database.endTransaction();
+            }
+
+            return result;
         }
 
         @Override
