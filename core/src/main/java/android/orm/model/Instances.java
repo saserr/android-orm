@@ -52,7 +52,7 @@ public final class Instances {
     }
 
     @NonNull
-    public static Instance.Writable instance(@NonNull final Value.Constant value) {
+    public static Instance.Writable instance(@NonNull final Value value) {
         return new Instance.Writable.Base() {
 
             @NonNls

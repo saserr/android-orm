@@ -155,7 +155,7 @@ public final class Mapper {
         Plan.Write prepareWrite(@NonNull final Maybe<M> value);
 
         @NonNull
-        Write<M> and(@NonNull final Value.Constant other);
+        Write<M> and(@NonNull final Value other);
 
         @NonNull
         <V> Write<Pair<M, V>> and(@NonNull final Value.Write<V> other);
@@ -170,7 +170,7 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final Write<M> and(@NonNull final Value.Constant other) {
+            public final Write<M> and(@NonNull final Value other) {
                 return Mappers.compose(this, other);
             }
 
@@ -257,7 +257,7 @@ public final class Mapper {
 
         @NonNull
         @Override
-        ReadWrite<M> and(@NonNull final Value.Constant other);
+        ReadWrite<M> and(@NonNull final Value other);
 
         @NonNull
         <V> ReadWrite<Pair<M, V>> and(@NonNull final Value.ReadWrite<V> other);
@@ -283,7 +283,7 @@ public final class Mapper {
 
             @NonNull
             @Override
-            public final ReadWrite<M> and(@NonNull final Value.Constant other) {
+            public final ReadWrite<M> and(@NonNull final Value other) {
                 return Mappers.combine(
                         this,
                         Mappers.compose(this, other)

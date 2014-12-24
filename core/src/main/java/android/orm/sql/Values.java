@@ -34,15 +34,15 @@ public final class Values {
     public static final Value.ReadWrite<Long> RowId = value("_ROWID_", Integer);
 
     @NonNull
-    public static <V> Value.ReadWrite<V> value(@NonNls @NonNull final String name,
-                                               @NonNull final Type<V> type) {
-        return new NamedType<>(name, type);
+    public static <V> Value value(@NonNull final Value.Write<V> value,
+                                  @NonNull final Producer<Maybe<V>> producer) {
+        return new WriteValue<>(value, producer);
     }
 
     @NonNull
-    public static <V> Value.Constant constant(@NonNull final Value.Write<V> value,
-                                              @NonNull final Producer<Maybe<V>> producer) {
-        return new WriteConstant<>(value, producer);
+    public static <V> Value.ReadWrite<V> value(@NonNls @NonNull final String name,
+                                               @NonNull final Type<V> type) {
+        return new NamedType<>(name, type);
     }
 
     @NonNull
@@ -52,15 +52,14 @@ public final class Values {
     }
 
     @NonNull
-    public static Value.Constant compose(@NonNull final Value.Constant first,
-                                         @NonNull final Value.Constant second) {
-        return new ConstantComposition(first, second);
+    public static Value compose(@NonNull final Value first, @NonNull final Value second) {
+        return new ValueComposition(first, second);
     }
 
     @NonNull
-    public static <V> Value.Write<V> compose(@NonNull final Value.Constant first,
+    public static <V> Value.Write<V> compose(@NonNull final Value first,
                                              @NonNull final Value.Write<V> second) {
-        return new ConstantWriteComposition<>(first, second);
+        return new ValueWriteComposition<>(first, second);
     }
 
     @NonNull
@@ -97,6 +96,41 @@ public final class Values {
     @SuppressWarnings("unchecked")
     public static <V> Value.Write<V> safeCast(@NonNull final Value.Write<? super V> value) {
         return (Value.Write<V>) value;
+    }
+
+    private static class WriteValue<V> extends Value.Base {
+
+        @NonNull
+        private final Value.Write<V> mValue;
+        @NonNull
+        private final Producer<Maybe<V>> mProducer;
+
+        private WriteValue(@NonNull final Value.Write<V> value,
+                           @NonNull final Producer<Maybe<V>> producer) {
+            super();
+
+            mValue = value;
+            mProducer = producer;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mValue.getName();
+        }
+
+        @NonNull
+        @Override
+        public final Condition onUpdate() {
+            return Condition.None;
+        }
+
+        @Override
+        public final void write(@NonNull final Value.Write.Operation operation,
+                                @NonNull final Writable output) {
+            mValue.write(operation, mProducer.produce(), output);
+        }
     }
 
     private static class NamedType<V> extends Value.ReadWrite.Base<V> {
@@ -151,41 +185,6 @@ public final class Values {
         }
     }
 
-    private static class WriteConstant<V> extends Value.Constant.Base {
-
-        @NonNull
-        private final Value.Write<V> mValue;
-        @NonNull
-        private final Producer<Maybe<V>> mProducer;
-
-        private WriteConstant(@NonNull final Value.Write<V> value,
-                              @NonNull final Producer<Maybe<V>> producer) {
-            super();
-
-            mValue = value;
-            mProducer = producer;
-        }
-
-        @NonNls
-        @NonNull
-        @Override
-        public final String getName() {
-            return mValue.getName();
-        }
-
-        @NonNull
-        @Override
-        public final Condition onUpdate() {
-            return Condition.None;
-        }
-
-        @Override
-        public final void write(@NonNull final Value.Write.Operation operation,
-                                @NonNull final Writable output) {
-            mValue.write(operation, mProducer.produce(), output);
-        }
-    }
-
     private static class ReadComposition<V, T> extends Value.Read.Base<Pair<V, T>> {
 
         @NonNull
@@ -228,20 +227,19 @@ public final class Values {
         }
     }
 
-    private static class ConstantComposition extends Value.Constant.Base {
+    private static class ValueComposition extends Value.Base {
 
         @NonNull
-        private final Value.Constant mFirst;
+        private final Value mFirst;
         @NonNull
-        private final Value.Constant mSecond;
+        private final Value mSecond;
         @NonNls
         @NonNull
         private final String mName;
         @NonNull
         private final Condition mOnUpdate;
 
-        private ConstantComposition(@NonNull final Value.Constant first,
-                                    @NonNull final Value.Constant second) {
+        private ValueComposition(@NonNull final Value first, @NonNull final Value second) {
             super();
 
             mFirst = first;
@@ -271,18 +269,18 @@ public final class Values {
         }
     }
 
-    private static class ConstantWriteComposition<V> extends Value.Write.Base<V> {
+    private static class ValueWriteComposition<V> extends Value.Write.Base<V> {
 
         @NonNull
-        private final Value.Constant mFirst;
+        private final Value mFirst;
         @NonNull
         private final Value.Write<V> mSecond;
         @NonNls
         @NonNull
         private final String mName;
 
-        private ConstantWriteComposition(@NonNull final Value.Constant first,
-                                         @NonNull final Value.Write<V> second) {
+        private ValueWriteComposition(@NonNull final Value first,
+                                      @NonNull final Value.Write<V> second) {
             super();
 
             mFirst = first;

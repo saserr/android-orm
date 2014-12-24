@@ -44,8 +44,8 @@ public class Task extends Model {
     public static final Column<Boolean> Finished = bool("finished").asNotNull().withDefault(false);
     public static final Column<Long> Version = number("version").asNotNull().check(IsPositive).withDefault(1L);
 
-    public static final Value.Constant Open = Finished.write(false);
-    public static final Value.Constant Close = Finished.write(true);
+    public static final Value Open = Finished.write(false);
+    public static final Value Close = Finished.write(true);
 
     public static final Mapper.ReadWrite<Task> Mapper = Model.mapper(new Producer<Task>() {
         @NonNull

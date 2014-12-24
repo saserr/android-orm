@@ -29,11 +29,37 @@ import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
+import static android.orm.sql.Values.value;
 import static android.orm.util.Maybes.something;
 
-public final class Value {
+public interface Value extends Writer {
 
-    public interface Read<V> {
+    @NonNls
+    @NonNull
+    String getName();
+
+    @NonNull
+    Value and(@NonNull final Value other);
+
+    @NonNull
+    <V> Write<V> and(@NonNull final Write<V> other);
+
+    abstract class Base implements Value {
+
+        @NonNull
+        @Override
+        public final Value and(@NonNull final Value other) {
+            return Values.compose(this, other);
+        }
+
+        @NonNull
+        @Override
+        public final <V> Write<V> and(@NonNull final Write<V> other) {
+            return Values.compose(this, other);
+        }
+    }
+
+    interface Read<V> {
 
         @NonNls
         @NonNull
@@ -85,52 +111,24 @@ public final class Value {
         }
     }
 
-    public interface Constant extends Writer {
+    interface Write<V> {
 
         @NonNls
         @NonNull
         String getName();
 
         @NonNull
-        Constant and(@NonNull final Constant other);
+        Value write(@Nullable final V value);
 
         @NonNull
-        <V> Write<V> and(@NonNull final Write<V> other);
-
-        abstract class Base implements Constant {
-
-            @NonNull
-            @Override
-            public final Constant and(@NonNull final Constant other) {
-                return Values.compose(this, other);
-            }
-
-            @NonNull
-            @Override
-            public final <V> Write<V> and(@NonNull final Write<V> other) {
-                return Values.compose(this, other);
-            }
-        }
-    }
-
-    public interface Write<V> {
-
-        @NonNls
-        @NonNull
-        String getName();
-
-        @NonNull
-        Constant write(@Nullable final V value);
-
-        @NonNull
-        Constant write(@NonNull final Producer<V> producer);
+        Value write(@NonNull final Producer<V> producer);
 
         void write(@NonNull final Operation operation,
                    @NonNull final Maybe<V> value,
                    @NonNull final Writable output);
 
         @NonNull
-        Write<V> and(@NonNull final Constant other);
+        Write<V> and(@NonNull final Value other);
 
         @NonNull
         <T> Write<Pair<V, T>> and(@NonNull final Write<T> other);
@@ -148,19 +146,19 @@ public final class Value {
 
             @NonNull
             @Override
-            public final Constant write(@Nullable final V value) {
-                return Values.constant(this, Producers.constant(something(value)));
+            public final Value write(@Nullable final V value) {
+                return value(this, Producers.constant(something(value)));
             }
 
             @NonNull
             @Override
-            public final Constant write(@NonNull final Producer<V> producer) {
-                return Values.constant(this, Maybes.lift(producer));
+            public final Value write(@NonNull final Producer<V> producer) {
+                return value(this, Maybes.lift(producer));
             }
 
             @NonNull
             @Override
-            public final Write<V> and(@NonNull final Constant other) {
+            public final Write<V> and(@NonNull final Value other) {
                 return Values.compose(other, this);
             }
 
@@ -194,11 +192,11 @@ public final class Value {
         }
     }
 
-    public interface ReadWrite<V> extends Read<V>, Write<V> {
+    interface ReadWrite<V> extends Read<V>, Write<V> {
 
         @NonNull
         @Override
-        ReadWrite<V> and(@NonNull final Constant other);
+        ReadWrite<V> and(@NonNull final Value other);
 
         @NonNull
         <T> ReadWrite<Pair<V, T>> and(@NonNull final ReadWrite<T> other);
@@ -213,19 +211,19 @@ public final class Value {
 
             @NonNull
             @Override
-            public final Constant write(@Nullable final V value) {
-                return Values.constant(this, Producers.constant(something(value)));
+            public final Value write(@Nullable final V value) {
+                return value(this, Producers.constant(something(value)));
             }
 
             @NonNull
             @Override
-            public final Constant write(@NonNull final Producer<V> producer) {
-                return Values.constant(this, Maybes.lift(producer));
+            public final Value write(@NonNull final Producer<V> producer) {
+                return value(this, Maybes.lift(producer));
             }
 
             @NonNull
             @Override
-            public final ReadWrite<V> and(@NonNull final Constant other) {
+            public final ReadWrite<V> and(@NonNull final Value other) {
                 return Values.combine(this, Values.compose(other, this));
             }
 
@@ -301,9 +299,5 @@ public final class Value {
                 );
             }
         }
-    }
-
-    private Value() {
-        super();
     }
 }

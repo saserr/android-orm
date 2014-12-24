@@ -136,7 +136,7 @@ public abstract class Model {
         return view;
     }
 
-    protected final void storage(@NonNull final Value.Constant value) {
+    protected final void storage(@NonNull final Value value) {
         with(instance(value));
     }
 

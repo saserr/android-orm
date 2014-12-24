@@ -74,7 +74,7 @@ public final class Mappers {
 
     @NonNull
     public static <M> Mapper.Write<M> compose(@NonNull final Mapper.Write<M> mapper,
-                                              @NonNull final Value.Constant constant) {
+                                              @NonNull final Value constant) {
         return new ConstantComposition<>(mapper, constant);
     }
 
@@ -295,13 +295,13 @@ public final class Mappers {
         @NonNull
         private final Mapper.Write<M> mFirst;
         @NonNull
-        private final Value.Constant mSecond;
+        private final Value mSecond;
         @NonNls
         @NonNull
         private final String mName;
 
         private ConstantComposition(@NonNull final Mapper.Write<M> first,
-                                    @NonNull final Value.Constant second) {
+                                    @NonNull final Value second) {
             super();
 
             mFirst = first;

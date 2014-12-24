@@ -57,7 +57,7 @@ public final class Instance {
         Readable and(@NonNull final Readable other);
 
         @NonNull
-        ReadWrite and(@NonNull final Value.Constant other);
+        ReadWrite and(@NonNull final Value other);
 
         @NonNull
         ReadWrite and(@NonNull final Writable other);
@@ -72,7 +72,7 @@ public final class Instance {
 
             @NonNull
             @Override
-            public final ReadWrite and(@NonNull final Value.Constant other) {
+            public final ReadWrite and(@NonNull final Value other) {
                 return and(instance(other));
             }
 
@@ -255,7 +255,7 @@ public final class Instance {
         Plan.Write prepareWrite();
 
         @NonNull
-        Writable and(@NonNull final Value.Constant other);
+        Writable and(@NonNull final Value other);
 
         @NonNull
         Writable and(@NonNull final Writable other);
@@ -267,7 +267,7 @@ public final class Instance {
 
             @NonNull
             @Override
-            public final Writable and(@NonNull final Value.Constant other) {
+            public final Writable and(@NonNull final Value other) {
                 return and(instance(other));
             }
 
@@ -470,7 +470,7 @@ public final class Instance {
 
         @NonNull
         @Override
-        ReadWrite and(@NonNull final Value.Constant other);
+        ReadWrite and(@NonNull final Value other);
 
         @NonNull
         ReadWrite and(@NonNull final ReadWrite other);
@@ -485,7 +485,7 @@ public final class Instance {
 
             @NonNull
             @Override
-            public final ReadWrite and(@NonNull final Value.Constant other) {
+            public final ReadWrite and(@NonNull final Value other) {
                 return and(instance(other));
             }
 
