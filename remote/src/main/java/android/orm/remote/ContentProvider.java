@@ -241,7 +241,10 @@ public class ContentProvider extends android.content.ContentProvider {
         if (route == null) {
             throw new SQLException("Unknown URI " + uri);
         }
-        return new Match(route, uri);
+
+        final Match match = Match.Pool.borrow();
+        match.init(route, uri);
+        return match;
     }
 
     @Nullable

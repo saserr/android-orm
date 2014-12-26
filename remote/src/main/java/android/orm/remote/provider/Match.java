@@ -28,6 +28,7 @@ import android.orm.remote.route.Path;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Order;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -37,23 +38,32 @@ import static android.orm.sql.Helper.escape;
 
 public class Match {
 
-    @NonNull
-    private final Route.Single mSingleRoute;
-    @NonNull
-    private final ContentValues mOnInsert;
-    @NonNull
-    private final Condition mCondition;
-    @NonNls
-    @NonNull
-    private final String mTable;
-    @Nullable
-    private final String mOrder;
-    @Nullable
-    private final String mLimit;
+    public static final ObjectPool<Match> Pool = new ObjectPool<Match>() {
+        @NonNull
+        @Override
+        protected Match produce(@NonNull final Receipt<Match> receipt) {
+            return new Match(receipt);
+        }
+    };
 
-    public Match(@NonNull final Route route, @NonNull final Uri uri) {
+    @NonNull
+    private final ObjectPool.Receipt<Match> mReceipt;
+
+    private Route.Single mSingleRoute;
+    private ContentValues mOnInsert;
+    private Condition mCondition;
+    @NonNls
+    private String mTable;
+    private String mOrder;
+    private String mLimit;
+
+    private Match(@NonNull final ObjectPool.Receipt<Match> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final Route route, @NonNull final Uri uri) {
         mSingleRoute = route.getSingleRoute();
         final Path path = route.getPath();
         mCondition = path.createCondition(uri);
@@ -73,10 +83,19 @@ public class Match {
                               @Nullable final String selection,
                               @Nullable final String[] arguments,
                               @Nullable final String order) {
-        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
-        builder.setTables(mTable);
-        final String where = mCondition.and(new Condition(selection)).toSQL();
-        return builder.query(database, projection, where, arguments, null, null, (order == null) ? mOrder : order, mLimit);
+        final Cursor result;
+
+        try {
+            final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+            builder.setTables(mTable);
+            final String where = mCondition.and(new Condition(selection)).toSQL();
+            result = builder.query(database, projection, where, arguments, null, null, (order == null) ? mOrder : order, mLimit);
+        } finally {
+            clean();
+            mReceipt.yield();
+        }
+
+        return result;
     }
 
     @Nullable
@@ -84,12 +103,17 @@ public class Match {
                             @NonNull final ContentValues values) {
         @org.jetbrains.annotations.Nullable final Uri result;
 
-        if (values.size() > 0) {
-            final Insert insert = Insert.Pool.borrow();
-            insert.init(mTable, Plans.write(values), mOnInsert, mSingleRoute);
-            result = (Uri) insert.execute(database).getOrElse(null);
-        } else {
-            result = null;
+        try {
+            if (values.size() > 0) {
+                final Insert insert = Insert.Pool.borrow();
+                insert.init(mTable, Plans.write(values), mOnInsert, mSingleRoute);
+                result = (Uri) insert.execute(database).getOrElse(null);
+            } else {
+                result = null;
+            }
+        } finally {
+            clean();
+            mReceipt.yield();
         }
 
         return result;
@@ -99,14 +123,41 @@ public class Match {
                             @NonNull final ContentValues values,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
-        final String where = mCondition.and(new Condition(selection)).toSQL();
-        return database.update(mTable, values, where, arguments);
+        final int result;
+
+        try {
+            final String where = mCondition.and(new Condition(selection)).toSQL();
+            result = database.update(mTable, values, where, arguments);
+        } finally {
+            clean();
+            mReceipt.yield();
+        }
+
+        return result;
     }
 
     public final int delete(@NonNull final SQLiteDatabase database,
                             @Nullable final String selection,
                             @Nullable final String... arguments) {
-        final String where = mCondition.and(new Condition(selection)).toSQL();
-        return database.delete(mTable, where, arguments);
+        final int result;
+
+        try {
+            final String where = mCondition.and(new Condition(selection)).toSQL();
+            result = database.delete(mTable, where, arguments);
+        } finally {
+            clean();
+            mReceipt.yield();
+        }
+
+        return result;
+    }
+
+    private void clean() {
+        mSingleRoute = null;
+        mCondition = null;
+        mOnInsert = null;
+        mTable = null;
+        mOrder = null;
+        mLimit = null;
     }
 }
