@@ -74,65 +74,48 @@ public final class Executors {
         @NonNull
         @Override
         public final Result<Boolean> exists(@NonNull final Condition condition) {
-            return mExecutionContext.execute(new ExecutionContext.Task<Boolean>() {
-                @NonNull
-                @Override
-                public Maybe<Boolean> run() {
-                    return mDirect.exists(condition);
-                }
-            });
+            final Exists exists = Exists.Pool.borrow();
+            exists.init(mDirect, condition);
+            return mExecutionContext.execute(exists);
         }
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final <M> Result<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
                                                           @NonNull final Condition condition,
                                                           @Nullable final Order order,
                                                           @Nullable final Limit limit,
                                                           @Nullable final Offset offset) {
-            return mExecutionContext.execute(new ExecutionContext.Task<Producer<Maybe<M>>>() {
-                @NonNull
-                @Override
-                public Maybe<Producer<Maybe<M>>> run() {
-                    return mDirect.query(plan, condition, order, limit, offset);
-                }
-            });
+            final Query query = Query.Pool.borrow();
+            query.init(mDirect, plan, condition, order, limit, offset);
+            return (Result<Producer<Maybe<M>>>) (Object) mExecutionContext.execute(query);
         }
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final Result<I> insert(@NonNull final Plan.Write plan) {
-            return mExecutionContext.execute(new ExecutionContext.Task<I>() {
-                @NonNull
-                @Override
-                public Maybe<I> run() {
-                    return mDirect.insert(plan);
-                }
-            });
+            final Insert insert = Insert.Pool.borrow();
+            insert.init(mDirect, plan);
+            return (Result<I>) (Object) mExecutionContext.execute(insert);
         }
 
         @NonNull
         @Override
         public final Result<Integer> delete(@NonNull final Condition condition) {
-            return mExecutionContext.execute(new ExecutionContext.Task<Integer>() {
-                @NonNull
-                @Override
-                public Maybe<Integer> run() {
-                    return mDirect.delete(condition);
-                }
-            });
+            final Delete delete = Delete.Pool.borrow();
+            delete.init(mDirect, condition);
+            return mExecutionContext.execute(delete);
         }
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final Result<U> update(@NonNull final Condition condition, @NonNull final Plan.Write plan) {
-            return mExecutionContext.execute(new ExecutionContext.Task<U>() {
-                @NonNull
-                @Override
-                public Maybe<U> run() {
-                    return mDirect.update(condition, plan);
-                }
-            });
+            final Update update = Update.Pool.borrow();
+            update.init(mDirect, condition, plan);
+            return (Result<U>) (Object) mExecutionContext.execute(update);
         }
     }
 

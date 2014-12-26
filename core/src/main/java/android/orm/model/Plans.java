@@ -279,6 +279,12 @@ public final class Plans {
         return new Conversion<>(plan, converter);
     }
 
+    @NonNull
+    @SuppressWarnings("unchecked")
+    public static <V> Plan.Read<V> safeCast(@NonNull final Plan.Read<? extends V> plan) {
+        return (Plan.Read<V>) plan;
+    }
+
     private static class Single<V> extends Plan.Read<V> {
 
         @NonNls

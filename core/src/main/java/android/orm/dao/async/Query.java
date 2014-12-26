@@ -22,6 +22,7 @@ import android.orm.dao.Result;
 import android.orm.model.Mapper;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
+import android.orm.model.Plans;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Value;
@@ -31,6 +32,7 @@ import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
+import android.orm.util.ObjectPool;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -44,7 +46,65 @@ import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Readings.list;
 import static android.orm.model.Readings.single;
 
-public final class Query {
+public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
+
+    public static final ObjectPool<Query> Pool = new ObjectPool<Query>() {
+        @NonNull
+        @Override
+        protected Query produce(@NonNull final Receipt<Query> receipt) {
+            return new Query(receipt);
+        }
+    };
+
+    @NonNull
+    private final ObjectPool.Receipt<Query> mReceipt;
+
+    private Executor.Direct<?, ?> mDirect;
+    private Plan.Read<Object> mPlan;
+    private Condition mCondition;
+    private Order mOrder;
+    private Limit mLimit;
+    private Offset mOffset;
+
+    private Query(@NonNull final ObjectPool.Receipt<Query> receipt) {
+        super();
+
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final Executor.Direct<?, ?> direct,
+                           @NonNull final Plan.Read<?> plan,
+                           @NonNull final Condition condition,
+                           @Nullable final Order order,
+                           @Nullable final Limit limit,
+                           @Nullable final Offset offset) {
+        mDirect = direct;
+        mPlan = Plans.safeCast(plan);
+        mCondition = condition;
+        mOrder = order;
+        mLimit = limit;
+        mOffset = offset;
+    }
+
+    @NonNull
+    @Override
+    public final Maybe<Producer<Maybe<Object>>> run() {
+        final Maybe<Producer<Maybe<Object>>> result;
+
+        try {
+            result = mDirect.query(mPlan, mCondition, mOrder, mLimit, mOffset);
+        } finally {
+            mDirect = null;
+            mPlan = null;
+            mCondition = null;
+            mOrder = null;
+            mLimit = null;
+            mOffset = null;
+            mReceipt.yield();
+        }
+
+        return result;
+    }
 
     public static final class Builder {
         public static class Single implements Access.Async.Query.Builder.Single {
@@ -210,9 +270,5 @@ public final class Query {
         private Builder() {
             super();
         }
-    }
-
-    private Query() {
-        super();
     }
 }
