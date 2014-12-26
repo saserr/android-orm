@@ -19,53 +19,80 @@ package android.orm.remote.dao.direct;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 import android.util.Log;
-import android.util.Pair;
 
 import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Update implements Function<Pair<Condition, Writer>, Maybe<Integer>> {
+public class Update implements ExecutionContext.Task<Integer> {
+
+    public static final ObjectPool<Update> Pool = new ObjectPool<Update>() {
+        @NonNull
+        @Override
+        protected Update produce(@NonNull final Receipt<Update> receipt) {
+            return new Update(receipt);
+        }
+    };
 
     private static final String TAG = Update.class.getSimpleName();
 
     @NonNull
-    private final ContentResolver mResolver;
-    @NonNull
-    private final Uri mUri;
+    private final ObjectPool.Receipt<Update> mReceipt;
 
-    public Update(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
+    private ContentResolver mResolver;
+    private Uri mUri;
+    private Condition mCondition;
+    private Writer mWriter;
+
+    private Update(@NonNull final ObjectPool.Receipt<Update> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final ContentResolver resolver,
+                           @NonNull final Uri uri,
+                           @NonNull final Condition condition,
+                           @NonNull final Writer writer) {
         mResolver = resolver;
         mUri = uri;
+        mCondition = condition;
+        mWriter = writer;
     }
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final Pair<Condition, Writer> args) {
-        final ContentValues values = new ContentValues();
-        final Writer writer = args.second;
-        writer.write(Update, writable(values));
-
+    public final Maybe<Integer> run() {
         final int updated;
 
-        if (values.size() > 0) {
-            final Condition condition = args.first.and(writer.onUpdate());
-            updated = mResolver.update(mUri, values, condition.toSQL(), null);
-        } else {
-            updated = 0;
-            if (Log.isLoggable(TAG, INFO)) {
-                Log.i(TAG, "Nothing was updated"); //NON-NLS
+        try {
+            final ContentValues values = new ContentValues();
+            mWriter.write(Update, writable(values));
+
+            if (values.size() > 0) {
+                final Condition condition = mCondition.and(mWriter.onUpdate());
+                updated = mResolver.update(mUri, values, condition.toSQL(), null);
+            } else {
+                updated = 0;
+                if (Log.isLoggable(TAG, INFO)) {
+                    Log.i(TAG, "Nothing was updated"); //NON-NLS
+                }
             }
+        } finally {
+            mResolver = null;
+            mUri = null;
+            mCondition = null;
+            mWriter = null;
+            mReceipt.yield();
         }
 
         return (updated > 0) ? something(updated) : Maybes.<Integer>nothing();

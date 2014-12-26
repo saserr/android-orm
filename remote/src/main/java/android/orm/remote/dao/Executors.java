@@ -26,7 +26,6 @@ import android.orm.remote.dao.direct.Exists;
 import android.orm.remote.dao.direct.Insert;
 import android.orm.remote.dao.direct.Query;
 import android.orm.remote.dao.direct.Update;
-import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -38,8 +37,8 @@ import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.util.Pair;
 
+import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
 public final class Executors {
@@ -69,14 +68,18 @@ public final class Executors {
         private static final String TAG = Route.Single.class.getSimpleName();
 
         @NonNull
-        private final Update mUpdate;
+        private final ContentResolver mResolver;
+        @NonNull
+        private final Uri mUri;
         @NonNull
         private final Function<Integer, Maybe<Uri>> mToUri;
 
         protected Single(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
             super(resolver, uri);
 
-            mUpdate = new Update(resolver, uri);
+            mResolver = resolver;
+            mUri = uri;
+
             mToUri = new Function<Integer, Maybe<Uri>>() {
                 @NonNull
                 @Override
@@ -94,57 +97,72 @@ public final class Executors {
         @Override
         public final Maybe<Uri> update(@NonNull final Condition condition,
                                        @NonNull final Plan.Write plan) {
-            return plan.isEmpty() ?
-                    Maybes.<Uri>nothing() :
-                    mUpdate.invoke(Pair.<Condition, Writer>create(condition, plan)).flatMap(mToUri);
+            final Maybe<Uri> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Update update = Update.Pool.borrow();
+                update.init(mResolver, mUri, condition, plan);
+                result = update.run().flatMap(mToUri);
+            }
+
+            return result;
         }
     }
 
     private static class Many extends Some<Integer> implements Executor.Direct.Many<Uri> {
 
         @NonNull
-        private final Update mUpdate;
+        private final ContentResolver mResolver;
+        @NonNull
+        private final Uri mUri;
 
         protected Many(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
             super(resolver, uri);
 
-            mUpdate = new Update(resolver, uri);
+            mResolver = resolver;
+            mUri = uri;
         }
 
         @NonNull
         @Override
         public final Maybe<Integer> update(@NonNull final Condition condition,
                                            @NonNull final Plan.Write plan) {
-            return plan.isEmpty() ?
-                    Maybes.<Integer>nothing() :
-                    mUpdate.invoke(Pair.<Condition, Writer>create(condition, plan));
+            final Maybe<Integer> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Update update = Update.Pool.borrow();
+                update.init(mResolver, mUri, condition, plan);
+                result = update.run();
+            }
+
+            return result;
         }
     }
 
     private abstract static class Some<U> implements Executor.Direct<Uri, U> {
 
         @NonNull
-        private final Exists mExists;
+        private final ContentResolver mResolver;
         @NonNull
-        private final Object mQuery;
-        @NonNull
-        private final Insert mInsert;
-        @NonNull
-        private final Delete mDelete;
+        private final Uri mUri;
 
         protected Some(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
             super();
 
-            mExists = new Exists(resolver, uri);
-            mQuery = new Query<>(resolver, uri);
-            mInsert = new Insert(resolver, uri);
-            mDelete = new Delete(resolver, uri);
+            mResolver = resolver;
+            mUri = uri;
         }
 
         @NonNull
         @Override
         public final Maybe<Boolean> exists(@NonNull final Condition condition) {
-            return mExists.invoke(condition);
+            final Exists exists = Exists.Pool.borrow();
+            exists.init(mResolver, mUri, condition);
+            return exists.run();
         }
 
         @NonNull
@@ -155,20 +173,33 @@ public final class Executors {
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
-            final Query.Arguments<M> arguments = new Query.Arguments<>(plan, condition, order, limit, offset);
-            return ((Query<M>) mQuery).invoke(arguments);
+            final Query query = Query.Pool.borrow();
+            query.init(mResolver, mUri, plan, condition, order, limit, offset);
+            return (Maybe<Producer<Maybe<M>>>) (Object) query.run();
         }
 
         @NonNull
         @Override
         public final Maybe<Uri> insert(@NonNull final Plan.Write plan) {
-            return plan.isEmpty() ? Maybes.<Uri>nothing() : mInsert.invoke(plan);
+            final Maybe<Uri> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Insert insert = Insert.Pool.borrow();
+                insert.init(mResolver, mUri, plan);
+                result = insert.run();
+            }
+
+            return result;
         }
 
         @NonNull
         @Override
         public final Maybe<Integer> delete(@NonNull final Condition condition) {
-            return mDelete.invoke(condition);
+            final Delete delete = Delete.Pool.borrow();
+            delete.init(mResolver, mUri, condition);
+            return delete.run();
         }
     }
 

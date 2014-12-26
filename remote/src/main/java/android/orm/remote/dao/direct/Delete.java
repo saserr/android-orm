@@ -18,32 +18,60 @@ package android.orm.remote.dao.direct;
 
 import android.content.ContentResolver;
 import android.net.Uri;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.fragment.Condition;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Delete implements Function<Condition, Maybe<Integer>> {
+public class Delete implements ExecutionContext.Task<Integer> {
+
+    public static final ObjectPool<Delete> Pool = new ObjectPool<Delete>() {
+        @NonNull
+        @Override
+        protected Delete produce(@NonNull final Receipt<Delete> receipt) {
+            return new Delete(receipt);
+        }
+    };
 
     @NonNull
-    private final ContentResolver mResolver;
-    @NonNull
-    private final Uri mUri;
+    private final ObjectPool.Receipt<Delete> mReceipt;
 
-    public Delete(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
+    private ContentResolver mResolver;
+    private Uri mUri;
+    private Condition mCondition;
+
+    private Delete(@NonNull final ObjectPool.Receipt<Delete> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final ContentResolver resolver,
+                           @NonNull final Uri uri,
+                           @NonNull final Condition condition) {
         mResolver = resolver;
         mUri = uri;
+        mCondition = condition;
     }
 
     @NonNull
     @Override
-    public final Maybe<Integer> invoke(@NonNull final Condition condition) {
-        final int deleted = mResolver.delete(mUri, condition.toSQL(), null);
+    public final Maybe<Integer> run() {
+        final int deleted;
+
+        try {
+            deleted = mResolver.delete(mUri, mCondition.toSQL(), null);
+        } finally {
+            mResolver = null;
+            mUri = null;
+            mCondition = null;
+            mReceipt.yield();
+        }
+
         return (deleted > 0) ? something(deleted) : Maybes.<Integer>nothing();
     }
 }

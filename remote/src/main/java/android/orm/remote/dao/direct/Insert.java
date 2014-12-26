@@ -19,36 +19,64 @@ package android.orm.remote.dao.direct;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Writer;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.something;
 
-public class Insert implements Function<Writer, Maybe<Uri>> {
+public class Insert implements ExecutionContext.Task<Uri> {
+
+    public static final ObjectPool<Insert> Pool = new ObjectPool<Insert>() {
+        @NonNull
+        @Override
+        protected Insert produce(@NonNull final Receipt<Insert> receipt) {
+            return new Insert(receipt);
+        }
+    };
 
     @NonNull
-    private final ContentResolver mResolver;
-    @NonNull
-    private final Uri mUri;
+    private final ObjectPool.Receipt<Insert> mReceipt;
 
-    public Insert(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
+    private ContentResolver mResolver;
+    private Uri mUri;
+    private Writer mWriter;
+
+    private Insert(@NonNull final ObjectPool.Receipt<Insert> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final ContentResolver resolver,
+                           @NonNull final Uri uri,
+                           @NonNull final Writer writer) {
         mResolver = resolver;
         mUri = uri;
+        mWriter = writer;
     }
 
     @NonNull
     @Override
-    public final Maybe<Uri> invoke(@NonNull final Writer writer) {
-        final ContentValues values = new ContentValues();
-        writer.write(Insert, writable(values));
-        final Uri uri = mResolver.insert(mUri, values);
-        return (uri == null) ? Maybes.<Uri>nothing() : something(uri);
+    public final Maybe<Uri> run() {
+        final Uri result;
+
+        try {
+            final ContentValues values = new ContentValues();
+            mWriter.write(Insert, writable(values));
+            result = mResolver.insert(mUri, values);
+        } finally {
+            mResolver = null;
+            mUri = null;
+            mWriter = null;
+            mReceipt.yield();
+        }
+
+        return (result == null) ? Maybes.<Uri>nothing() : something(result);
     }
 }

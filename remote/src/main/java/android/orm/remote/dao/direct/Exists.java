@@ -19,39 +19,62 @@ package android.orm.remote.dao.direct;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.fragment.Condition;
-import android.orm.util.Function;
 import android.orm.util.Maybe;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 
 import static android.orm.util.Maybes.something;
 
-public class Exists implements Function<Condition, Maybe<Boolean>> {
+public class Exists implements ExecutionContext.Task<Boolean> {
+
+    public static final ObjectPool<Exists> Pool = new ObjectPool<Exists>() {
+        @NonNull
+        @Override
+        protected Exists produce(@NonNull final Receipt<Exists> receipt) {
+            return new Exists(receipt);
+        }
+    };
 
     private static final String[] PROJECTION = {"1"};
 
     @NonNull
-    private final ContentResolver mResolver;
-    @NonNull
-    private final Uri mUri;
+    private final ObjectPool.Receipt<Exists> mReceipt;
 
-    public Exists(@NonNull final ContentResolver resolver, @NonNull final Uri uri) {
+    private ContentResolver mResolver;
+    private Uri mUri;
+    private Condition mCondition;
+
+    private Exists(@NonNull final ObjectPool.Receipt<Exists> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final ContentResolver resolver,
+                           @NonNull final Uri uri,
+                           @NonNull final Condition condition) {
         mResolver = resolver;
         mUri = uri;
+        mCondition = condition;
     }
 
     @NonNull
     @Override
-    public final Maybe<Boolean> invoke(@NonNull final Condition condition) {
+    public final Maybe<Boolean> run() {
         final Maybe<Boolean> result;
 
         Cursor cursor = null;
         try {
-            cursor = mResolver.query(mUri, PROJECTION, condition.toSQL(), null, null);
+            cursor = mResolver.query(mUri, PROJECTION, mCondition.toSQL(), null, null);
             result = something((cursor != null) && (cursor.getCount() > 0));
         } finally {
+            mResolver = null;
+            mUri = null;
+            mCondition = null;
+            mReceipt.yield();
+
             if (cursor != null) {
                 cursor.close();
             }
