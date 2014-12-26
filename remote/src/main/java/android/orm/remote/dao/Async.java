@@ -27,17 +27,16 @@ import android.orm.dao.Result;
 import android.orm.dao.async.ExecutionContext;
 import android.orm.remote.Route;
 import android.orm.remote.dao.direct.Apply;
-import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 
+import static android.orm.dao.Result.nothing;
 import static android.orm.dao.async.Executors.create;
 import static android.orm.remote.dao.Executors.many;
 import static android.orm.remote.dao.Executors.single;
@@ -48,8 +47,6 @@ public class Async implements Remote.Async {
     private final ContentResolver mResolver;
     @NonNull
     private final ExecutionContext mExecutionContext;
-    @NonNull
-    private final Apply mApply;
 
     public Async(@NonNull final ContentResolver resolver,
                  @NonNull final ExecutorService executor) {
@@ -57,7 +54,6 @@ public class Async implements Remote.Async {
 
         mResolver = resolver;
         mExecutionContext = new ExecutionContext(executor);
-        mApply = new Apply(resolver);
     }
 
     @Override
@@ -96,15 +92,17 @@ public class Async implements Remote.Async {
             @Override
             protected Result<Transaction.CommitResult> commit(@NonNls @Nullable final String authority,
                                                               @NonNull final Collection<Producer<ContentProviderOperation>> batch) {
-                return ((authority == null) || batch.isEmpty()) ?
-                        Result.<Transaction.CommitResult>nothing() :
-                        mExecutionContext.execute(new ExecutionContext.Task<Transaction.CommitResult>() {
-                            @NonNull
-                            @Override
-                            public Maybe<Transaction.CommitResult> run() {
-                                return mApply.invoke(Pair.create(authority, batch));
-                            }
-                        });
+                final Result<CommitResult> result;
+
+                if ((authority == null) || batch.isEmpty()) {
+                    result = nothing();
+                } else {
+                    final Apply apply = Apply.Pool.borrow();
+                    apply.init(mResolver, authority, batch);
+                    result = mExecutionContext.execute(apply);
+                }
+
+                return result;
             }
         };
     }

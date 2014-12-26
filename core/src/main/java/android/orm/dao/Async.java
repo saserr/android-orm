@@ -22,6 +22,7 @@ import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
 import android.orm.util.Maybe;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -66,38 +67,168 @@ public class Async implements DAO.Async {
     @NonNull
     @Override
     public final Result<Void> execute(@NonNull final Statement statement) {
-        return mExecutionContext.execute(new ExecutionContext.Task<Void>() {
+        final Task.Statement task = Task.Statement.Pool.borrow();
+        task.init(mDirectDAO, statement);
+        return mExecutionContext.execute(task);
+    }
+
+    @NonNull
+    @Override
+    @SuppressWarnings("unchecked")
+    public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
+        final Task.Expression task = Task.Expression.Pool.borrow();
+        task.init(mDirectDAO, expression);
+        return (Result<V>) (Object) mExecutionContext.execute(task);
+    }
+
+    @NonNull
+    @Override
+    @SuppressWarnings("unchecked")
+    public final <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction) {
+        final Task.Transaction task = Task.Transaction.Pool.borrow();
+        task.init(mDirectDAO, transaction);
+        return (Result<V>) (Object) mExecutionContext.execute(task);
+    }
+
+    private static final class Task {
+
+        public static class Statement implements ExecutionContext.Task<Void> {
+
+            public static final ObjectPool<Statement> Pool = new ObjectPool<Statement>() {
+                @NonNull
+                @Override
+                protected Statement produce(@NonNull final Receipt<Statement> receipt) {
+                    return new Statement(receipt);
+                }
+            };
+
+            @NonNull
+            private final ObjectPool.Receipt<Statement> mReceipt;
+
+            private DAO.Direct mDAO;
+            private android.orm.sql.Statement mStatement;
+
+            private Statement(@NonNull final ObjectPool.Receipt<Statement> receipt) {
+                super();
+
+                mReceipt = receipt;
+            }
+
+            public final void init(@NonNull final DAO.Direct dao,
+                                   @NonNull final android.orm.sql.Statement statement) {
+                mDAO = dao;
+                mStatement = statement;
+            }
+
             @NonNull
             @Override
-            public Maybe<Void> run() {
-                mDirectDAO.execute(statement);
+            public final Maybe<Void> run() {
+                try {
+                    mDAO.execute(mStatement);
+                } finally {
+                    mDAO = null;
+                    mStatement = null;
+                    mReceipt.yield();
+                }
+
                 return nothing();
             }
-        });
-    }
+        }
 
-    @NonNull
-    @Override
-    public final <V> Result<V> execute(@NonNull final Expression<V> expression) {
-        return mExecutionContext.execute(new ExecutionContext.Task<V>() {
+        public static class Expression implements ExecutionContext.Task<Object> {
+
+            public static final ObjectPool<Expression> Pool = new ObjectPool<Expression>() {
+                @NonNull
+                @Override
+                protected Expression produce(@NonNull final Receipt<Expression> receipt) {
+                    return new Expression(receipt);
+                }
+            };
+
+            @NonNull
+            private final ObjectPool.Receipt<Expression> mReceipt;
+
+            private DAO.Direct mDAO;
+            private android.orm.sql.Expression<Object> mExpression;
+
+            private Expression(@NonNull final ObjectPool.Receipt<Expression> receipt) {
+                super();
+
+                mReceipt = receipt;
+            }
+
+            @SuppressWarnings("unchecked")
+            public final void init(@NonNull final DAO.Direct dao,
+                                   @NonNull final android.orm.sql.Expression<?> expression) {
+                mDAO = dao;
+                mExpression = (android.orm.sql.Expression<Object>) expression;
+            }
+
             @NonNull
             @Override
-            public Maybe<V> run() {
-                return mDirectDAO.execute(expression);
-            }
-        });
-    }
+            public final Maybe<Object> run() {
+                final Maybe<Object> result;
 
-    @NonNull
-    @Override
-    public final <V> Result<V> execute(@NonNull final Transaction.Direct<V> transaction) {
-        return mExecutionContext.execute(new ExecutionContext.Task<V>() {
+                try {
+                    result = mDAO.execute(mExpression);
+                } finally {
+                    mDAO = null;
+                    mExpression = null;
+                    mReceipt.yield();
+                }
+
+                return result;
+            }
+        }
+
+        public static class Transaction implements ExecutionContext.Task<Object> {
+
+            public static final ObjectPool<Transaction> Pool = new ObjectPool<Transaction>() {
+                @NonNull
+                @Override
+                protected Transaction produce(@NonNull final Receipt<Transaction> receipt) {
+                    return new Transaction(receipt);
+                }
+            };
+
+            @NonNull
+            private final ObjectPool.Receipt<Transaction> mReceipt;
+
+            private DAO.Direct mDAO;
+            private android.orm.dao.Transaction.Direct<Object> mTransaction;
+
+            private Transaction(@NonNull final ObjectPool.Receipt<Transaction> receipt) {
+                super();
+
+                mReceipt = receipt;
+            }
+
+            @SuppressWarnings("unchecked")
+            public final void init(@NonNull final DAO.Direct dao,
+                                   @NonNull final android.orm.dao.Transaction.Direct<?> transaction) {
+                mDAO = dao;
+                mTransaction = (android.orm.dao.Transaction.Direct<Object>) transaction;
+            }
+
             @NonNull
             @Override
-            public Maybe<V> run() {
-                return mDirectDAO.execute(transaction);
-            }
-        });
-    }
+            public final Maybe<Object> run() {
+                final Maybe<Object> result;
 
+                try {
+                    result = mDAO.execute(mTransaction);
+                } finally {
+                    mDAO = null;
+                    mTransaction = null;
+                    mReceipt.yield();
+                }
+
+                return result;
+            }
+        }
+
+        private Task() {
+            super();
+        }
+    }
 }

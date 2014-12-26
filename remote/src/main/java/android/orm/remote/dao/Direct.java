@@ -24,11 +24,9 @@ import android.orm.Remote;
 import android.orm.remote.Route;
 import android.orm.remote.dao.direct.Apply;
 import android.orm.util.Maybe;
-import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
@@ -36,19 +34,17 @@ import java.util.Collection;
 
 import static android.orm.remote.dao.Executors.many;
 import static android.orm.remote.dao.Executors.single;
+import static android.orm.util.Maybes.nothing;
 
 public class Direct implements Remote.Direct {
 
     @NonNull
     private final ContentResolver mResolver;
-    @NonNull
-    private final Apply mApply;
 
     public Direct(@NonNull final ContentResolver resolver) {
         super();
 
         mResolver = resolver;
-        mApply = new Apply(resolver);
     }
 
     @NonNull
@@ -79,9 +75,17 @@ public class Direct implements Remote.Direct {
             @Override
             protected Maybe<Transaction.CommitResult> commit(@NonNls @Nullable final String authority,
                                                              @NonNull final Collection<Producer<ContentProviderOperation>> batch) {
-                return ((authority == null) || batch.isEmpty()) ?
-                        Maybes.<Transaction.CommitResult>nothing() :
-                        mApply.invoke(Pair.create(authority, batch));
+                final Maybe<CommitResult> result;
+
+                if ((authority == null) || batch.isEmpty()) {
+                    result = nothing();
+                } else {
+                    final Apply apply = Apply.Pool.borrow();
+                    apply.init(mResolver, authority, batch);
+                    result = apply.run();
+                }
+
+                return result;
             }
         };
     }
