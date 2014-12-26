@@ -42,20 +42,14 @@ public final class Futures {
     }
 
     @NonNull
-    public static <V, T extends V> Future.Callback<T> compose(@NonNull final Future.Callback<V> first,
-                                                              @NonNull final Future.Callback<V> second) {
-        return new Composition<>(first, second);
-    }
-
-    @NonNull
     public static <V> Future.Callback<V> deliver(@Nullable final Handler handler,
                                                  @NonNull final Future.Callback<? super V> callback) {
         return new Deliver<>(handler, callback);
     }
 
-    public static <V> void deliver(@Nullable final Handler handler,
-                                   @NonNull final Future.Callback<? super V> callback,
-                                   @NonNull final V value) {
+    private static <V> void deliver(@Nullable final Handler handler,
+                                    @NonNull final Future.Callback<? super V> callback,
+                                    @NonNull final V value) {
         if ((handler == null) || currentThread().equals(handler.getLooper().getThread())) {
             try {
                 callback.onResult(value);
@@ -67,9 +61,9 @@ public final class Futures {
         }
     }
 
-    public static void deliver(@Nullable final Handler handler,
-                               @NonNull final Future.Callback<?> callback,
-                               @NonNull final Throwable error) {
+    private static void deliver(@Nullable final Handler handler,
+                                @NonNull final Future.Callback<?> callback,
+                                @NonNull final Throwable error) {
         if ((handler == null) || currentThread().equals(handler.getLooper().getThread())) {
             try {
                 callback.onError(error);
@@ -215,52 +209,6 @@ public final class Futures {
                 mCallback.onError(mError);
             } catch (final Throwable cause) {
                 Log.e(TAG, CALLBACK_FAILED, cause);
-            }
-        }
-    }
-
-    private static class Composition<V, T extends V> implements Future.Callback<T> {
-
-        @NonNull
-        private final Future.Callback<V> mFirst;
-        @NonNull
-        private final Future.Callback<V> mSecond;
-
-        private Composition(@NonNull final Future.Callback<V> first,
-                            @NonNull final Future.Callback<V> second) {
-            super();
-
-            mFirst = first;
-            mSecond = second;
-        }
-
-        @Override
-        public final void onResult(@NonNull final T value) {
-            try {
-                mFirst.onResult(value);
-            } catch (final Throwable cause) {
-                Log.e(TAG, CALLBACK_FAILED, cause);
-            } finally {
-                try {
-                    mSecond.onResult(value);
-                } catch (final Throwable cause) {
-                    Log.e(TAG, CALLBACK_FAILED, cause);
-                }
-            }
-        }
-
-        @Override
-        public final void onError(@NonNull final Throwable error) {
-            try {
-                mFirst.onError(error);
-            } catch (final Throwable cause) {
-                Log.e(TAG, CALLBACK_FAILED, cause);
-            } finally {
-                try {
-                    mSecond.onError(error);
-                } catch (final Throwable cause) {
-                    Log.e(TAG, CALLBACK_FAILED, cause);
-                }
             }
         }
     }

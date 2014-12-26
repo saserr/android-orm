@@ -21,6 +21,7 @@ import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
 import android.orm.util.Cancelable;
 import android.orm.util.Maybe;
+import android.orm.util.ObjectPool;
 import android.orm.util.Promise;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -51,28 +52,10 @@ public class ExecutionContext {
 
     @NonNull
     public final <V> Result<V> execute(@NonNull final Task<V> task) {
-        final Promise<Maybe<V>> promise = new Promise<>();
-        final Runnable runnable = runnable(promise, task);
+        final Runnable runnable = Runnable.Pool.borrow();
+        final Promise<Maybe<V>> promise = runnable.init(task);
         final Cancelable cancelable = cancelable(mExecutor.submit(runnable));
         return new Result<>(promise.getFuture(), cancelable, mErrorHandler.get());
-    }
-
-    @NonNull
-    private static <V> Runnable runnable(@NonNull final Promise<Maybe<V>> promise,
-                                         @NonNull final Task<V> task) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    promise.success(task.run());
-                } catch (final Direct.Interrupted error) {
-                    Log.w(TAG, "Async task has been interrupted", error); //NON-NLS
-                } catch (final Throwable error) {
-                    Log.e(TAG, "Async task has been aborted", error); //NON-NLS
-                    promise.failure(error);
-                }
-            }
-        };
     }
 
     @NonNull
@@ -88,5 +71,53 @@ public class ExecutionContext {
     public interface Task<V> {
         @NonNull
         Maybe<V> run();
+    }
+
+    private static class Runnable implements java.lang.Runnable {
+
+        public static final ObjectPool<Runnable> Pool = new ObjectPool<Runnable>() {
+            @NonNull
+            @Override
+            protected Runnable produce(@NonNull final Receipt<Runnable> receipt) {
+                return new Runnable(receipt);
+            }
+        };
+
+        @NonNull
+        private final ObjectPool.Receipt<Runnable> mReceipt;
+
+        private Runnable(@NonNull final ObjectPool.Receipt<Runnable> receipt) {
+            super();
+
+            mReceipt = receipt;
+        }
+
+        private Task<?> mTask;
+        private Promise<Maybe<?>> mPromise;
+
+        @NonNull
+        @SuppressWarnings("unchecked")
+        public final <V> Promise<Maybe<V>> init(@NonNull final Task<V> task) {
+            mTask = task;
+            final Promise<Maybe<V>> promise = new Promise<>();
+            mPromise = (Promise<Maybe<?>>) (Object) promise;
+            return promise;
+        }
+
+        @Override
+        public final void run() {
+            try {
+                mPromise.success(mTask.run());
+            } catch (final Direct.Interrupted error) {
+                Log.w(TAG, "Async task has been interrupted", error); //NON-NLS
+            } catch (final Throwable error) {
+                Log.e(TAG, "Async task has been aborted", error); //NON-NLS
+                mPromise.failure(error);
+            } finally {
+                mTask = null;
+                mPromise = null;
+                mReceipt.yield();
+            }
+        }
     }
 }

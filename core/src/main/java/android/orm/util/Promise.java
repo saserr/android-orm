@@ -23,9 +23,10 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import static android.orm.util.Futures.compose;
 import static android.orm.util.Futures.deliver;
 
 public class Promise<V> {
@@ -39,7 +40,7 @@ public class Promise<V> {
     @Nullable
     private Throwable mError;
     @Nullable
-    private Future.Callback<V> mCallback;
+    private final List<Future.Callback<V>> mCallbacks = new LinkedList<>();
 
     private final Semaphore mSemaphore = new Semaphore(1);
 
@@ -61,20 +62,21 @@ public class Promise<V> {
         return mFuture;
     }
 
+    @SuppressWarnings("unchecked")
     public final void success(@NonNull final V value) {
         try {
-            Future.Callback<V> callback;
+            final Future.Callback<V>[] callbacks;
 
             mSemaphore.acquire();
             try {
                 mError = null;
                 mValue = value;
-                callback = mCallback;
+                callbacks = mCallbacks.toArray(new Future.Callback[mCallbacks.size()]);
             } finally {
                 mSemaphore.release();
             }
 
-            if (callback != null) {
+            for (final Future.Callback<V> callback : callbacks) {
                 callback.onResult(value);
             }
         } catch (final InterruptedException ex) {
@@ -84,18 +86,18 @@ public class Promise<V> {
 
     public final void failure(@NonNull final Throwable error) {
         try {
-            Future.Callback<V> callback;
+            final Future.Callback<?>[] callbacks;
 
             mSemaphore.acquire();
             try {
                 mError = error;
                 mValue = null;
-                callback = mCallback;
+                callbacks = mCallbacks.toArray(new Future.Callback<?>[mCallbacks.size()]);
             } finally {
                 mSemaphore.release();
             }
 
-            if (callback != null) {
+            for (final Future.Callback<?> callback : callbacks) {
                 callback.onError(error);
             }
         } catch (final InterruptedException ex) {
@@ -115,7 +117,7 @@ public class Promise<V> {
         try {
             error = mError;
             value = mValue;
-            mCallback = (mCallback == null) ? callback : compose(mCallback, callback);
+            mCallbacks.add(callback);
         } finally {
             mSemaphore.release();
         }
