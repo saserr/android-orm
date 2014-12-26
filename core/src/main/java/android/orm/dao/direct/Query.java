@@ -27,6 +27,7 @@ import android.orm.sql.AggregateFunction;
 import android.orm.sql.Expression;
 import android.orm.sql.Readable;
 import android.orm.sql.Reader;
+import android.orm.sql.Readers;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.fragment.Condition;
@@ -36,6 +37,7 @@ import android.orm.sql.fragment.Order;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -48,7 +50,15 @@ import static android.orm.model.Readings.single;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
-public class Query<V> implements Expression<Producer<Maybe<V>>> {
+public class Query implements Expression<Producer<Maybe<Object>>> {
+
+    public static final ObjectPool<Query> Pool = new ObjectPool<Query>() {
+        @NonNull
+        @Override
+        protected Query produce(@NonNull final Receipt<Query> receipt) {
+            return new Query(receipt);
+        }
+    };
 
     private static final Object AfterRead = new Function<Producer<Maybe<Object>>, Maybe<Object>>() {
         @NonNull
@@ -63,31 +73,42 @@ public class Query<V> implements Expression<Producer<Maybe<V>>> {
     };
 
     @NonNull
-    private final Reader<V> mReader;
-    @NonNull
-    private final Select mSelect;
+    private final ObjectPool.Receipt<Query> mReceipt;
 
-    public Query(@NonNull final Reader<V> reader, @NonNull final Select select) {
+    private Reader<Object> mReader;
+    private Select mSelect;
+
+    private Query(@NonNull final ObjectPool.Receipt<Query> receipt) {
         super();
 
-        mReader = reader;
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNull final Reader<?> reader, @NonNull final Select select) {
+        mReader = Readers.safeCast(reader);
         mSelect = select;
     }
 
     @NonNull
     @Override
-    public final Maybe<Producer<Maybe<V>>> execute(@NonNull final SQLiteDatabase database) {
-        final Maybe<Producer<Maybe<V>>> result;
+    public final Maybe<Producer<Maybe<Object>>> execute(@NonNull final SQLiteDatabase database) {
+        final Maybe<Producer<Maybe<Object>>> result;
 
-        final Readable input = mSelect.execute(mReader.getProjection(), database);
-        if (input == null) {
-            result = nothing();
-        } else {
-            try {
-                result = something(mReader.read(input));
-            } finally {
-                input.close();
+        try {
+            final Readable input = mSelect.execute(mReader.getProjection(), database);
+            if (input == null) {
+                result = nothing();
+            } else {
+                try {
+                    result = something(mReader.read(input));
+                } finally {
+                    input.close();
+                }
             }
+        } finally {
+            mReader = null;
+            mSelect = null;
+            mReceipt.yield();
         }
 
         return result;

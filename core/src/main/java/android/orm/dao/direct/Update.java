@@ -23,11 +23,13 @@ import android.orm.sql.Expression;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Values;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -47,73 +49,92 @@ public final class Update {
 
     private static final String TAG = Update.class.getSimpleName();
 
-    public static class Single<K> implements Expression<K> {
+    public static class Single implements Expression<Object> {
+
+        public static final ObjectPool<Single> Pool = new ObjectPool<Single>() {
+            @NonNull
+            @Override
+            protected Single produce(@NonNull final Receipt<Single> receipt) {
+                return new Single(receipt);
+            }
+        };
+
+        @NonNull
+        private final ObjectPool.Receipt<Single> mReceipt;
 
         @NonNls
-        @NonNull
-        private final String mTable;
-        @NonNull
-        private final Condition mCondition;
-        @NonNull
-        private final Writer mWriter;
-        @NonNull
-        private final ContentValues mAdditional;
-        @NonNull
-        private final Value.Read<K> mKey;
-        @NonNull
-        private final Select mSelect;
+        private String mTable;
+        private Condition mCondition;
+        private Writer mWriter;
+        private ContentValues mAdditional;
+        private Value.Read<Object> mKey;
+        private Select mSelect;
 
-        public Single(@NonNls @NonNull final String table,
-                      @NonNull final Condition condition,
-                      @NonNull final Writer writer,
-                      @NonNull final ContentValues additional,
-                      @NonNull final Value.Read<K> key) {
+        private Single(@NonNull final ObjectPool.Receipt<Single> receipt) {
             super();
 
+            mReceipt = receipt;
+        }
+
+        public final void init(@NonNls @NonNull final String table,
+                               @NonNull final Condition condition,
+                               @NonNull final Writer writer,
+                               @NonNull final ContentValues additional,
+                               @NonNull final Value.Read<?> key) {
             mTable = table;
             mCondition = condition.and(writer.onUpdate());
             mWriter = writer;
             mAdditional = additional;
-            mKey = key;
+            mKey = Values.safeCast(key);
             mSelect = select(table).with(condition).with(Limit.Single).build();
         }
 
         @NonNull
         @Override
-        public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
-            final ContentValues values = new ContentValues();
-            mWriter.write(Update, writable(values));
-            final int updated = update(database, mTable, mCondition, values);
+        public final Maybe<Object> execute(@NonNull final SQLiteDatabase database) {
+            final Maybe<Object> result;
 
-            final Maybe<K> result;
+            try {
+                final ContentValues values = new ContentValues();
+                mWriter.write(Update, writable(values));
+                final int updated = update(database, mTable, mCondition, values);
 
-            if (updated > 1) {
-                throw new SQLException("More than one row was updated");
-            }
+                if (updated > 1) {
+                    throw new SQLException("More than one row was updated");
+                }
 
-            if (updated > 0) {
-                values.putAll(mAdditional);
-                final Select.Projection remaining = mKey.getProjection().without(getKeys(values));
-                if (remaining.isEmpty()) {
-                    result = mKey.read(readable(values));
-                } else {
-                    final Readable input = mSelect.execute(remaining, database);
-                    if ((input == null) || !input.start()) {
-                        result = nothing();
+                if (updated > 0) {
+                    values.putAll(mAdditional);
+                    final Select.Projection remaining = mKey.getProjection().without(getKeys(values));
+                    if (remaining.isEmpty()) {
+                        result = mKey.read(readable(values));
                     } else {
-                        try {
-                            result = mKey.read(combine(readable(values), input));
-                        } finally {
-                            input.close();
+                        final Readable input = mSelect.execute(remaining, database);
+                        if ((input == null) || !input.start()) {
+                            result = nothing();
+                        } else {
+                            try {
+                                result = mKey.read(combine(readable(values), input));
+                            } finally {
+                                input.close();
+                            }
                         }
                     }
-                }
 
-                if (result.isNothing()) {
-                    throw new SQLException("Couldn't read row id after update");
+                    if (result.isNothing()) {
+                        throw new SQLException("Couldn't read row id after update");
+                    }
+                } else {
+                    result = nothing();
                 }
-            } else {
-                result = nothing();
+            } finally {
+                mTable = null;
+                mCondition = null;
+                mWriter = null;
+                mAdditional = null;
+                mKey = null;
+                mSelect = null;
+                mReceipt.yield();
             }
 
             return result;
@@ -122,19 +143,31 @@ public final class Update {
 
     public static class Many implements Expression<Integer> {
 
-        @NonNls
-        @NonNull
-        private final String mTable;
-        @NonNull
-        private final Condition mCondition;
-        @NonNull
-        private final Writer mWriter;
+        public static final ObjectPool<Many> Pool = new ObjectPool<Many>() {
+            @NonNull
+            @Override
+            protected Many produce(@NonNull final Receipt<Many> receipt) {
+                return new Many(receipt);
+            }
+        };
 
-        public Many(@NonNls @NonNull final String table,
-                    @NonNull final Condition condition,
-                    @NonNull final Writer writer) {
+        @NonNull
+        private final ObjectPool.Receipt<Many> mReceipt;
+
+        @NonNls
+        private String mTable;
+        private Condition mCondition;
+        private Writer mWriter;
+
+        private Many(@NonNull final ObjectPool.Receipt<Many> receipt) {
             super();
 
+            mReceipt = receipt;
+        }
+
+        public final void init(@NonNls @NonNull final String table,
+                               @NonNull final Condition condition,
+                               @NonNull final Writer writer) {
             mTable = table;
             mCondition = condition.and(writer.onUpdate());
             mWriter = writer;
@@ -143,9 +176,19 @@ public final class Update {
         @NonNull
         @Override
         public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
-            final ContentValues values = new ContentValues();
-            mWriter.write(Update, writable(values));
-            final int updated = update(database, mTable, mCondition, values);
+            final int updated;
+
+            try {
+                final ContentValues values = new ContentValues();
+                mWriter.write(Update, writable(values));
+                updated = update(database, mTable, mCondition, values);
+            } finally {
+                mTable = null;
+                mCondition = null;
+                mWriter = null;
+                mReceipt.yield();
+            }
+
             return (updated > 0) ? something(updated) : Maybes.<Integer>nothing();
         }
     }

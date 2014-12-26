@@ -22,24 +22,39 @@ import android.orm.sql.Expression;
 import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
 public class Exists implements Expression<Boolean> {
 
+    public static final ObjectPool<Exists> Pool = new ObjectPool<Exists>() {
+        @NonNull
+        @Override
+        protected Exists produce(@NonNull final Receipt<Exists> receipt) {
+            return new Exists(receipt);
+        }
+    };
+
     private static final String[] PROJECTION = {"1"};
     private static final String SINGLE = "1";
 
-    @NonNls
     @NonNull
-    private final String mTable;
-    @NonNull
-    private final Condition mCondition;
+    private final ObjectPool.Receipt<Exists> mReceipt;
 
-    public Exists(@NonNls @NonNull final String table, @NonNull final Condition condition) {
+    @NonNls
+    private String mTable;
+    private Condition mCondition;
+
+    private Exists(@NonNull final ObjectPool.Receipt<Exists> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNls @NonNull final String table,
+                           @NonNull final Condition condition) {
         mTable = table;
         mCondition = condition;
     }
@@ -49,11 +64,17 @@ public class Exists implements Expression<Boolean> {
     public final Maybe<Boolean> execute(@NonNull final SQLiteDatabase database) {
         final Maybe<Boolean> result;
 
-        final Cursor cursor = database.query(mTable, PROJECTION, mCondition.toSQL(), null, null, null, null, SINGLE);
         try {
-            result = Maybes.something(cursor.getCount() > 0);
+            final Cursor cursor = database.query(mTable, PROJECTION, mCondition.toSQL(), null, null, null, null, SINGLE);
+            try {
+                result = Maybes.something(cursor.getCount() > 0);
+            } finally {
+                cursor.close();
+            }
         } finally {
-            cursor.close();
+            mTable = null;
+            mCondition = null;
+            mReceipt.yield();
         }
 
         return result;

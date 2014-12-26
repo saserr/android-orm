@@ -23,11 +23,13 @@ import android.orm.sql.Expression;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Values;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.util.Maybe;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -44,75 +46,96 @@ import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 import static android.util.Log.INFO;
 
-public class Insert<K> implements Expression<K> {
+public class Insert implements Expression<Object> {
+
+    public static final ObjectPool<Insert> Pool = new ObjectPool<Insert>() {
+        @NonNull
+        @Override
+        protected Insert produce(@NonNull final Receipt<Insert> receipt) {
+            return new Insert(receipt);
+        }
+    };
 
     private static final String TAG = Insert.class.getSimpleName();
     private static final Condition.ComplexPart.WithNull<Long> WHERE_ROW_ID = Condition.on(RowId);
 
-    @NonNls
     @NonNull
-    private final String mTable;
-    @NonNull
-    private final Writer mWriter;
-    @NonNull
-    private final ContentValues mAdditional;
-    @NonNull
-    private final Value.Read<K> mKey;
+    private final ObjectPool.Receipt<Insert> mReceipt;
 
-    public Insert(@NonNls @NonNull final String table,
-                  @NonNull final Writer writer,
-                  @NonNull final ContentValues additional,
-                  @NonNull final Value.Read<K> key) {
+    @NonNls
+    private String mTable;
+    private Writer mWriter;
+    private ContentValues mAdditional;
+    private Value.Read<Object> mKey;
+
+    private Insert(@NonNull final ObjectPool.Receipt<Insert> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    @SuppressWarnings("unchecked")
+    public final void init(@NonNls @NonNull final String table,
+                           @NonNull final Writer writer,
+                           @NonNull final ContentValues additional,
+                           @NonNull final Value.Read<?> key) {
         mTable = table;
         mWriter = writer;
         mAdditional = additional;
-        mKey = key;
+        mKey = Values.safeCast(key);
     }
 
     @NonNull
     @Override
-    public final Maybe<K> execute(@NonNull final SQLiteDatabase database) {
-        final ContentValues values = new ContentValues(mAdditional);
-        final Writable output = writable(values);
-        mWriter.write(Insert, output);
-        if (values.size() <= 0) {
-            if (Log.isLoggable(TAG, INFO)) {
-                Log.i(TAG, "An empty row will be written"); //NON-NLS
-            }
-        }
+    public final Maybe<Object> execute(@NonNull final SQLiteDatabase database) {
+        final Maybe<Object> result;
 
-        final long id = database.insertOrThrow(mTable, null, values);
-        final Maybe<K> result;
-
-        if (id > 0L) {
-            final Maybe<Long> someId = something(id);
-            RowId.write(Insert, someId, output);
-
-            final Select.Projection remaining = mKey.getProjection().without(getKeys(values));
-            if (remaining.isEmpty()) {
-                result = mKey.read(readable(values));
-            } else {
-                final Condition condition = WHERE_ROW_ID.isEqualTo(id);
-                final Select select = select(mTable).with(condition).with(Limit.Single).build();
-                final Readable input = select.execute(remaining, database);
-                if ((input == null) || !input.start()) {
-                    result = nothing();
-                } else {
-                    try {
-                        result = mKey.read(combine(readable(values), input));
-                    } finally {
-                        input.close();
-                    }
+        try {
+            final ContentValues values = new ContentValues(mAdditional);
+            final Writable output = writable(values);
+            mWriter.write(Insert, output);
+            if (values.size() <= 0) {
+                if (Log.isLoggable(TAG, INFO)) {
+                    Log.i(TAG, "An empty row will be written"); //NON-NLS
                 }
             }
 
-            if (result.isNothing()) {
-                throw new SQLException("Couldn't create item uri after insert");
+            final long id = database.insertOrThrow(mTable, null, values);
+
+            if (id > 0L) {
+                final Maybe<Long> someId = something(id);
+                RowId.write(Insert, someId, output);
+
+                final Select.Projection remaining = mKey.getProjection().without(getKeys(values));
+                if (remaining.isEmpty()) {
+                    result = mKey.read(readable(values));
+                } else {
+                    final Condition condition = WHERE_ROW_ID.isEqualTo(id);
+                    final Select select = select(mTable).with(condition).with(Limit.Single).build();
+                    final Readable input = select.execute(remaining, database);
+                    if ((input == null) || !input.start()) {
+                        result = nothing();
+                    } else {
+                        try {
+                            result = mKey.read(combine(readable(values), input));
+                        } finally {
+                            input.close();
+                        }
+                    }
+                }
+
+                if (result.isNothing()) {
+                    throw new SQLException("Couldn't create item uri after insert");
+                }
+            } else {
+                result = nothing();
             }
-        } else {
-            result = nothing();
+        } finally {
+            mTable = null;
+            mWriter = null;
+            mAdditional = null;
+            mKey = null;
+            mReceipt.yield();
         }
 
         return result;

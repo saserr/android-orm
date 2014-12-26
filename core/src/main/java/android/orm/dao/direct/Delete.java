@@ -21,21 +21,36 @@ import android.orm.sql.Expression;
 import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 
 import org.jetbrains.annotations.NonNls;
 
 public class Delete implements Expression<Integer> {
 
-    @NonNls
-    @NonNull
-    private final String mTable;
-    @NonNull
-    private final Condition mCondition;
+    public static final ObjectPool<Delete> Pool = new ObjectPool<Delete>() {
+        @NonNull
+        @Override
+        protected Delete produce(@NonNull final Receipt<Delete> receipt) {
+            return new Delete(receipt);
+        }
+    };
 
-    public Delete(@NonNls @NonNull final String table, @NonNull final Condition condition) {
+    @NonNull
+    private final ObjectPool.Receipt<Delete> mReceipt;
+
+    @NonNls
+    private String mTable;
+    private Condition mCondition;
+
+    private Delete(@NonNull final ObjectPool.Receipt<Delete> receipt) {
         super();
 
+        mReceipt = receipt;
+    }
+
+    public final void init(@NonNls @NonNull final String table,
+                           @NonNull final Condition condition) {
         mTable = table;
         mCondition = condition;
     }
@@ -43,7 +58,16 @@ public class Delete implements Expression<Integer> {
     @NonNull
     @Override
     public final Maybe<Integer> execute(@NonNull final SQLiteDatabase database) {
-        final int deleted = database.delete(mTable, mCondition.toSQL(), null);
+        final int deleted;
+
+        try {
+            deleted = database.delete(mTable, mCondition.toSQL(), null);
+        } finally {
+            mTable = null;
+            mCondition = null;
+            mReceipt.yield();
+        }
+
         return (deleted > 0) ? Maybes.something(deleted) : Maybes.<Integer>nothing();
     }
 }

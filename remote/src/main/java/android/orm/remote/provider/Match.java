@@ -82,8 +82,17 @@ public class Match {
     @Nullable
     public final Uri insert(@NonNull final SQLiteDatabase database,
                             @NonNull final ContentValues values) {
-        final Insert<Uri> insert = new Insert<>(mTable, Plans.write(values), mOnInsert, mSingleRoute);
-        return insert.execute(database).getOrElse(null);
+        @org.jetbrains.annotations.Nullable final Uri result;
+
+        if (values.size() > 0) {
+            final Insert insert = Insert.Pool.borrow();
+            insert.init(mTable, Plans.write(values), mOnInsert, mSingleRoute);
+            result = (Uri) insert.execute(database).getOrElse(null);
+        } else {
+            result = null;
+        }
+
+        return result;
     }
 
     public final int update(@NonNull final SQLiteDatabase database,

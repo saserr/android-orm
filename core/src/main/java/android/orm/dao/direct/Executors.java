@@ -26,7 +26,6 @@ import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
 import android.orm.util.Maybe;
-import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -35,6 +34,7 @@ import org.jetbrains.annotations.NonNls;
 
 import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Select.select;
+import static android.orm.util.Maybes.nothing;
 
 public final class Executors {
 
@@ -95,6 +95,7 @@ public final class Executors {
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
@@ -104,16 +105,27 @@ public final class Executors {
                     .with(mCondition.and(condition))
                     .with(Limit.Single)
                     .build();
-            return mExecutor.execute(new Query<>(plan, select));
+            final Query query = Query.Pool.borrow();
+            query.init(plan, select);
+            return (Maybe<Producer<Maybe<M>>>) (Object) mExecutor.execute(query);
         }
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final Maybe<K> update(@NonNull final Condition condition,
                                      @NonNull final Plan.Write plan) {
-            return plan.isEmpty() ?
-                    Maybes.<K>nothing() :
-                    mExecutor.execute(new Update.Single<>(mTable, mCondition.and(condition), plan, mOnInsert, mKey));
+            final Maybe<K> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Update.Single update = Update.Single.Pool.borrow();
+                update.init(mTable, mCondition.and(condition), plan, mOnInsert, mKey);
+                result = (Maybe<K>) (Object) mExecutor.execute(update);
+            }
+
+            return result;
         }
     }
 
@@ -141,6 +153,7 @@ public final class Executors {
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
@@ -152,16 +165,26 @@ public final class Executors {
                     .with(limit)
                     .with(offset)
                     .build();
-            return mExecutor.execute(new Query<>(plan, select));
+            final Query query = Query.Pool.borrow();
+            query.init(plan, select);
+            return (Maybe<Producer<Maybe<M>>>) (Object) mExecutor.execute(query);
         }
 
         @NonNull
         @Override
         public final Maybe<Integer> update(@NonNull final Condition condition,
                                            @NonNull final Plan.Write plan) {
-            return plan.isEmpty() ?
-                    Maybes.<Integer>nothing() :
-                    mExecutor.execute(new Update.Many(mTable, mCondition.and(condition), plan));
+            final Maybe<Integer> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Update.Many update = Update.Many.Pool.borrow();
+                update.init(mTable, mCondition.and(condition), plan);
+                result = mExecutor.execute(update);
+            }
+
+            return result;
         }
     }
 
@@ -196,21 +219,34 @@ public final class Executors {
         @NonNull
         @Override
         public final Maybe<Boolean> exists(@NonNull final Condition condition) {
-            return mExecutor.execute(new Exists(mTable, mCondition.and(condition)));
+            final Exists exists = Exists.Pool.borrow();
+            exists.init(mTable, mCondition.and(condition));
+            return mExecutor.execute(exists);
         }
 
         @NonNull
         @Override
+        @SuppressWarnings("unchecked")
         public final Maybe<K> insert(@NonNull final Plan.Write plan) {
-            return plan.isEmpty() ?
-                    Maybes.<K>nothing() :
-                    mExecutor.execute(new Insert<>(mTable, plan, mOnInsert, mKey));
+            final Maybe<K> result;
+
+            if (plan.isEmpty()) {
+                result = nothing();
+            } else {
+                final Insert insert = Insert.Pool.borrow();
+                insert.init(mTable, plan, mOnInsert, mKey);
+                result = (Maybe<K>) (Object) mExecutor.execute(insert);
+            }
+
+            return result;
         }
 
         @NonNull
         @Override
         public final Maybe<Integer> delete(@NonNull final Condition condition) {
-            return mExecutor.execute(new Delete(mTable, mCondition.and(condition)));
+            final Delete delete = Delete.Pool.borrow();
+            delete.init(mTable, mCondition.and(condition));
+            return mExecutor.execute(delete);
         }
     }
 
