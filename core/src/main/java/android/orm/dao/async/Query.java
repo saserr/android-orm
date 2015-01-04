@@ -20,11 +20,10 @@ import android.orm.Access;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.model.Mapper;
-import android.orm.model.Observer;
-import android.orm.model.Plan;
-import android.orm.model.Plans;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
+import android.orm.sql.Reader;
+import android.orm.sql.Readers;
 import android.orm.sql.Value;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
@@ -39,8 +38,6 @@ import android.support.annotation.Nullable;
 
 import java.util.List;
 
-import static android.orm.dao.Result.nothing;
-import static android.orm.dao.Result.something;
 import static android.orm.dao.direct.Query.afterRead;
 import static android.orm.model.Observer.beforeRead;
 import static android.orm.model.Readings.list;
@@ -60,7 +57,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     private final ObjectPool.Receipt<Query> mReceipt;
 
     private Executor.Direct<?, ?> mDirect;
-    private Plan.Read<Object> mPlan;
+    private Reader<Object> mReader;
     private Condition mCondition;
     private Order mOrder;
     private Limit mLimit;
@@ -73,13 +70,13 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     }
 
     public final void init(@NonNull final Executor.Direct<?, ?> direct,
-                           @NonNull final Plan.Read<?> plan,
+                           @NonNull final Reader<?> reader,
                            @NonNull final Condition condition,
                            @Nullable final Order order,
                            @Nullable final Limit limit,
                            @Nullable final Offset offset) {
         mDirect = direct;
-        mPlan = Plans.safeCast(plan);
+        mReader = Readers.safeCast(reader);
         mCondition = condition;
         mOrder = order;
         mLimit = limit;
@@ -92,10 +89,10 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
         final Maybe<Producer<Maybe<Object>>> result;
 
         try {
-            result = mDirect.query(mPlan, mCondition, mOrder, mLimit, mOffset);
+            result = mDirect.query(mReader, mCondition, mOrder, mLimit, mOffset);
         } finally {
             mDirect = null;
-            mPlan = null;
+            mReader = null;
             mCondition = null;
             mOrder = null;
             mLimit = null;
@@ -150,7 +147,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <M> Result<M> select(@NonNull final Reading.Single<M> reading) {
-                return select(null, reading.preparePlan());
+                return select(reading.preparePlan());
             }
 
             @NonNull
@@ -158,23 +155,13 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             public final <M> Result<M> select(@NonNull final M model,
                                               @NonNull final Reading.Single<M> reading) {
                 beforeRead(model);
-                return select(model, reading.preparePlan(model));
+                return select(reading.preparePlan(model));
             }
 
             @NonNull
-            private <M> Result<M> select(@Nullable final M model,
-                                         @NonNull final Plan.Read<M> plan) {
-                final Result<M> result;
-
-                if (plan.isEmpty()) {
-                    Observer.afterRead(model);
-                    result = (model == null) ? Result.<M>nothing() : something(model);
-                } else {
-                    final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
-                    result = mExecutor.query(plan, mCondition, null, Limit.Single, null).flatMap(afterRead);
-                }
-
-                return result;
+            private <M> Result<M> select(@NonNull final Reader<M> reader) {
+                final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
+                return mExecutor.query(reader, mCondition, null, Limit.Single, null).flatMap(afterRead);
             }
         }
 
@@ -252,17 +239,9 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
             @NonNull
             private <M> Result<M> select(@NonNull final Reading<M> reading) {
-                final Plan.Read<M> plan = reading.preparePlan();
-                final Result<M> result;
-
-                if (plan.isEmpty()) {
-                    result = nothing();
-                } else {
-                    final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
-                    result = mExecutor.query(plan, mCondition, mOrder, mLimit, mOffset).flatMap(afterRead);
-                }
-
-                return result;
+                final Reader<M> reader = reading.preparePlan();
+                final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
+                return mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset).flatMap(afterRead);
             }
         }
 

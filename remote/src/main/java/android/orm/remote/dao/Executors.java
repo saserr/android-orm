@@ -19,13 +19,13 @@ package android.orm.remote.dao;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.orm.dao.Executor;
-import android.orm.model.Plan;
 import android.orm.remote.Route;
 import android.orm.remote.dao.direct.Delete;
 import android.orm.remote.dao.direct.Exists;
 import android.orm.remote.dao.direct.Insert;
 import android.orm.remote.dao.direct.Query;
 import android.orm.remote.dao.direct.Update;
+import android.orm.sql.Reader;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
@@ -152,13 +152,13 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
             final Query query = Query.Pool.borrow();
-            query.init(mResolver, mUri, plan, condition, order, limit, offset);
+            query.init(mResolver, mUri, reader, condition, order, limit, offset);
             return (Maybe<Producer<Maybe<M>>>) (Object) query.run();
         }
 

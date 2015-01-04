@@ -22,8 +22,8 @@ import android.orm.dao.Result;
 import android.orm.model.Instance;
 import android.orm.model.Observer;
 import android.orm.model.Plan;
-import android.orm.model.Plans;
 import android.orm.model.Reading;
+import android.orm.sql.Reader;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.util.Consumer;
@@ -34,7 +34,6 @@ import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import static android.orm.dao.Result.something;
 import static android.orm.dao.direct.Query.afterRead;
 import static android.orm.model.Observer.beforeRead;
 
@@ -61,18 +60,9 @@ public final class Access {
         @Override
         public final <M extends Instance.Readable> Result<M> query(@NonNull final M model) {
             beforeRead(model);
-            final Plan.Read<M> plan = Plans.single(model.getName(), Reading.Item.Update.from(model));
-            final Result<M> result;
-
-            if (plan.isEmpty()) {
-                Observer.afterRead(model);
-                result = something(model);
-            } else {
-                final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
-                result = mExecutor.query(plan, Condition.None, null, Limit.Single, null).flatMap(afterRead);
-            }
-
-            return result;
+            final Reader<M> reader = Plan.Read.single(model.getName(), Reading.Item.Update.from(model));
+            final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
+            return mExecutor.query(reader, Condition.None, null, Limit.Single, null).flatMap(afterRead);
         }
 
         @NonNull

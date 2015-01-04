@@ -16,9 +16,12 @@
 
 package android.orm.sql;
 
+import android.orm.util.Function;
 import android.orm.util.Maybe;
+import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
+import android.util.Pair;
 
 public interface Reader<V> {
 
@@ -27,4 +30,43 @@ public interface Reader<V> {
 
     @NonNull
     Producer<Maybe<V>> read(@NonNull final Readable input);
+
+    @NonNull
+    <T> Reader<Pair<V, T>> and(@NonNull final Reader<T> other);
+
+    @NonNull
+    <T> Reader<T> map(@NonNull final Function<? super V, ? extends T> converter);
+
+    @NonNull
+    <T> Reader<T> flatMap(@NonNull final Function<? super V, Maybe<T>> converter);
+
+    @NonNull
+    <T> Reader<T> convert(@NonNull final Function<Maybe<V>, Maybe<T>> converter);
+
+    abstract class Base<V> implements Reader<V> {
+
+        @NonNull
+        @Override
+        public final <T> Reader<Pair<V, T>> and(@NonNull final Reader<T> other) {
+            return Readers.compose(this, other);
+        }
+
+        @NonNull
+        @Override
+        public final <T> Reader<T> map(@NonNull final Function<? super V, ? extends T> converter) {
+            return convert(Maybes.map(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Reader<T> flatMap(@NonNull final Function<? super V, Maybe<T>> converter) {
+            return convert(Maybes.flatMap(converter));
+        }
+
+        @NonNull
+        @Override
+        public final <T> Reader<T> convert(@NonNull final Function<Maybe<V>, Maybe<T>> converter) {
+            return Readers.convert(this, converter);
+        }
+    }
 }

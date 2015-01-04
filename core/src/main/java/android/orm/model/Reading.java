@@ -17,6 +17,7 @@
 package android.orm.model;
 
 import android.orm.sql.Readable;
+import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.util.Converter;
@@ -43,7 +44,7 @@ import static android.orm.util.Producers.constant;
 public interface Reading<M> {
 
     @NonNull
-    Plan.Read<M> preparePlan();
+    Reader<M> preparePlan();
 
     @NonNull
     <N> Reading<N> map(@NonNull final Converter<M, N> converter);
@@ -54,7 +55,7 @@ public interface Reading<M> {
     interface Single<M> extends Reading<M> {
 
         @NonNull
-        Plan.Read<M> preparePlan(@NonNull final M m);
+        Reader<M> preparePlan(@NonNull final M m);
 
         @NonNull
         <N> Single<Pair<M, N>> and(@NonNull final Single<N> other);

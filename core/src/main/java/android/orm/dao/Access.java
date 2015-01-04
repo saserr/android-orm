@@ -19,8 +19,6 @@ package android.orm.dao;
 import android.orm.Model;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
-import android.orm.model.Plan;
-import android.orm.model.Plans;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;

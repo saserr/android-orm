@@ -16,7 +16,7 @@
 
 package android.orm.dao;
 
-import android.orm.model.Plan;
+import android.orm.sql.Reader;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
@@ -44,7 +44,7 @@ public interface Executor<E, I, U, D> {
     interface Direct<I, U> extends Executor<Maybe<Boolean>, Maybe<I>, Maybe<U>, Maybe<Integer>> {
 
         @NonNull
-        <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                             @NonNull final Condition condition,
                                             @Nullable final Order order,
                                             @Nullable final Limit limit,
@@ -68,7 +68,7 @@ public interface Executor<E, I, U, D> {
     interface Async<I, U> extends Executor<Result<Boolean>, Result<I>, Result<U>, Result<Integer>> {
 
         @NonNull
-        <M> Result<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        <M> Result<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                              @NonNull final Condition condition,
                                              @Nullable final Order order,
                                              @Nullable final Limit limit,

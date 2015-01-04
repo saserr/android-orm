@@ -16,7 +16,9 @@
 
 package android.orm.model;
 
+import android.orm.sql.Readable;
 import android.orm.sql.Reader;
+import android.orm.sql.Readers;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
@@ -25,52 +27,218 @@ import android.orm.util.Function;
 import android.orm.util.Lens;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
+import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import android.util.Pair;
+import android.util.SparseArray;
+
+import org.jetbrains.annotations.NonNls;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static android.orm.util.Lenses.get;
+import static android.orm.util.Maybes.something;
+import static android.util.Log.DEBUG;
 
 public final class Plan {
 
-    public abstract static class Read<V> implements Reader<V> {
+    public static final class Read {
+
+        private static final String TAG = Read.class.getSimpleName();
 
         @NonNull
-        private final Select.Projection mProjection;
+        public static <V> Reader<V> single(@NonNls @NonNull final String name,
+                                           @NonNull final Reading.Item<V> reading) {
+            return reading.isEmpty() ? Readers.<V>empty() : new Single<>(name, reading);
+        }
 
-        protected Read(@NonNull final Select.Projection projection) {
+        @NonNull
+        public static <V> Reader<List<V>> list(@NonNls @NonNull final String name,
+                                               @NonNull final Reading.Item.Create<V> reading) {
+            return reading.isEmpty() ?
+                    Readers.<List<V>>empty() :
+                    new Many<V, List<V>>(name, reading) {
+
+                        @NonNull
+                        @Override
+                        protected List<V> create(final int size) {
+                            return new ArrayList<>(size);
+                        }
+
+                        @Override
+                        protected void add(@NonNull final List<V> to, @NonNull final V value) {
+                            to.add(value);
+                        }
+                    };
+        }
+
+        @NonNull
+        public static <V> Reader<Set<V>> set(@NonNls @NonNull final String name,
+                                             @NonNull final Reading.Item.Create<V> reading) {
+            return reading.isEmpty() ?
+                    Readers.<Set<V>>empty() :
+                    new Many<V, Set<V>>(name, reading) {
+
+                        @NonNull
+                        @Override
+                        protected Set<V> create(final int size) {
+                            return new HashSet<>(size);
+                        }
+
+                        @Override
+                        protected void add(@NonNull final Set<V> to, @NonNull final V value) {
+                            to.add(value);
+                        }
+                    };
+        }
+
+        @NonNull
+        public static <K, V> Reader<Map<K, V>> map(@NonNls @NonNull final String name,
+                                                   @NonNull final Reading.Item.Create<K> key,
+                                                   @NonNull final Reading.Item.Create<V> value) {
+            return (key.isEmpty() || value.isEmpty()) ?
+                    Readers.<Map<K, V>>empty() :
+                    new Many<Pair<K, V>, Map<K, V>>(name, key.and(value)) {
+
+                        @NonNull
+                        @Override
+                        protected Map<K, V> create(final int size) {
+                            return new HashMap<>(size);
+                        }
+
+                        @Override
+                        protected void add(@NonNull final Map<K, V> to,
+                                           @NonNull final Pair<K, V> pair) {
+                            to.put(pair.first, pair.second);
+                        }
+                    };
+        }
+
+        @NonNull
+        public static <V> Reader<SparseArray<V>> sparseArray(@NonNls @NonNull final String name,
+                                                             @NonNull final Reading.Item.Create<Integer> key,
+                                                             @NonNull final Reading.Item.Create<V> value) {
+            return (key.isEmpty() || value.isEmpty()) ?
+                    Readers.<SparseArray<V>>empty() :
+                    new Many<Pair<Integer, V>, SparseArray<V>>(name, key.and(value)) {
+
+                        @NonNull
+                        @Override
+                        protected SparseArray<V> create(final int size) {
+                            return new SparseArray<>(size);
+                        }
+
+                        @Override
+                        protected void add(@NonNull final SparseArray<V> to,
+                                           @NonNull final Pair<Integer, V> pair) {
+                            to.put(pair.first, pair.second);
+                        }
+                    };
+        }
+
+        private static class Single<V> extends Reader.Base<V> {
+
+            @NonNls
+            @NonNull
+            private final String mName;
+            @NonNull
+            private final Reading.Item<V> mReading;
+
+            private Single(@NonNls @NonNull final String name, @NonNull final Reading.Item<V> reading) {
+                super();
+
+                mName = name;
+                mReading = reading;
+            }
+
+            @NonNull
+            @Override
+            public final Select.Projection getProjection() {
+                return mReading.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public final Producer<Maybe<V>> read(@NonNull final Readable input) {
+                final Producer<Maybe<V>> result;
+
+                @NonNls final int size = input.size();
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Rows in input for " + mName + ": " + size); //NON-NLS
+                }
+
+                if (input.start()) {
+                    result = mReading.read(input);
+                    if (size > 1) {
+                        Log.w(TAG, "Reading a single '" + mName + "' from cursor that contains multiple ones. Please consider from list/set item"); //NON-NLS
+                    }
+                } else {
+                    result = Producers.constant(Maybes.<V>nothing());
+                }
+
+                return result;
+            }
+        }
+
+        private abstract static class Many<V, C> extends Reader.Base<C> {
+
+            @NonNls
+            @NonNull
+            private final String mName;
+            @NonNull
+            private final Reading.Item.Create<V> mReading;
+
+            private Many(@NonNls @NonNull final String name,
+                         @NonNull final Reading.Item.Create<V> reading) {
+                super();
+
+                mName = name;
+                mReading = reading;
+            }
+
+            @NonNull
+            protected abstract C create(final int size);
+
+            protected abstract void add(@NonNull final C to, @NonNull final V v);
+
+            @NonNull
+            @Override
+            public final Select.Projection getProjection() {
+                return mReading.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public final Producer<Maybe<C>> read(@NonNull final Readable input) {
+                final C result = create(input.size());
+
+                @NonNls final int size = input.size();
+                if (Log.isLoggable(TAG, DEBUG)) {
+                    Log.d(TAG, "Rows in input for " + mName + ": " + size); //NON-NLS
+                }
+
+                if (input.start()) {
+                    do {
+                        final V model = mReading.read(input).produce().getOrElse(null);
+                        if (model != null) {
+                            add(result, model);
+                        }
+                    } while (input.next());
+                }
+
+                return Producers.constant(something(result));
+            }
+        }
+
+        private Read() {
             super();
-
-            mProjection = projection;
-        }
-
-        @NonNull
-        @Override
-        public final Select.Projection getProjection() {
-            return mProjection;
-        }
-
-        public final boolean isEmpty() {
-            return mProjection.isEmpty();
-        }
-
-        @NonNull
-        public final <T> Read<Pair<V, T>> and(@NonNull final Read<T> other) {
-            return Plans.compose(this, other);
-        }
-
-        @NonNull
-        public final <T> Read<T> map(@NonNull final Function<? super V, ? extends T> converter) {
-            return convert(Maybes.map(converter));
-        }
-
-        @NonNull
-        public final <T> Read<T> flatMap(@NonNull final Function<? super V, Maybe<T>> converter) {
-            return convert(Maybes.flatMap(converter));
-        }
-
-        @NonNull
-        public final <T> Read<T> convert(@NonNull final Function<Maybe<V>, Maybe<T>> converter) {
-            return Plans.convert(this, converter);
         }
     }
 

@@ -21,7 +21,6 @@ import android.orm.Access;
 import android.orm.dao.Executor;
 import android.orm.model.Mapper;
 import android.orm.model.Observer;
-import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Expression;
@@ -36,7 +35,6 @@ import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
-import android.orm.util.Maybes;
 import android.orm.util.ObjectPool;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -165,7 +163,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <M> Maybe<M> select(@NonNull final Reading.Single<M> reading) {
-                return select(null, reading.preparePlan());
+                return select(reading.preparePlan());
             }
 
             @NonNull
@@ -173,22 +171,13 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             public final <M> Maybe<M> select(@NonNull final M model,
                                              @NonNull final Reading.Single<M> reading) {
                 beforeRead(model);
-                return select(model, reading.preparePlan(model));
+                return select(reading.preparePlan(model));
             }
 
             @NonNull
-            private <M> Maybe<M> select(@Nullable final M model,
-                                        @NonNull final Plan.Read<M> plan) {
-                final Maybe<M> result;
-
-                if (plan.isEmpty()) {
-                    Observer.afterRead(model);
-                    result = (model == null) ? Maybes.<M>nothing() : something(model);
-                } else {
-                    result = mExecutor.query(plan, mCondition, null, Limit.Single, null).flatMap(Query.<M>afterRead());
-                }
-
-                return result;
+            private <M> Maybe<M> select(@NonNull final Reader<M> reader) {
+                final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, mCondition, null, Limit.Single, null);
+                return result.flatMap(Query.<M>afterRead());
             }
         }
 
@@ -266,10 +255,9 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
 
             @NonNull
             private <M> Maybe<M> select(@NonNull final Reading<M> reading) {
-                final Plan.Read<M> plan = reading.preparePlan();
-                return plan.isEmpty() ?
-                        Maybes.<M>nothing() :
-                        mExecutor.query(plan, mCondition, mOrder, mLimit, mOffset).flatMap(Query.<M>afterRead());
+                final Reader<M> reader = reading.preparePlan();
+                final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset);
+                return result.flatMap(Query.<M>afterRead());
             }
         }
 

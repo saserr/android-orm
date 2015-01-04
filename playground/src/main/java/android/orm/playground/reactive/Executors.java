@@ -18,7 +18,7 @@ package android.orm.playground.reactive;
 
 import android.net.Uri;
 import android.orm.dao.Executor;
-import android.orm.model.Plan;
+import android.orm.sql.Reader;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
@@ -118,12 +118,12 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
-            return mExecutor.query(plan, condition, order, limit, offset);
+            return mExecutor.query(reader, condition, order, limit, offset);
         }
 
         @NonNull

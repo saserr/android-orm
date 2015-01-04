@@ -18,7 +18,7 @@ package android.orm.dao.async;
 
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
-import android.orm.model.Plan;
+import android.orm.sql.Reader;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
@@ -83,13 +83,13 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final <M> Result<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        public final <M> Result<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                                           @NonNull final Condition condition,
                                                           @Nullable final Order order,
                                                           @Nullable final Limit limit,
                                                           @Nullable final Offset offset) {
             final Query query = Query.Pool.borrow();
-            query.init(mDirect, plan, condition, order, limit, offset);
+            query.init(mDirect, reader, condition, order, limit, offset);
             return (Result<Producer<Maybe<M>>>) (Object) mExecutionContext.execute(query);
         }
 

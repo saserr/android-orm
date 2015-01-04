@@ -18,7 +18,7 @@ package android.orm.dao.direct;
 
 import android.content.ContentValues;
 import android.orm.dao.Executor;
-import android.orm.model.Plan;
+import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
@@ -96,7 +96,7 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
@@ -106,7 +106,7 @@ public final class Executors {
                     .with(Limit.Single)
                     .build();
             final Query query = Query.Pool.borrow();
-            query.init(plan, select);
+            query.init(reader, select);
             return (Maybe<Producer<Maybe<M>>>) (Object) mExecutor.execute(query);
         }
 
@@ -146,7 +146,7 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Plan.Read<M> plan,
+        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
@@ -158,7 +158,7 @@ public final class Executors {
                     .with(offset)
                     .build();
             final Query query = Query.Pool.borrow();
-            query.init(plan, select);
+            query.init(reader, select);
             return (Maybe<Producer<Maybe<M>>>) (Object) mExecutor.execute(query);
         }
 

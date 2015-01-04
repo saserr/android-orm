@@ -19,8 +19,8 @@ package android.orm.remote.watch;
 import android.net.Uri;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
-import android.orm.model.Plan;
 import android.orm.model.Reading;
+import android.orm.sql.Reader;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -64,7 +64,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
     @Nullable
     private final Reading.Single<M> mSingleReading;
     @NonNull
-    private final AtomicReference<Plan.Read<M>> mPlan;
+    private final AtomicReference<Reader<M>> mReader;
 
     @SuppressWarnings("unchecked")
     private final Function<Producer<Maybe<M>>, Maybe<M>> mAfterRead = afterRead();
@@ -90,10 +90,10 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         mCallback = callback;
 
         mSingleReading = (reading instanceof Reading.Single) ? (Reading.Single<M>) reading : null;
-        final Plan.Read<M> plan = ((mSingleReading == null) || (model == null)) ?
+        final Reader<M> reader = ((mSingleReading == null) || (model == null)) ?
                 reading.preparePlan() :
                 mSingleReading.preparePlan(model);
-        mPlan = new AtomicReference<>(plan);
+        mReader = new AtomicReference<>(reader);
     }
 
     @Override
@@ -102,10 +102,10 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         final M model = current.getOrElse(null);
 
         if ((mSingleReading == null) || (model == null)) {
-            mPlan.set(mReading.preparePlan());
+            mReader.set(mReading.preparePlan());
         } else {
             beforeRead(model);
-            mPlan.set(mSingleReading.preparePlan(model));
+            mReader.set(mSingleReading.preparePlan(model));
         }
 
         mCallback.onResult(Maybes.<R>safeCast(current));
@@ -121,7 +121,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         final Promise<Maybe<Producer<Maybe<M>>>> promise = new Promise<>();
         promise.getFuture().onComplete(mHandler, this);
         try {
-            promise.success(mExecutor.query(mPlan.get(), mCondition, mOrder, mLimit, mOffset));
+            promise.success(mExecutor.query(mReader.get(), mCondition, mOrder, mLimit, mOffset));
         } catch (final Throwable error) {
             promise.failure(error);
         }
