@@ -22,7 +22,6 @@ import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.Producer;
-import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Pair;
@@ -147,7 +146,7 @@ public interface Value extends Writer {
             @NonNull
             @Override
             public final Value write(@Nullable final V value) {
-                return value(this, Producers.constant(something(value)));
+                return value(this, something(value));
             }
 
             @NonNull
@@ -212,7 +211,7 @@ public interface Value extends Writer {
             @NonNull
             @Override
             public final Value write(@Nullable final V value) {
-                return value(this, Producers.constant(something(value)));
+                return value(this, something(value));
             }
 
             @NonNull

@@ -20,8 +20,6 @@ import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Observer;
-import android.orm.model.Plan;
-import android.orm.model.Plans;
 import android.orm.model.Property;
 import android.orm.model.Reading;
 import android.orm.model.Storage;
@@ -29,6 +27,8 @@ import android.orm.model.Version;
 import android.orm.model.View;
 import android.orm.sql.Column;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
+import android.orm.sql.Writers;
 import android.orm.util.Converter;
 import android.orm.util.Converters;
 import android.orm.util.Function;
@@ -262,15 +262,15 @@ public abstract class Model {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite() {
+        public final Writer prepareWrite() {
             final Collection<Instance.Writable> instances = getWritableInstances(mModel);
-            final Collection<Plan.Write> plans = new ArrayList<>(instances.size());
+            final Collection<Writer> writers = new ArrayList<>(instances.size());
 
             for (final Instance.Writable instance : instances) {
-                plans.add(instance.prepareWrite());
+                writers.add(instance.prepareWrite());
             }
 
-            return Plans.compose(plans);
+            return Writers.compose(writers);
         }
 
         @Override

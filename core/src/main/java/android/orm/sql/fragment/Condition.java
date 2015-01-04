@@ -53,6 +53,7 @@ public class Condition implements Fragment {
     private static final MessageFormat OR = new MessageFormat("({0}) or ({1})");
 
     public static final Condition None = new Condition(null);
+    public static final Condition Fail = new Condition("0 <> 0");
 
     @NonNls
     @Nullable

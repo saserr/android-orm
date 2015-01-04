@@ -17,6 +17,8 @@
 package android.orm.model;
 
 import android.orm.sql.Value;
+import android.orm.sql.Values;
+import android.orm.sql.Writer;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -24,7 +26,6 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.model.Plans.EmptyWrite;
 import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
@@ -73,7 +74,7 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
     protected abstract Reading.Item<V> prepareRead(@NonNull final Maybe<V> v);
 
     @NonNull
-    protected abstract Plan.Write prepareWrite(@NonNull final Maybe<V> v);
+    protected abstract Writer prepareWrite(@NonNull final Maybe<V> v);
 
     public final boolean isSomething() {
         return mValue.isSomething();
@@ -111,22 +112,22 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
     @NonNull
     @Override
-    public final Plan.Write prepareWrite() {
-        final Plan.Write plan;
+    public final Writer prepareWrite() {
+        final Writer result;
 
         if (mValue.equals(mSaved)) {
-            plan = EmptyWrite;
+            result = Writer.Empty;
         } else {
             if (mSaving == null) {
                 mSaving = mValue;
-                plan = prepareWrite(mValue);
+                result = prepareWrite(mValue);
             } else {
                 Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
-                plan = EmptyWrite;
+                result = Writer.Empty;
             }
         }
 
-        return plan;
+        return result;
     }
 
     @Override
@@ -184,8 +185,8 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
             @NonNull
             @Override
-            protected Plan.Write prepareWrite(@NonNull final Maybe<V> model) {
-                return Plans.write(model, value);
+            protected Writer prepareWrite(@NonNull final Maybe<V> model) {
+                return Values.value(value, model);
             }
         };
     }
@@ -204,7 +205,7 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
             @NonNull
             @Override
-            protected Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+            protected Writer prepareWrite(@NonNull final Maybe<M> value) {
                 return mapper.prepareWrite(value);
             }
         };

@@ -20,6 +20,7 @@ import android.orm.Model;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Plan;
+import android.orm.model.Plans;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
@@ -28,7 +29,6 @@ import android.support.annotation.Nullable;
 
 import static android.orm.model.Observer.beforeCreate;
 import static android.orm.model.Observer.beforeUpdate;
-import static android.orm.model.Plans.write;
 import static android.orm.util.Maybes.something;
 
 public final class Access {
@@ -82,14 +82,14 @@ public final class Access {
         @Override
         public final I insert(@NonNull final Instance.Writable model) {
             beforeCreate(model);
-            return insert(model, write(model));
+            return insert(model, model.prepareWrite());
         }
 
         @NonNull
         @Override
         public final I insert(@NonNull final Writer writer) {
             beforeCreate(writer);
-            return insert(writer, write(writer));
+            return insert(writer, writer);
         }
 
         @NonNull
@@ -97,7 +97,7 @@ public final class Access {
         public final <M> I insert(@Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
             beforeCreate(model);
-            return insert(model, write(something(model), value));
+            return insert(model, value.write(model));
         }
 
         @NonNull
@@ -124,21 +124,21 @@ public final class Access {
         @Override
         public final U update(@NonNull final Instance.Writable model) {
             beforeUpdate(model);
-            return update(model, write(model));
+            return update(model, model.prepareWrite());
         }
 
         @NonNull
         @Override
         public final U update(@NonNull final Condition condition, @NonNull final Instance.Writable model) {
             beforeUpdate(model);
-            return update(model, condition, write(model));
+            return update(model, condition, model.prepareWrite());
         }
 
         @NonNull
         @Override
         public final U update(@NonNull final Writer writer) {
             beforeUpdate(writer);
-            return update(writer, write(writer));
+            return update(writer, writer);
         }
 
         @NonNull
@@ -146,7 +146,7 @@ public final class Access {
         public final U update(@NonNull final Condition condition,
                               @NonNull final Writer writer) {
             beforeUpdate(writer);
-            return update(writer, condition, write(writer));
+            return update(writer, condition, writer);
         }
 
         @NonNull
@@ -154,7 +154,7 @@ public final class Access {
         public final <M> U update(@Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
             beforeUpdate(model);
-            return update(model, write(something(model), value));
+            return update(model, value.write(model));
         }
 
         @NonNull
@@ -163,7 +163,7 @@ public final class Access {
                                   @Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
             beforeUpdate(model);
-            return update(model, condition, write(something(model), value));
+            return update(model, condition, value.write(model));
         }
 
         @NonNull
@@ -196,20 +196,20 @@ public final class Access {
         }
 
         @NonNull
-        private I insert(@Nullable final Object model, @NonNull final Plan.Write plan) {
-            return afterCreate(model, mExecutor.insert(plan));
+        private I insert(@Nullable final Object model, @NonNull final Writer writer) {
+            return afterCreate(model, mExecutor.insert(writer));
         }
 
         @NonNull
-        private U update(@Nullable final Object model, @NonNull final Plan.Write plan) {
-            return update(model, Condition.None, plan);
+        private U update(@Nullable final Object model, @NonNull final Writer writer) {
+            return update(model, Condition.None, writer);
         }
 
         @NonNull
         private U update(@Nullable final Object model,
                          @NonNull final Condition condition,
-                         @NonNull final Plan.Write plan) {
-            return afterUpdate(model, mExecutor.update(condition, plan));
+                         @NonNull final Writer writer) {
+            return afterUpdate(model, mExecutor.update(condition, writer));
         }
     }
 

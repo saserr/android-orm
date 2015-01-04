@@ -17,6 +17,9 @@
 package android.orm.model;
 
 import android.orm.sql.Value;
+import android.orm.sql.Values;
+import android.orm.sql.Writer;
+import android.orm.sql.Writers;
 import android.orm.util.Lens;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -64,8 +67,8 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Plan.Write prepareWrite() {
-                return Plans.write(value);
+            public Writer prepareWrite() {
+                return value;
             }
         };
     }
@@ -104,8 +107,8 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Plan.Write prepareWrite() {
-                return Plans.write(binding.get(), value);
+            public Writer prepareWrite() {
+                return Values.value(value, binding.get());
             }
         };
     }
@@ -144,7 +147,7 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Plan.Write prepareWrite() {
+            public Writer prepareWrite() {
                 return mapper.prepareWrite(binding.get());
             }
         };
@@ -173,7 +176,7 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Plan.Write prepareWrite() {
+            public Writer prepareWrite() {
                 return mapper.prepareWrite(binding.get());
             }
         };
@@ -361,8 +364,8 @@ public final class Instances {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite() {
-            return Plans.compose(Arrays.asList(mFirst.prepareWrite(), mSecond.prepareWrite()));
+        public final Writer prepareWrite() {
+            return Writers.compose(Arrays.asList(mFirst.prepareWrite(), mSecond.prepareWrite()));
         }
 
         @Override
@@ -431,7 +434,7 @@ public final class Instances {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite() {
+        public final Writer prepareWrite() {
             return mWrite.prepareWrite();
         }
 

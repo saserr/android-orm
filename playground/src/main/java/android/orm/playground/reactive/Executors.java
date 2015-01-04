@@ -19,6 +19,7 @@ package android.orm.playground.reactive;
 import android.net.Uri;
 import android.orm.dao.Executor;
 import android.orm.model.Plan;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -60,8 +61,8 @@ public final class Executors {
         @NonNull
         @Override
         public final Maybe<Uri> update(@NonNull final Condition condition,
-                                       @NonNull final Plan.Write plan) {
-            final Maybe<Uri> result = mExecutor.update(condition, plan);
+                                       @NonNull final Writer writer) {
+            final Maybe<Uri> result = mExecutor.update(condition, writer);
             notifyChange(result);
             return result;
         }
@@ -83,8 +84,8 @@ public final class Executors {
         @NonNull
         @Override
         public final Maybe<Integer> update(@NonNull final Condition condition,
-                                           @NonNull final Plan.Write plan) {
-            final Maybe<Integer> result = mExecutor.update(condition, plan);
+                                           @NonNull final Writer writer) {
+            final Maybe<Integer> result = mExecutor.update(condition, writer);
             notifyIfChanged(result);
             return result;
         }
@@ -127,8 +128,8 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Uri> insert(@NonNull final Plan.Write plan) {
-            final Maybe<Uri> result = mExecutor.insert(plan);
+        public final Maybe<Uri> insert(@NonNull final Writer writer) {
+            final Maybe<Uri> result = mExecutor.insert(writer);
             notifyChange(result);
             return result;
         }

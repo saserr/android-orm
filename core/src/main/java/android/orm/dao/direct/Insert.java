@@ -96,7 +96,7 @@ public class Insert implements Expression<Object> {
             mWriter.write(Insert, output);
             if (values.size() <= 0) {
                 if (Log.isLoggable(TAG, INFO)) {
-                    Log.i(TAG, "An empty row will be written"); //NON-NLS
+                    Log.i(TAG, "An empty row will be inserted"); //NON-NLS
                 }
             }
 

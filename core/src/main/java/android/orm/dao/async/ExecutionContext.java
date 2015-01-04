@@ -86,14 +86,14 @@ public class ExecutionContext {
         @NonNull
         private final ObjectPool.Receipt<Runnable> mReceipt;
 
+        private Task<?> mTask;
+        private Promise<Maybe<?>> mPromise;
+
         private Runnable(@NonNull final ObjectPool.Receipt<Runnable> receipt) {
             super();
 
             mReceipt = receipt;
         }
-
-        private Task<?> mTask;
-        private Promise<Maybe<?>> mPromise;
 
         @NonNull
         @SuppressWarnings("unchecked")

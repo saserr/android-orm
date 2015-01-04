@@ -18,6 +18,9 @@ package android.orm.model;
 
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Values;
+import android.orm.sql.Writer;
+import android.orm.sql.Writers;
 import android.orm.util.Converter;
 import android.orm.util.Converters;
 import android.orm.util.Function;
@@ -30,7 +33,8 @@ import android.util.Pair;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.model.Plans.EmptyWrite;
+import java.util.Arrays;
+
 import static android.orm.util.Maybes.something;
 
 public final class Mappers {
@@ -214,9 +218,9 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+        public final Writer prepareWrite(@NonNull final Maybe<M> value) {
             final M model = value.getOrElse(null);
-            return (model == null) ? EmptyWrite : model.prepareWrite();
+            return (model == null) ? Writer.Empty : model.prepareWrite();
         }
     }
 
@@ -240,8 +244,8 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<V> value) {
-            return Plans.write(value, mValue);
+        public final Writer prepareWrite(@NonNull final Maybe<V> value) {
+            return Values.value(mValue, value);
         }
     }
 
@@ -318,8 +322,8 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
-            return mFirst.prepareWrite(value).and(Plans.write(mSecond));
+        public final Writer prepareWrite(@NonNull final Maybe<M> value) {
+            return Writers.compose(Arrays.asList(mFirst.prepareWrite(value), mSecond));
         }
     }
 
@@ -351,9 +355,11 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
-            return mFirst.prepareWrite(first(value))
-                    .and(mSecond.prepareWrite(second(value)));
+        public final Writer prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
+            return Writers.compose(Arrays.asList(
+                    mFirst.prepareWrite(first(value)),
+                    mSecond.prepareWrite(second(value))
+            ));
         }
 
         @NonNull
@@ -439,7 +445,7 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<N> value) {
+        public final Writer prepareWrite(@NonNull final Maybe<N> value) {
             return mWrite.prepareWrite(mConverter.invoke(value));
         }
     }
@@ -480,7 +486,7 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+        public final Writer prepareWrite(@NonNull final Maybe<M> value) {
             return mWrite.prepareWrite(value);
         }
     }

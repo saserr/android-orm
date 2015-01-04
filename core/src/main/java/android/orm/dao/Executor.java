@@ -17,6 +17,7 @@
 package android.orm.dao;
 
 import android.orm.model.Plan;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -32,10 +33,10 @@ public interface Executor<E, I, U, D> {
     E exists(@NonNull final Condition condition);
 
     @NonNull
-    I insert(@NonNull final Plan.Write plan);
+    I insert(@NonNull final Writer writer);
 
     @NonNull
-    U update(@NonNull final Condition condition, @NonNull final Plan.Write plan);
+    U update(@NonNull final Condition condition, @NonNull final Writer writer);
 
     @NonNull
     D delete(@NonNull final Condition condition);

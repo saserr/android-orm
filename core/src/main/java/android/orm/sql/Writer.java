@@ -17,7 +17,11 @@
 package android.orm.sql;
 
 import android.orm.sql.fragment.Condition;
+import android.orm.util.Function;
 import android.support.annotation.NonNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public interface Writer {
 
@@ -25,4 +29,63 @@ public interface Writer {
     Condition onUpdate();
 
     void write(@NonNull final Value.Write.Operation operation, @NonNull final Writable output);
+
+    Writer Empty = new Writer() {
+
+        @NonNull
+        @Override
+        public Condition onUpdate() {
+            return Condition.None;
+        }
+
+        @Override
+        public void write(@NonNull final Value.Write.Operation operation,
+                          @NonNull final Writable output) {/* do nothing */}
+    };
+
+    class Builder<V> {
+
+        @NonNull
+        private final Collection<Writer> mWriters;
+        @NonNull
+        private final Collection<Function<V, Writer>> mFactories;
+
+        public Builder() {
+            super();
+
+            mWriters = new ArrayList<>();
+            mFactories = new ArrayList<>();
+        }
+
+        public Builder(@NonNull final Builder<V> builder) {
+            super();
+
+            mWriters = new ArrayList<>(builder.mWriters);
+            mFactories = new ArrayList<>(builder.mFactories);
+        }
+
+        @NonNull
+        public final Builder<V> with(@NonNull final Writer writer) {
+            mWriters.add(writer);
+            return this;
+        }
+
+        @NonNull
+        public final Builder<V> with(@NonNull final Function<V, Writer> factory) {
+            mFactories.add(factory);
+            return this;
+        }
+
+        @NonNull
+        public final Writer build(@NonNull final V value) {
+            final Collection<Writer> writers = new ArrayList<>(mWriters.size() + mFactories.size());
+
+            writers.addAll(mWriters);
+            for (final Function<V, Writer> factories : mFactories) {
+                writers.add(factories.invoke(value));
+            }
+
+            return Writers.compose(writers);
+        }
+    }
 }

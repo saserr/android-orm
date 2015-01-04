@@ -17,7 +17,7 @@
 package android.orm.dao.async;
 
 import android.orm.dao.Executor;
-import android.orm.model.Plan;
+import android.orm.sql.Writer;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
@@ -36,7 +36,7 @@ public class Insert implements ExecutionContext.Task<Object> {
     private final ObjectPool.Receipt<Insert> mReceipt;
 
     private Executor.Direct<Object, ?> mDirect;
-    private Plan.Write mPlan;
+    private Writer mWriter;
 
     private Insert(@NonNull final ObjectPool.Receipt<Insert> receipt) {
         super();
@@ -46,9 +46,9 @@ public class Insert implements ExecutionContext.Task<Object> {
 
     @SuppressWarnings("unchecked")
     public final void init(@NonNull final Executor.Direct<?, ?> direct,
-                           @NonNull final Plan.Write plan) {
+                           @NonNull final Writer writer) {
         mDirect = (Executor.Direct<Object, ?>) direct;
-        mPlan = plan;
+        mWriter = writer;
     }
 
     @NonNull
@@ -57,10 +57,10 @@ public class Insert implements ExecutionContext.Task<Object> {
         final Maybe<Object> result;
 
         try {
-            result = mDirect.insert(mPlan);
+            result = mDirect.insert(mWriter);
         } finally {
             mDirect = null;
-            mPlan = null;
+            mWriter = null;
             mReceipt.yield();
         }
 

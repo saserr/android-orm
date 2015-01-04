@@ -152,7 +152,7 @@ public final class Mapper {
         String getName();
 
         @NonNull
-        Plan.Write prepareWrite(@NonNull final Maybe<M> value);
+        Writer prepareWrite(@NonNull final Maybe<M> value);
 
         @NonNull
         Write<M> and(@NonNull final Value other);
@@ -198,7 +198,7 @@ public final class Mapper {
             @NonNls
             @NonNull
             private final String mName;
-            private final Plan.Write.Builder<M> mWrite = new Plan.Write.Builder<>();
+            private final Plan.Write.Builder<M> mPlan = new Plan.Write.Builder<>();
 
             public Builder(@NonNls @NonNull final String name) {
                 super();
@@ -208,27 +208,27 @@ public final class Mapper {
 
             @NonNull
             public final Builder<M> with(@NonNull final Writer writer) {
-                mWrite.put(writer);
+                mPlan.with(writer);
                 return this;
             }
 
             @NonNull
             public final <V> Builder<M> with(@NonNull final Value.Write<V> value,
                                              @NonNull final Lens.Read<M, V> lens) {
-                mWrite.put(value, Maybes.lift(lens));
+                mPlan.with(value, Maybes.lift(lens));
                 return this;
             }
 
             @NonNull
             public final <V> Builder<M> with(@NonNull final Write<V> mapper,
                                              @NonNull final Lens.Read<M, V> lens) {
-                mWrite.put(mapper, Maybes.lift(lens));
+                mPlan.with(mapper, Maybes.lift(lens));
                 return this;
             }
 
             @NonNull
             public final Write<M> build() {
-                return build(mName, new Plan.Write.Builder<>(mWrite));
+                return build(mName, new Plan.Write.Builder<>(mPlan));
             }
 
             @NonNull
@@ -245,7 +245,7 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Plan.Write prepareWrite(@NonNull final Maybe<M> value) {
+                    public Writer prepareWrite(@NonNull final Maybe<M> value) {
                         return write.build(value);
                     }
                 };

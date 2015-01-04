@@ -22,9 +22,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.orm.dao.direct.Insert;
-import android.orm.model.Plans;
 import android.orm.remote.Route;
 import android.orm.remote.route.Path;
+import android.orm.sql.Value;
+import android.orm.sql.Writable;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Order;
@@ -105,8 +107,10 @@ public class Match {
 
         try {
             if (values.size() > 0) {
+                final Write.Values plan = Write.Values.Pool.borrow();
+                plan.init(values);
                 final Insert insert = Insert.Pool.borrow();
-                insert.init(mTable, Plans.write(values), mOnInsert, mSingleRoute);
+                insert.init(mTable, plan, mOnInsert, mSingleRoute);
                 result = (Uri) insert.execute(database).getOrElse(null);
             } else {
                 result = null;
@@ -159,5 +163,55 @@ public class Match {
         mTable = null;
         mOrder = null;
         mLimit = null;
+    }
+
+    private static final class Write {
+
+        public static class Values implements Writer {
+
+            public static final ObjectPool<Values> Pool = new ObjectPool<Values>() {
+                @NonNull
+                @Override
+                protected Values produce(@NonNull final Receipt<Values> receipt) {
+                    return new Values(receipt);
+                }
+            };
+
+            @NonNull
+            private final ObjectPool.Receipt<Values> mReceipt;
+
+            private ContentValues mValues;
+
+            private Values(@NonNull final ObjectPool.Receipt<Values> receipt) {
+                super();
+
+                mReceipt = receipt;
+            }
+
+            public final void init(@NonNull final ContentValues values) {
+                mValues = values;
+            }
+
+            @NonNull
+            @Override
+            public final Condition onUpdate() {
+                return Condition.None;
+            }
+
+            @Override
+            public final void write(@NonNull final Value.Write.Operation operation,
+                                    @NonNull final Writable output) {
+                try {
+                    output.putAll(mValues);
+                } finally {
+                    mValues = null;
+                    mReceipt.yield();
+                }
+            }
+        }
+
+        private Write() {
+            super();
+        }
     }
 }

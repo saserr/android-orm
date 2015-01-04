@@ -17,7 +17,7 @@
 package android.orm.dao.async;
 
 import android.orm.dao.Executor;
-import android.orm.model.Plan;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
@@ -38,7 +38,7 @@ public class Update implements ExecutionContext.Task<Object> {
 
     private Executor.Direct<?, Object> mDirect;
     private Condition mCondition;
-    private Plan.Write mPlan;
+    private Writer mWriter;
 
     private Update(@NonNull final ObjectPool.Receipt<Update> receipt) {
         super();
@@ -49,10 +49,10 @@ public class Update implements ExecutionContext.Task<Object> {
     @SuppressWarnings("unchecked")
     public final void init(@NonNull final Executor.Direct<?, ?> direct,
                            @NonNull final Condition condition,
-                           @NonNull final Plan.Write plan) {
+                           @NonNull final Writer writer) {
         mDirect = (Executor.Direct<?, Object>) direct;
         mCondition = condition;
-        mPlan = plan;
+        mWriter = writer;
     }
 
     @NonNull
@@ -61,11 +61,11 @@ public class Update implements ExecutionContext.Task<Object> {
         final Maybe<Object> result;
 
         try {
-            result = mDirect.update(mCondition, mPlan);
+            result = mDirect.update(mCondition, mWriter);
         } finally {
             mDirect = null;
             mCondition = null;
-            mPlan = null;
+            mWriter = null;
             mReceipt.yield();
         }
 

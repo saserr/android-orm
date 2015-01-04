@@ -37,7 +37,6 @@ import org.jetbrains.annotations.NonNls;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static android.orm.model.Plans.write;
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Value.Write.Operation.Update;
 import static android.orm.sql.Writables.writable;
@@ -113,20 +112,21 @@ public abstract class Transaction<R> {
         @NonNull
         @Override
         public final Access insert(@NonNull final Instance.Writable model) {
-            return insert(write(model));
+            return insert(model.prepareWrite());
         }
 
         @NonNull
         @Override
         public final Access insert(@NonNull final Writer writer) {
-            return insert(write(writer));
+            mBatch.add(new Insert(mUri, writer));
+            return this;
         }
 
         @NonNull
         @Override
         public final <M> Access insert(@Nullable final M model,
                                        @NonNull final Value.Write<M> value) {
-            return insert(write(something(model), value));
+            return insert(value.write(model));
         }
 
         @NonNull
@@ -151,34 +151,35 @@ public abstract class Transaction<R> {
         @NonNull
         @Override
         public final Access update(@NonNull final Instance.Writable model) {
-            return update(write(model));
+            return update(model.prepareWrite());
         }
 
         @NonNull
         @Override
         public final Access update(@NonNull final Condition condition,
                                    @NonNull final Instance.Writable model) {
-            return update(condition, write(model));
+            return update(condition, model.prepareWrite());
         }
 
         @NonNull
         @Override
         public final Access update(@NonNull final Writer writer) {
-            return update(write(writer));
+            return update(Condition.None, writer);
         }
 
         @NonNull
         @Override
         public final Access update(@NonNull final Condition condition,
                                    @NonNull final Writer writer) {
-            return update(condition, write(writer));
+            mBatch.add(new Update(mUri, writer, condition));
+            return this;
         }
 
         @NonNull
         @Override
         public final <M> Access update(@Nullable final M model,
                                        @NonNull final Value.Write<M> value) {
-            return update(write(something(model), value));
+            return update(value.write(model));
         }
 
         @NonNull
@@ -186,7 +187,7 @@ public abstract class Transaction<R> {
         public final <M> Access update(@NonNull final Condition condition,
                                        @Nullable final M model,
                                        @NonNull final Value.Write<M> value) {
-            return update(condition, write(something(model), value));
+            return update(condition, value.write(model));
         }
 
         @NonNull
@@ -214,28 +215,6 @@ public abstract class Transaction<R> {
         @Override
         public final Access delete(@NonNull final Condition condition) {
             mBatch.add(new Delete(mUri, condition));
-            return this;
-        }
-
-        @NonNull
-        private Access insert(@NonNull final Plan.Write plan) {
-            if (!plan.isEmpty()) {
-                mBatch.add(new Insert(mUri, plan));
-            }
-            return this;
-        }
-
-        @NonNull
-        private Access update(@NonNull final Plan.Write plan) {
-            return update(Condition.None, plan);
-        }
-
-        @NonNull
-        private Access update(@NonNull final Condition condition,
-                              @NonNull final Plan.Write plan) {
-            if (!plan.isEmpty()) {
-                mBatch.add(new Update(mUri, plan, condition));
-            }
             return this;
         }
     }

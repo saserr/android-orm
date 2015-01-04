@@ -21,6 +21,7 @@ import android.orm.dao.Executor;
 import android.orm.model.Plan;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -34,7 +35,6 @@ import org.jetbrains.annotations.NonNls;
 
 import static android.orm.sql.Helper.escape;
 import static android.orm.sql.Select.select;
-import static android.orm.util.Maybes.nothing;
 
 public final class Executors {
 
@@ -114,18 +114,10 @@ public final class Executors {
         @Override
         @SuppressWarnings("unchecked")
         public final Maybe<K> update(@NonNull final Condition condition,
-                                     @NonNull final Plan.Write plan) {
-            final Maybe<K> result;
-
-            if (plan.isEmpty()) {
-                result = nothing();
-            } else {
-                final Update.Single update = Update.Single.Pool.borrow();
-                update.init(mTable, mCondition.and(condition), plan, mOnInsert, mKey);
-                result = (Maybe<K>) (Object) mExecutor.execute(update);
-            }
-
-            return result;
+                                     @NonNull final Writer writer) {
+            final Update.Single update = Update.Single.Pool.borrow();
+            update.init(mTable, mCondition.and(condition), writer, mOnInsert, mKey);
+            return (Maybe<K>) (Object) mExecutor.execute(update);
         }
     }
 
@@ -173,18 +165,10 @@ public final class Executors {
         @NonNull
         @Override
         public final Maybe<Integer> update(@NonNull final Condition condition,
-                                           @NonNull final Plan.Write plan) {
-            final Maybe<Integer> result;
-
-            if (plan.isEmpty()) {
-                result = nothing();
-            } else {
-                final Update.Many update = Update.Many.Pool.borrow();
-                update.init(mTable, mCondition.and(condition), plan);
-                result = mExecutor.execute(update);
-            }
-
-            return result;
+                                           @NonNull final Writer writer) {
+            final Update.Many update = Update.Many.Pool.borrow();
+            update.init(mTable, mCondition.and(condition), writer);
+            return mExecutor.execute(update);
         }
     }
 
@@ -227,18 +211,10 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final Maybe<K> insert(@NonNull final Plan.Write plan) {
-            final Maybe<K> result;
-
-            if (plan.isEmpty()) {
-                result = nothing();
-            } else {
-                final Insert insert = Insert.Pool.borrow();
-                insert.init(mTable, plan, mOnInsert, mKey);
-                result = (Maybe<K>) (Object) mExecutor.execute(insert);
-            }
-
-            return result;
+        public final Maybe<K> insert(@NonNull final Writer writer) {
+            final Insert insert = Insert.Pool.borrow();
+            insert.init(mTable, writer, mOnInsert, mKey);
+            return (Maybe<K>) (Object) mExecutor.execute(insert);
         }
 
         @NonNull

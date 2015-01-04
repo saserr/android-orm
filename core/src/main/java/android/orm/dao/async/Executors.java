@@ -19,6 +19,7 @@ package android.orm.dao.async;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.model.Plan;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -95,9 +96,9 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final Result<I> insert(@NonNull final Plan.Write plan) {
+        public final Result<I> insert(@NonNull final Writer writer) {
             final Insert insert = Insert.Pool.borrow();
-            insert.init(mDirect, plan);
+            insert.init(mDirect, writer);
             return (Result<I>) (Object) mExecutionContext.execute(insert);
         }
 
@@ -112,9 +113,10 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final Result<U> update(@NonNull final Condition condition, @NonNull final Plan.Write plan) {
+        public final Result<U> update(@NonNull final Condition condition,
+                                      @NonNull final Writer writer) {
             final Update update = Update.Pool.borrow();
-            update.init(mDirect, condition, plan);
+            update.init(mDirect, condition, writer);
             return (Result<U>) (Object) mExecutionContext.execute(update);
         }
     }

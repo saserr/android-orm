@@ -42,14 +42,14 @@ public final class Deserializers {
     public static <V> Deserializer<JsonElement> from(@NonNull final Gson gson,
                                                      @NonNull final Class<V> klass,
                                                      @NonNull final Value.Write<V> value) {
-        return new Deserializer<>(new Plan.Write.Builder<JsonElement>().put(value, lens(gson, klass)));
+        return new Deserializer<>(new Plan.Write.Builder<JsonElement>().with(value, lens(gson, klass)));
     }
 
     @NonNull
     public static <M> Deserializer<JsonElement> from(@NonNull final Gson gson,
                                                      @NonNull final Class<M> klass,
                                                      @NonNull final Mapper.Write<M> mapper) {
-        return new Deserializer<>(new Plan.Write.Builder<JsonElement>().put(mapper, lens(gson, klass)));
+        return new Deserializer<>(new Plan.Write.Builder<JsonElement>().with(mapper, lens(gson, klass)));
     }
 
     @NonNull
@@ -59,7 +59,7 @@ public final class Deserializers {
                                                      @NonNull final Validation<? super V> validation) {
 
         return new Deserializer<>(new Plan.Write.Builder<JsonElement>()
-                .put(value, lens(gson, klass, value.getName(), validation)));
+                .with(value, lens(gson, klass, value.getName(), validation)));
     }
 
     @NonNull
@@ -68,7 +68,7 @@ public final class Deserializers {
                                                      @NonNull final Mapper.Write<M> mapper,
                                                      @NonNull final Validation<? super M> validation) {
         return new Deserializer<>(new Plan.Write.Builder<JsonElement>()
-                .put(mapper, lens(gson, klass, mapper.getName(), validation)));
+                .with(mapper, lens(gson, klass, mapper.getName(), validation)));
     }
 
     @NonNull

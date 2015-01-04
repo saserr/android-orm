@@ -41,12 +41,21 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
 
     private static final String TAG = Deserializer.class.getSimpleName();
 
+    @NonNls
+    @NonNull
+    private final String mName;
     @NonNull
     private final Plan.Write.Builder<E> mPlan;
 
     public Deserializer(@NonNull final Plan.Write.Builder<E> plan) {
+        this(TAG, plan);
+    }
+
+    public Deserializer(@NonNls @NonNull final String name,
+                        @NonNull final Plan.Write.Builder<E> plan) {
         super();
 
+        mName = name;
         mPlan = new Plan.Write.Builder<>(plan);
     }
 
@@ -54,12 +63,12 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
     @NonNull
     @Override
     public final String getName() {
-        return TAG;
+        return mName;
     }
 
     @NonNull
     @Override
-    public final Plan.Write prepareWrite(@NonNull final Maybe<E> value) {
+    public final Writer prepareWrite(@NonNull final Maybe<E> value) {
         return mPlan.build(value);
     }
 
@@ -84,7 +93,7 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
 
         @NonNull
         public final Builder with(@NonNull final Writer writer) {
-            mPlan.put(writer);
+            mPlan.with(writer);
             return this;
         }
 
@@ -98,7 +107,7 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
         public final <V> Builder with(@NonNull final Class<V> klass,
                                       @NonNls @NonNull final String name,
                                       @NonNull final Value.Write<V> value) {
-            mPlan.put(value, lens(mGson, klass, name));
+            mPlan.with(value, lens(mGson, klass, name));
             return this;
         }
 
@@ -106,7 +115,7 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
         public final <M> Builder with(@NonNull final Class<M> klass,
                                       @NonNls @NonNull final String name,
                                       @NonNull final Mapper.Write<M> mapper) {
-            mPlan.put(mapper, lens(mGson, klass, name));
+            mPlan.with(mapper, lens(mGson, klass, name));
             return this;
         }
 
@@ -122,7 +131,7 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
                                       @NonNls @NonNull final String name,
                                       @NonNull final Value.Write<V> value,
                                       @NonNull final Validation<? super V> validation) {
-            mPlan.put(value, lens(mGson, klass, mName + '.' + name, name, validation));
+            mPlan.with(value, lens(mGson, klass, mName + '.' + name, name, validation));
             return this;
         }
 
@@ -131,27 +140,27 @@ public class Deserializer<E extends JsonElement> extends Mapper.Write.Base<E> {
                                       @NonNls @NonNull final String name,
                                       @NonNull final Mapper.Write<M> mapper,
                                       @NonNull final Validation<? super M> validation) {
-            mPlan.put(mapper, lens(mGson, klass, mName + '.' + name, name, validation));
+            mPlan.with(mapper, lens(mGson, klass, mName + '.' + name, name, validation));
             return this;
         }
 
         @NonNull
         public final Builder with(@NonNls @NonNull final String name,
                                   @NonNull final Value.Write<JsonObject> value) {
-            mPlan.put(value, property(name));
+            mPlan.with(value, property(name));
             return this;
         }
 
         @NonNull
         public final Builder with(@NonNls @NonNull final String name,
                                   @NonNull final Mapper.Write<JsonObject> mapper) {
-            mPlan.put(mapper, property(name));
+            mPlan.with(mapper, property(name));
             return this;
         }
 
         @NonNull
         public final Deserializer<JsonObject> build() {
-            return new Deserializer<>(mPlan);
+            return new Deserializer<>(mName, mPlan);
         }
 
         @NonNull

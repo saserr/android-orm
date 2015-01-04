@@ -21,10 +21,11 @@ import android.orm.model.Binding;
 import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
-import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
+import android.orm.sql.Writer;
+import android.orm.sql.Writers;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -35,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static android.orm.model.Plans.compose;
 import static android.orm.util.Maybes.something;
 
 public class Form extends Instance.ReadWrite.Base {
@@ -99,14 +99,14 @@ public class Form extends Instance.ReadWrite.Base {
 
     @NonNull
     @Override
-    public final Plan.Write prepareWrite() {
-        final Collection<Plan.Write> plans = new ArrayList<>(mWrites.size());
+    public final Writer prepareWrite() {
+        final Collection<Writer> writers = new ArrayList<>(mWrites.size());
 
         for (final Entry.Write entry : mWrites) {
-            plans.add(entry.prepareWrite(mContext));
+            writers.add(entry.prepareWrite(mContext));
         }
 
-        return compose(plans);
+        return Writers.compose(writers);
     }
 
     public static class Builder {
@@ -180,7 +180,7 @@ public class Form extends Instance.ReadWrite.Base {
             boolean isValid();
 
             @NonNull
-            Plan.Write prepareWrite(@NonNull final Context context);
+            Writer prepareWrite(@NonNull final Context context);
         }
 
         public interface ReadWrite<V> extends Read<V>, Write {
@@ -203,7 +203,7 @@ public class Form extends Instance.ReadWrite.Base {
 
             @NonNull
             @Override
-            public Plan.Write prepareWrite(@NonNull final Context context) {
+            public Writer prepareWrite(@NonNull final Context context) {
                 return write(mapper, binding);
             }
         };
@@ -231,7 +231,7 @@ public class Form extends Instance.ReadWrite.Base {
 
             @NonNull
             @Override
-            public Plan.Write prepareWrite(@NonNull final Context context) {
+            public Writer prepareWrite(@NonNull final Context context) {
                 return write(mapper, binding);
             }
 
@@ -262,8 +262,8 @@ public class Form extends Instance.ReadWrite.Base {
     }
 
     @NonNull
-    public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
-                                       @NonNull final Binding.Read<V> binding) {
+    public static <V> Writer write(@NonNull final Mapper.Write<V> mapper,
+                                   @NonNull final Binding.Read<V> binding) {
         return mapper.prepareWrite(binding.get());
     }
 

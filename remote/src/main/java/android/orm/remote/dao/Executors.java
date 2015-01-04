@@ -26,6 +26,7 @@ import android.orm.remote.dao.direct.Exists;
 import android.orm.remote.dao.direct.Insert;
 import android.orm.remote.dao.direct.Query;
 import android.orm.remote.dao.direct.Update;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
@@ -38,7 +39,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
 public final class Executors {
@@ -96,18 +96,10 @@ public final class Executors {
         @NonNull
         @Override
         public final Maybe<Uri> update(@NonNull final Condition condition,
-                                       @NonNull final Plan.Write plan) {
-            final Maybe<Uri> result;
-
-            if (plan.isEmpty()) {
-                result = nothing();
-            } else {
-                final Update update = Update.Pool.borrow();
-                update.init(mResolver, mUri, condition, plan);
-                result = update.run().flatMap(mToUri);
-            }
-
-            return result;
+                                       @NonNull final Writer writer) {
+            final Update update = Update.Pool.borrow();
+            update.init(mResolver, mUri, condition, writer);
+            return update.run().flatMap(mToUri);
         }
     }
 
@@ -128,18 +120,10 @@ public final class Executors {
         @NonNull
         @Override
         public final Maybe<Integer> update(@NonNull final Condition condition,
-                                           @NonNull final Plan.Write plan) {
-            final Maybe<Integer> result;
-
-            if (plan.isEmpty()) {
-                result = nothing();
-            } else {
-                final Update update = Update.Pool.borrow();
-                update.init(mResolver, mUri, condition, plan);
-                result = update.run();
-            }
-
-            return result;
+                                           @NonNull final Writer writer) {
+            final Update update = Update.Pool.borrow();
+            update.init(mResolver, mUri, condition, writer);
+            return update.run();
         }
     }
 
@@ -180,18 +164,10 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Uri> insert(@NonNull final Plan.Write plan) {
-            final Maybe<Uri> result;
-
-            if (plan.isEmpty()) {
-                result = nothing();
-            } else {
-                final Insert insert = Insert.Pool.borrow();
-                insert.init(mResolver, mUri, plan);
-                result = insert.run();
-            }
-
-            return result;
+        public final Maybe<Uri> insert(@NonNull final Writer writer) {
+            final Insert insert = Insert.Pool.borrow();
+            insert.init(mResolver, mUri, writer);
+            return insert.run();
         }
 
         @NonNull

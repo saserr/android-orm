@@ -19,7 +19,9 @@ package android.orm.model;
 import android.orm.Model;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
+import android.orm.sql.Writers;
 import android.orm.util.Producer;
+import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static android.orm.model.Instances.instance;
+import static android.orm.util.Maybes.something;
 
 public final class Instance {
 
@@ -252,7 +255,7 @@ public final class Instance {
         String getName();
 
         @NonNull
-        Plan.Write prepareWrite();
+        Writer prepareWrite();
 
         @NonNull
         Writable and(@NonNull final Value other);
@@ -290,7 +293,7 @@ public final class Instance {
             @NonNull
             private final String mName;
 
-            private final Collection<Producer<Plan.Write>> mProducers = new ArrayList<>();
+            private final Collection<Producer<Writer>> mProducers = new ArrayList<>();
             private final Collection<Observer.Write> mObservers = new ArrayList<>();
 
             public Builder(@NonNls @NonNull final String name) {
@@ -317,7 +320,7 @@ public final class Instance {
 
             @NonNull
             public final Builder with(@NonNull final Writer writer) {
-                return with(writer, produce(writer));
+                return with(writer, Producers.constant(writer));
             }
 
             @NonNull
@@ -339,7 +342,7 @@ public final class Instance {
 
             @NonNull
             private Builder with(@Nullable final Object observer,
-                                 @NonNull final Producer<Plan.Write> producer) {
+                                 @NonNull final Producer<Writer> producer) {
                 if (observer instanceof Observer.Write) {
                     mObservers.add((Observer.Write) observer);
                 }
@@ -348,47 +351,36 @@ public final class Instance {
             }
 
             @NonNull
-            private static Producer<Plan.Write> produce(@NonNull final Writable instance) {
-                return new Producer<Plan.Write>() {
+            private static Producer<Writer> produce(@NonNull final Writable instance) {
+                return new Producer<Writer>() {
                     @NonNull
                     @Override
-                    public Plan.Write produce() {
+                    public Writer produce() {
                         return instance.prepareWrite();
                     }
                 };
             }
 
             @NonNull
-            private static Producer<Plan.Write> produce(@NonNull final Writer writer) {
-                return new Producer<Plan.Write>() {
+            private static <V> Producer<Writer> produce(@NonNull final Value.Write<V> value,
+                                                        @NonNull final Getter<V> getter) {
+                return new Producer<Writer>() {
                     @NonNull
                     @Override
-                    public Plan.Write produce() {
-                        return Plans.write(writer);
+                    public Writer produce() {
+                        return value.write(getter.get());
                     }
                 };
             }
 
             @NonNull
-            private static <V> Producer<Plan.Write> produce(@NonNull final Value.Write<V> value,
-                                                            @NonNull final Getter<V> getter) {
-                return new Producer<Plan.Write>() {
+            private static <M> Producer<Writer> produce(@NonNull final Mapper.Write<M> mapper,
+                                                        @NonNull final Getter<M> getter) {
+                return new Producer<Writer>() {
                     @NonNull
                     @Override
-                    public Plan.Write produce() {
-                        return Plans.write(value, getter);
-                    }
-                };
-            }
-
-            @NonNull
-            private static <M> Producer<Plan.Write> produce(@NonNull final Mapper.Write<M> mapper,
-                                                            @NonNull final Getter<M> getter) {
-                return new Producer<Plan.Write>() {
-                    @NonNull
-                    @Override
-                    public Plan.Write produce() {
-                        return Plans.write(mapper, getter);
+                    public Writer produce() {
+                        return mapper.prepareWrite(something(getter.get()));
                     }
                 };
             }
@@ -400,12 +392,12 @@ public final class Instance {
                 private final String mName;
 
                 @NonNull
-                private final Collection<Producer<Plan.Write>> mProducers;
+                private final Collection<Producer<Writer>> mProducers;
                 @NonNull
                 private final Observer.Write mObserver;
 
                 private CompositeWritable(@NonNls @NonNull final String name,
-                                          @NonNull final Collection<Producer<Plan.Write>> producers,
+                                          @NonNull final Collection<Producer<Writer>> producers,
                                           @NonNull final Collection<Observer.Write> observers) {
                     super();
 
@@ -423,14 +415,14 @@ public final class Instance {
 
                 @NonNull
                 @Override
-                public final Plan.Write prepareWrite() {
-                    final Collection<Plan.Write> plans = new ArrayList<>(mProducers.size());
+                public final Writer prepareWrite() {
+                    final Collection<Writer> writers = new ArrayList<>(mProducers.size());
 
-                    for (final Producer<Plan.Write> producer : mProducers) {
-                        plans.add(producer.produce());
+                    for (final Producer<Writer> producer : mProducers) {
+                        writers.add(producer.produce());
                     }
 
-                    return Plans.compose(plans);
+                    return Writers.compose(writers);
                 }
 
                 @Override

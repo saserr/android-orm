@@ -19,6 +19,7 @@ package android.orm.model;
 import android.orm.sql.Column;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
+import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
@@ -87,7 +88,7 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
 
     @NonNull
     @Override
-    public final Plan.Write prepareWrite() {
+    public final Writer prepareWrite() {
         return mMapper.prepareWrite(mCurrent);
     }
 
@@ -170,29 +171,36 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
 
         @NonNull
         @Override
-        public final Plan.Write prepareWrite(@NonNull final Maybe<Long> value) {
+        public final Writer prepareWrite(@NonNull final Maybe<Long> value) {
             return new Write(mColumn, value);
         }
     }
 
-    private static class Write extends Plan.Write {
-
-        private static final Condition FAIL = new Condition("0 <> 0");
+    private static class Write implements Writer {
 
         @NonNull
         private final Column<Long> mColumn;
+        @NonNull
         private final Maybe<Long> mValue;
+        @NonNull
+        private final Condition mOnUpdate;
 
-        private Write(@NonNull final Column<Long> column, final Maybe<Long> value) {
-            super(onUpdate(column, value));
+        private Write(@NonNull final Column<Long> column, @NonNull final Maybe<Long> value) {
+            super();
 
             mColumn = column;
             mValue = value;
+
+            final Long current = value.getOrElse(null);
+            mOnUpdate = (current == null) ?
+                    Condition.Fail :
+                    Condition.on(column).isEqualTo(current);
         }
 
+        @NonNull
         @Override
-        public final boolean isEmpty() {
-            return false;
+        public final Condition onUpdate() {
+            return mOnUpdate;
         }
 
         @Override
@@ -200,13 +208,6 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
                                 @NonNull final Writable output) {
             final Maybe<Long> value = (operation == Update) ? mValue.map(INCREMENT) : mValue;
             mColumn.write(operation, value, output);
-        }
-
-        @NonNull
-        private static Condition onUpdate(@NonNull final Column<Long> column,
-                                          @NonNull final Maybe<Long> value) {
-            final Long current = value.getOrElse(null);
-            return (current == null) ? FAIL : Condition.on(column).isEqualTo(current);
         }
     }
 }

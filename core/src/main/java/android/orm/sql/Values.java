@@ -35,8 +35,14 @@ public final class Values {
 
     @NonNull
     public static <V> Value value(@NonNull final Value.Write<V> value,
+                                  @NonNull final Maybe<V> v) {
+        return new WriteValue<>(value, v);
+    }
+
+    @NonNull
+    public static <V> Value value(@NonNull final Value.Write<V> value,
                                   @NonNull final Producer<Maybe<V>> producer) {
-        return new WriteValue<>(value, producer);
+        return new WriteProducer<>(value, producer);
     }
 
     @NonNull
@@ -103,10 +109,45 @@ public final class Values {
         @NonNull
         private final Value.Write<V> mValue;
         @NonNull
-        private final Producer<Maybe<V>> mProducer;
+        private final Maybe<V> mV;
 
         private WriteValue(@NonNull final Value.Write<V> value,
-                           @NonNull final Producer<Maybe<V>> producer) {
+                           @NonNull final Maybe<V> v) {
+            super();
+
+            mValue = value;
+            mV = v;
+        }
+
+        @NonNls
+        @NonNull
+        @Override
+        public final String getName() {
+            return mValue.getName();
+        }
+
+        @NonNull
+        @Override
+        public final Condition onUpdate() {
+            return Condition.None;
+        }
+
+        @Override
+        public final void write(@NonNull final Value.Write.Operation operation,
+                                @NonNull final Writable output) {
+            mValue.write(operation, mV, output);
+        }
+    }
+
+    private static class WriteProducer<V> extends Value.Base {
+
+        @NonNull
+        private final Value.Write<V> mValue;
+        @NonNull
+        private final Producer<Maybe<V>> mProducer;
+
+        private WriteProducer(@NonNull final Value.Write<V> value,
+                              @NonNull final Producer<Maybe<V>> producer) {
             super();
 
             mValue = value;

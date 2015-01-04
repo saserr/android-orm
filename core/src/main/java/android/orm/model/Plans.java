@@ -16,13 +16,8 @@
 
 package android.orm.model;
 
-import android.content.ContentValues;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
-import android.orm.sql.Value;
-import android.orm.sql.Writable;
-import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -36,7 +31,6 @@ import android.util.SparseArray;
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,18 +44,6 @@ import static android.util.Log.DEBUG;
 public final class Plans {
 
     private static final String TAG = Plan.Read.class.getSimpleName();
-
-    public static final Plan.Write EmptyWrite = new Plan.Write(Condition.None) {
-
-        @Override
-        public boolean isEmpty() {
-            return true;
-        }
-
-        @Override
-        public void write(@NonNull final Value.Write.Operation operation,
-                          @NonNull final Writable output) {/* do nothing */}
-    };
 
     private static final Plan.Read<Object> EmptyRead = new Plan.Read<Object>(Select.Projection.Nothing) {
 
@@ -182,95 +164,9 @@ public final class Plans {
     }
 
     @NonNull
-    public static Plan.Write write(@NonNull final Instance.Writable model) {
-        return model.prepareWrite();
-    }
-
-    @NonNull
-    public static Plan.Write write(@NonNull final Writer writer) {
-        return (writer instanceof Plan.Write) ?
-                (Plan.Write) writer :
-                new Plan.Write(writer.onUpdate()) {
-
-                    @Override
-                    public boolean isEmpty() {
-                        return false;
-                    }
-
-                    @Override
-                    public void write(@NonNull final Value.Write.Operation operation,
-                                      @NonNull final Writable output) {
-                        writer.write(operation, output);
-                    }
-                };
-    }
-
-    @NonNull
-    public static <V> Plan.Write write(@NonNull final Value.Write<V> value,
-                                       @NonNull final Instance.Getter<V> getter) {
-        return write(something(getter.get()), value);
-    }
-
-    @NonNull
-    public static <V> Plan.Write write(@NonNull final Mapper.Write<V> mapper,
-                                       @NonNull final Instance.Getter<V> getter) {
-        return mapper.prepareWrite(something(getter.get()));
-    }
-
-    @NonNull
-    public static <V> Plan.Write write(@NonNull final Maybe<V> model,
-                                       @NonNull final Value.Write<V> value) {
-        return new Plan.Write(Condition.None) {
-
-            @Override
-            public boolean isEmpty() {
-                return false;
-            }
-
-            @Override
-            public void write(@NonNull final Value.Write.Operation operation,
-                              @NonNull final Writable output) {
-                value.write(operation, model, output);
-            }
-        };
-    }
-
-    @NonNull
-    public static Plan.Write write(@NonNull final ContentValues values) {
-        return new Plan.Write(Condition.None) {
-
-            private final boolean mIsEmpty = values.size() > 0;
-
-            @Override
-            public boolean isEmpty() {
-                return mIsEmpty;
-            }
-
-            @Override
-            public void write(@NonNull final Value.Write.Operation operation,
-                              @NonNull final Writable output) {
-                output.putAll(values);
-            }
-        };
-    }
-
-    @NonNull
     public static <V, T> Plan.Read<Pair<V, T>> compose(@NonNull final Plan.Read<V> first,
                                                        @NonNull final Plan.Read<T> second) {
         return new ReadComposition<>(first, second);
-    }
-
-    @NonNull
-    public static Plan.Write compose(@NonNull final Collection<Plan.Write> plans) {
-        final Collection<Plan.Write> nonEmpty = new ArrayList<>(plans.size());
-
-        for (final Plan.Write plan : plans) {
-            if (!plan.isEmpty()) {
-                nonEmpty.add(plan);
-            }
-        }
-
-        return nonEmpty.isEmpty() ? EmptyWrite : new WriteComposition(plans);
     }
 
     @NonNull
@@ -389,42 +285,6 @@ public final class Plans {
                     Producers.compose(mFirst.read(input), mSecond.read(input)),
                     Maybes.<V, T>liftPair()
             );
-        }
-    }
-
-    private static class WriteComposition extends Plan.Write {
-
-        @NonNull
-        private final Iterable<Plan.Write> mPlans;
-
-        private WriteComposition(@NonNull final Iterable<Plan.Write> plans) {
-            super(onUpdate(plans));
-
-            mPlans = plans;
-        }
-
-        @Override
-        public final boolean isEmpty() {
-            return false;
-        }
-
-        @Override
-        public final void write(@NonNull final Value.Write.Operation operation,
-                                @NonNull final Writable output) {
-            for (final Plan.Write plan : mPlans) {
-                plan.write(operation, output);
-            }
-        }
-
-        @NonNull
-        private static Condition onUpdate(@NonNull final Iterable<Plan.Write> plans) {
-            Condition onUpdate = Condition.None;
-
-            for (final Plan.Write plan : plans) {
-                onUpdate = onUpdate.and(plan.onUpdate());
-            }
-
-            return onUpdate;
         }
     }
 
