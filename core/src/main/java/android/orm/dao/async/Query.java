@@ -20,6 +20,7 @@ import android.orm.Access;
 import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.model.Mapper;
+import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Reader;
@@ -159,8 +160,9 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             }
 
             @NonNull
-            private <M> Result<M> select(@NonNull final Reader.Collection<M> reader) {
-                final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
+            @Override
+            public final <V> Result<V> select(@NonNull final Reader.Collection<V> reader) {
+                final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
                 return mExecutor.query(reader, mCondition, null, Limit.Single, null).flatMap(afterRead);
             }
         }
@@ -216,7 +218,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <V> Result<V> select(@NonNull final AggregateFunction<V> function) {
-                return select(single(function));
+                return select(Readers.single(function.getName(), Plan.Read.from(function)));
             }
 
             @NonNull
@@ -234,13 +236,13 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <M> Result<M> select(@NonNull final Reading.Many<M> reading) {
-                return select((Reading<M>) reading);
+                return select(reading.prepareReader());
             }
 
             @NonNull
-            private <M> Result<M> select(@NonNull final Reading<M> reading) {
-                final Reader.Collection<M> reader = reading.prepareReader();
-                final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
+            @Override
+            public final <V> Result<V> select(@NonNull final Reader.Collection<V> reader) {
+                final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
                 return mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset).flatMap(afterRead);
             }
         }

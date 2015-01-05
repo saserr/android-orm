@@ -21,6 +21,7 @@ import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
+import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.sql.fragment.Condition;
@@ -92,6 +93,10 @@ public final class Access {
                     @Override
                     <M> Maybe<M> select(@NonNull final M model,
                                         @NonNull final Reading.Single<M> reading);
+
+                    @NonNull
+                    @Override
+                    <V> Maybe<V> select(@NonNull final Reader.Collection<V> reader);
                 }
 
                 public interface Many extends Access.Query.Builder.Many {
@@ -127,6 +132,10 @@ public final class Access {
                     @NonNull
                     @Override
                     <M> Maybe<M> select(@NonNull final Reading.Many<M> reading);
+
+                    @NonNull
+                    @Override
+                    <V> Maybe<V> select(@NonNull final Reader.Collection<V> reader);
                 }
 
                 private Builder() {
@@ -258,6 +267,10 @@ public final class Access {
                     @Override
                     <M> Result<M> select(@NonNull final M model,
                                          @NonNull final Reading.Single<M> reading);
+
+                    @NonNull
+                    @Override
+                    <V> Result<V> select(@NonNull final Reader.Collection<V> reader);
                 }
 
                 public interface Many extends Access.Query.Builder.Many {
@@ -293,6 +306,10 @@ public final class Access {
                     @NonNull
                     @Override
                     <M> Result<M> select(@NonNull final Reading.Many<M> reading);
+
+                    @NonNull
+                    @Override
+                    <V> Result<V> select(@NonNull final Reader.Collection<V> reader);
                 }
 
                 private Builder() {
@@ -416,6 +433,9 @@ public final class Access {
 
                 @NonNull
                 <M> Object select(@NonNull final M model, @NonNull final Reading.Single<M> reading);
+
+                @NonNull
+                <V> Object select(@NonNull final Reader.Collection<V> reader);
             }
 
             public interface Many {
@@ -443,6 +463,9 @@ public final class Access {
 
                 @NonNull
                 <M> Object select(@NonNull final Reading.Many<M> reading);
+
+                @NonNull
+                <V> Object select(@NonNull final Reader.Collection<V> reader);
             }
 
             private Builder() {

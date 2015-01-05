@@ -21,6 +21,7 @@ import android.orm.Access;
 import android.orm.dao.Executor;
 import android.orm.model.Mapper;
 import android.orm.model.Observer;
+import android.orm.model.Plan;
 import android.orm.model.Reading;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Expression;
@@ -176,9 +177,10 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             }
 
             @NonNull
-            private <M> Maybe<M> select(@NonNull final Reader.Collection<M> reader) {
-                final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, mCondition, null, Limit.Single, null);
-                return result.flatMap(Query.<M>afterRead());
+            @Override
+            public final <V> Maybe<V> select(@NonNull final Reader.Collection<V> reader) {
+                final Maybe<Producer<Maybe<V>>> result = mExecutor.query(reader, mCondition, null, Limit.Single, null);
+                return result.flatMap(Query.<V>afterRead());
             }
         }
 
@@ -233,7 +235,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <V> Maybe<V> select(@NonNull final AggregateFunction<V> function) {
-                return select(single(function));
+                return select(Readers.single(function.getName(), Plan.Read.from(function)));
             }
 
             @NonNull
@@ -251,14 +253,14 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <M> Maybe<M> select(@NonNull final Reading.Many<M> reading) {
-                return select((Reading<M>) reading);
+                return select(reading.prepareReader());
             }
 
             @NonNull
-            private <M> Maybe<M> select(@NonNull final Reading<M> reading) {
-                final Reader.Collection<M> reader = reading.prepareReader();
-                final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset);
-                return result.flatMap(Query.<M>afterRead());
+            @Override
+            public final <V> Maybe<V> select(@NonNull final Reader.Collection<V> reader) {
+                final Maybe<Producer<Maybe<V>>> result = mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset);
+                return result.flatMap(Query.<V>afterRead());
             }
         }
 
