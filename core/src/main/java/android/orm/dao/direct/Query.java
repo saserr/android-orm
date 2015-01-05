@@ -73,7 +73,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
     @NonNull
     private final ObjectPool.Receipt<Query> mReceipt;
 
-    private Reader<Object> mReader;
+    private Reader.Collection<Object> mReader;
     private Select mSelect;
 
     private Query(@NonNull final ObjectPool.Receipt<Query> receipt) {
@@ -82,7 +82,8 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
         mReceipt = receipt;
     }
 
-    public final void init(@NonNull final Reader<?> reader, @NonNull final Select select) {
+    public final void init(@NonNull final Reader.Collection<?> reader,
+                           @NonNull final Select select) {
         mReader = Readers.safeCast(reader);
         mSelect = select;
     }
@@ -163,7 +164,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <M> Maybe<M> select(@NonNull final Reading.Single<M> reading) {
-                return select(reading.preparePlan());
+                return select(reading.prepareReader());
             }
 
             @NonNull
@@ -171,11 +172,11 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             public final <M> Maybe<M> select(@NonNull final M model,
                                              @NonNull final Reading.Single<M> reading) {
                 beforeRead(model);
-                return select(reading.preparePlan(model));
+                return select(reading.prepareReader(model));
             }
 
             @NonNull
-            private <M> Maybe<M> select(@NonNull final Reader<M> reader) {
+            private <M> Maybe<M> select(@NonNull final Reader.Collection<M> reader) {
                 final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, mCondition, null, Limit.Single, null);
                 return result.flatMap(Query.<M>afterRead());
             }
@@ -255,7 +256,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
 
             @NonNull
             private <M> Maybe<M> select(@NonNull final Reading<M> reading) {
-                final Reader<M> reader = reading.preparePlan();
+                final Reader.Collection<M> reader = reading.prepareReader();
                 final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset);
                 return result.flatMap(Query.<M>afterRead());
             }

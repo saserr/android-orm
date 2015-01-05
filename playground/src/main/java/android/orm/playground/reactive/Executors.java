@@ -118,7 +118,7 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
+        public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
                                                          @NonNull final Condition condition,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,

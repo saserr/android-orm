@@ -16,17 +16,23 @@
 
 package android.orm.model;
 
+import android.orm.sql.Reader;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
 import android.orm.sql.Writer;
 import android.orm.sql.Writers;
 import android.orm.util.Lens;
+import android.orm.util.Maybe;
+import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 
 public final class Instances {
 
@@ -55,6 +61,89 @@ public final class Instances {
     }
 
     @NonNull
+    public static <V> Instance.Readable.Action action(@NonNull final Value.Read<V> value,
+                                                      @NonNull final Instance.Setter<V> setter) {
+        return new Instance.Readable.Action() {
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return value.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(value.read(input), setter);
+            }
+        };
+    }
+
+    @NonNull
+    public static <M> Instance.Readable.Action action(@NonNull final Mapper.Read<M> mapper,
+                                                      @NonNull final Instance.Setter<M> setter) {
+        return new Instance.Readable.Action() {
+
+            private final Reader.Element.Create<M> mCreate = mapper.prepareReader();
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return mCreate.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(mCreate.read(input), setter);
+            }
+        };
+    }
+
+    @NonNull
+    public static <M> Instance.Readable.Action action(@NonNull final Mapper.Read<M> mapper,
+                                                      @NonNull final Instance.Access<M> access) {
+        final M value = access.get();
+        return (value == null) ?
+                action(mapper, (Instance.Setter<M>) access) :
+                new Instance.Readable.Action() {
+
+                    private final Reader.Element<M> mUpdate = mapper.prepareReader(value);
+
+                    @NonNull
+                    @Override
+                    public Select.Projection getProjection() {
+                        return mUpdate.getProjection();
+                    }
+
+                    @NonNull
+                    @Override
+                    public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                        return set(mUpdate.read(input), access);
+                    }
+                };
+    }
+
+    @NonNull
+    public static <V> Instance.Readable.Action action(@NonNull final Reader.Element<V> reader,
+                                                      @NonNull final Instance.Setter<V> setter) {
+        return new Instance.Readable.Action() {
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return reader.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(reader.read(input), setter);
+            }
+        };
+    }
+
+    @NonNull
     public static Instance.Writable instance(@NonNull final Value value) {
         return new Instance.Writable.Base() {
 
@@ -67,7 +156,7 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Writer prepareWrite() {
+            public Writer prepareWriter() {
                 return value;
             }
         };
@@ -87,8 +176,8 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Reading.Item.Action prepareRead() {
-                return Reading.Item.action(binding, Reading.Item.Create.from(value));
+            public Instance.Readable.Action prepareRead() {
+                return action(binding, Plan.Read.from(value));
             }
         };
     }
@@ -107,7 +196,7 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Writer prepareWrite() {
+            public Writer prepareWriter() {
                 return Values.value(value, binding.get());
             }
         };
@@ -127,8 +216,8 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Reading.Item.Action prepareRead() {
-                return Reading.Item.action(binding, mapper.prepareRead());
+            public Instance.Readable.Action prepareRead() {
+                return action(binding, mapper.prepareReader());
             }
         };
     }
@@ -147,8 +236,8 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Writer prepareWrite() {
-                return mapper.prepareWrite(binding.get());
+            public Writer prepareWriter() {
+                return mapper.prepareWriter(binding.get());
             }
         };
     }
@@ -167,19 +256,24 @@ public final class Instances {
 
             @NonNull
             @Override
-            public Reading.Item.Action prepareRead() {
+            public Instance.Readable.Action prepareRead() {
                 final V value = binding.get().getOrElse(null);
                 return (value == null) ?
-                        Reading.Item.action(binding, mapper.prepareRead()) :
-                        Reading.Item.action(binding, mapper.prepareRead(value));
+                        action(binding, mapper.prepareReader()) :
+                        action(binding, mapper.prepareReader(value));
             }
 
             @NonNull
             @Override
-            public Writer prepareWrite() {
-                return mapper.prepareWrite(binding.get());
+            public Writer prepareWriter() {
+                return mapper.prepareWriter(binding.get());
             }
         };
+    }
+
+    @NonNull
+    public static Instance.Readable.Action compose(@NonNull final Collection<Instance.Readable.Action> actions) {
+        return new ActionComposition(actions);
     }
 
     @NonNull
@@ -198,6 +292,105 @@ public final class Instances {
     public static Instance.ReadWrite combine(@NonNull final Instance.Readable read,
                                              @NonNull final Instance.Writable write) {
         return new InstanceCombination(read, write);
+    }
+
+    @NonNull
+    private static <V> Instance.Readable.Action action(@NonNull final Binding.Write<V> binding,
+                                                       @NonNull final Reader.Element.Create<V> element) {
+        return new Instance.Readable.Action() {
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return element.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(element.read(input).produce(), binding);
+            }
+        };
+    }
+
+    @NonNull
+    private static <V> Instance.Readable.Action action(@NonNull final Binding.Write<V> binding,
+                                                       @NonNull final Reader.Element<V> reader) {
+        return new Instance.Readable.Action() {
+
+            @NonNull
+            @Override
+            public Select.Projection getProjection() {
+                return reader.getProjection();
+            }
+
+            @NonNull
+            @Override
+            public Runnable read(@NonNull final android.orm.sql.Readable input) {
+                return set(reader.read(input), binding);
+            }
+        };
+    }
+
+    @NonNull
+    private static <V> Runnable set(@NonNull final Maybe<V> result,
+                                    @NonNull final Binding.Write<V> binding) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                binding.set(result);
+            }
+        };
+    }
+
+    @NonNull
+    private static <V> Runnable set(@NonNull final Maybe<V> value,
+                                    @NonNull final Instance.Setter<V> setter) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                if (value.isSomething()) {
+                    setter.set(value.get());
+                }
+            }
+        };
+    }
+
+    @NonNull
+    private static <V> Runnable set(@NonNull final Producer<Maybe<V>> producer,
+                                    @NonNull final Binding.Write<V> binding) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                binding.set(producer.produce());
+            }
+        };
+    }
+
+    @NonNull
+    private static <V> Runnable set(@NonNull final Producer<Maybe<V>> producer,
+                                    @NonNull final Instance.Setter<V> setter) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                final Maybe<V> value = producer.produce();
+                if (value.isSomething()) {
+                    setter.set(value.get());
+                }
+            }
+        };
+    }
+
+    @NonNull
+    private static Runnable compose(@NonNull final Iterable<Runnable> tasks) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                for (final Runnable task : tasks) {
+                    task.run();
+                }
+            }
+        };
     }
 
     private static class LensGetter<M, V> implements Instance.Getter<V> {
@@ -269,6 +462,44 @@ public final class Instances {
         }
     }
 
+    private static class ActionComposition implements Instance.Readable.Action {
+
+        @NonNull
+        private final Select.Projection mProjection;
+        @NonNull
+        private final Collection<Instance.Readable.Action> mActions;
+
+        private ActionComposition(@NonNull final Collection<Instance.Readable.Action> actions) {
+            super();
+
+            mActions = actions;
+
+            Select.Projection projection = Select.Projection.Nothing;
+            for (final Instance.Readable.Action action : actions) {
+                projection = projection.and(action.getProjection());
+            }
+            mProjection = projection;
+        }
+
+        @NonNull
+        @Override
+        public final Select.Projection getProjection() {
+            return mProjection;
+        }
+
+        @NonNull
+        @Override
+        public final Runnable read(@NonNull final android.orm.sql.Readable input) {
+            final Collection<Runnable> updates = new ArrayList<>(mActions.size());
+
+            for (final Instance.Readable.Action action : mActions) {
+                updates.add(action.read(input));
+            }
+
+            return compose(updates);
+        }
+    }
+
     private static class ReadableComposition extends Instance.Readable.Base implements Observer.Read {
 
         @NonNls
@@ -309,8 +540,8 @@ public final class Instances {
 
         @NonNull
         @Override
-        public final Reading.Item.Action prepareRead() {
-            return Reading.Item.compose(Arrays.asList(mFirst.prepareRead(), mSecond.prepareRead()));
+        public final Instance.Readable.Action prepareRead() {
+            return compose(Arrays.asList(mFirst.prepareRead(), mSecond.prepareRead()));
         }
 
         @Override
@@ -364,8 +595,8 @@ public final class Instances {
 
         @NonNull
         @Override
-        public final Writer prepareWrite() {
-            return Writers.compose(Arrays.asList(mFirst.prepareWrite(), mSecond.prepareWrite()));
+        public final Writer prepareWriter() {
+            return Writers.compose(Arrays.asList(mFirst.prepareWriter(), mSecond.prepareWriter()));
         }
 
         @Override
@@ -428,14 +659,14 @@ public final class Instances {
 
         @NonNull
         @Override
-        public final Reading.Item.Action prepareRead() {
+        public final Instance.Readable.Action prepareRead() {
             return mRead.prepareRead();
         }
 
         @NonNull
         @Override
-        public final Writer prepareWrite() {
-            return mWrite.prepareWrite();
+        public final Writer prepareWriter() {
+            return mWrite.prepareWriter();
         }
 
         @Override

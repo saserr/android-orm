@@ -16,6 +16,7 @@
 
 package android.orm.model;
 
+import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -23,7 +24,6 @@ import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
@@ -54,7 +54,7 @@ public abstract class View<V> extends Instance.Readable.Base implements Observer
     }
 
     @NonNull
-    protected abstract Reading.Item<V> prepareRead(@NonNull final Maybe<V> v);
+    protected abstract Reader.Element<V> prepareReader(@NonNull final Maybe<V> v);
 
     public final boolean isSomething() {
         return mValue.isSomething();
@@ -82,8 +82,8 @@ public abstract class View<V> extends Instance.Readable.Base implements Observer
 
     @NonNull
     @Override
-    public final Reading.Item.Action prepareRead() {
-        return action(prepareRead(mValue), mSetter);
+    public final Instance.Readable.Action prepareRead() {
+        return Instances.action(prepareReader(mValue), mSetter);
     }
 
     @Override
@@ -102,8 +102,8 @@ public abstract class View<V> extends Instance.Readable.Base implements Observer
         return new View<V>(value.getName(), observer) {
             @NonNull
             @Override
-            protected Reading.Item<V> prepareRead(@NonNull final Maybe<V> ignored) {
-                return Reading.Item.Create.from(value);
+            protected Reader.Element<V> prepareReader(@NonNull final Maybe<V> ignored) {
+                return Plan.Read.from(value);
             }
         };
     }
@@ -114,9 +114,9 @@ public abstract class View<V> extends Instance.Readable.Base implements Observer
         return new View<M>(mapper.getName(), observer) {
             @NonNull
             @Override
-            protected Reading.Item<M> prepareRead(@NonNull final Maybe<M> value) {
+            protected Reader.Element<M> prepareReader(@NonNull final Maybe<M> value) {
                 final M model = value.getOrElse(null);
-                return (model == null) ? mapper.prepareRead() : mapper.prepareRead(model);
+                return (model == null) ? mapper.prepareReader() : mapper.prepareReader(model);
             }
         };
     }

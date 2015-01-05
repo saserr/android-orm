@@ -60,7 +60,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
     }
 
     @NonNull
-    protected abstract Writer prepareWrite(@NonNull final Maybe<V> v);
+    protected abstract Writer prepareWriter(@NonNull final Maybe<V> v);
 
     @NonNls
     @NonNull
@@ -71,7 +71,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
 
     @NonNull
     @Override
-    public final Writer prepareWrite() {
+    public final Writer prepareWriter() {
         final Writer result;
 
         if (mValue.equals(mSaved)) {
@@ -79,7 +79,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
         } else {
             if (mSaving == null) {
                 mSaving = mValue;
-                result = prepareWrite(mValue);
+                result = prepareWriter(mValue);
             } else {
                 Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
                 result = Writer.Empty;
@@ -127,7 +127,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
         return new Storage<V>(value.getName(), observer) {
             @NonNull
             @Override
-            protected Writer prepareWrite(@NonNull final Maybe<V> model) {
+            protected Writer prepareWriter(@NonNull final Maybe<V> model) {
                 return Values.value(value, model);
             }
         };
@@ -139,8 +139,8 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
         return new Storage<M>(mapper.getName(), observer) {
             @NonNull
             @Override
-            protected Writer prepareWrite(@NonNull final Maybe<M> value) {
-                return mapper.prepareWrite(value);
+            protected Writer prepareWriter(@NonNull final Maybe<M> value) {
+                return mapper.prepareWriter(value);
             }
         };
     }

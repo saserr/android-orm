@@ -17,6 +17,7 @@
 package android.orm.model;
 
 import android.orm.Model;
+import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.sql.Writers;
@@ -54,7 +55,7 @@ public final class Instance {
         String getName();
 
         @NonNull
-        Reading.Item.Action prepareRead();
+        Action prepareRead();
 
         @NonNull
         Readable and(@NonNull final Readable other);
@@ -64,6 +65,15 @@ public final class Instance {
 
         @NonNull
         ReadWrite and(@NonNull final Writable other);
+
+        interface Action {
+
+            @NonNull
+            Select.Projection getProjection();
+
+            @NonNull
+            Runnable read(@NonNull final android.orm.sql.Readable input);
+        }
 
         abstract class Base implements Readable {
 
@@ -92,7 +102,7 @@ public final class Instance {
             @NonNull
             private final String mName;
 
-            private final Collection<Producer<Reading.Item.Action>> mProducers = new ArrayList<>();
+            private final Collection<Producer<Readable.Action>> mProducers = new ArrayList<>();
             private final Collection<Observer.Read> mObservers = new ArrayList<>();
 
             public Builder(@NonNls @NonNull final String name) {
@@ -142,7 +152,7 @@ public final class Instance {
 
             @NonNull
             private Builder with(@Nullable final Object observer,
-                                 @NonNull final Producer<Reading.Item.Action> producer) {
+                                 @NonNull final Producer<Readable.Action> producer) {
                 if (observer instanceof Observer.Read) {
                     mObservers.add((Observer.Read) observer);
                 }
@@ -151,48 +161,48 @@ public final class Instance {
             }
 
             @NonNull
-            private static Producer<Reading.Item.Action> produce(@NonNull final Readable instance) {
-                return new Producer<Reading.Item.Action>() {
+            private static Producer<Readable.Action> produce(@NonNull final Readable instance) {
+                return new Producer<Readable.Action>() {
                     @NonNull
                     @Override
-                    public Reading.Item.Action produce() {
+                    public Readable.Action produce() {
                         return instance.prepareRead();
                     }
                 };
             }
 
             @NonNull
-            private static <V> Producer<Reading.Item.Action> produce(@NonNull final Value.Read<V> value,
-                                                                     @NonNull final Setter<V> setter) {
-                return new Producer<Reading.Item.Action>() {
+            private static <V> Producer<Readable.Action> produce(@NonNull final Value.Read<V> value,
+                                                                 @NonNull final Setter<V> setter) {
+                return new Producer<Readable.Action>() {
                     @NonNull
                     @Override
-                    public Reading.Item.Action produce() {
-                        return Reading.Item.action(value, setter);
+                    public Readable.Action produce() {
+                        return Instances.action(value, setter);
                     }
                 };
             }
 
             @NonNull
-            private static <M> Producer<Reading.Item.Action> produce(@NonNull final Mapper.Read<M> mapper,
-                                                                     @NonNull final Setter<M> setter) {
-                return new Producer<Reading.Item.Action>() {
+            private static <M> Producer<Readable.Action> produce(@NonNull final Mapper.Read<M> mapper,
+                                                                 @NonNull final Setter<M> setter) {
+                return new Producer<Readable.Action>() {
                     @NonNull
                     @Override
-                    public Reading.Item.Action produce() {
-                        return Reading.Item.action(mapper, setter);
+                    public Readable.Action produce() {
+                        return Instances.action(mapper, setter);
                     }
                 };
             }
 
             @NonNull
-            private static <M> Producer<Reading.Item.Action> produce(@NonNull final Mapper.Read<M> mapper,
-                                                                     @NonNull final Access<M> access) {
-                return new Producer<Reading.Item.Action>() {
+            private static <M> Producer<Readable.Action> produce(@NonNull final Mapper.Read<M> mapper,
+                                                                 @NonNull final Access<M> access) {
+                return new Producer<Readable.Action>() {
                     @NonNull
                     @Override
-                    public Reading.Item.Action produce() {
-                        return Reading.Item.action(mapper, access);
+                    public Readable.Action produce() {
+                        return Instances.action(mapper, access);
                     }
                 };
             }
@@ -203,12 +213,12 @@ public final class Instance {
                 @NonNull
                 private final String mName;
                 @NonNull
-                private final Collection<Producer<Reading.Item.Action>> mProducers;
+                private final Collection<Producer<Readable.Action>> mProducers;
                 @NonNull
                 private final Observer.Read mObserver;
 
                 private CompositeReadable(@NonNls @NonNull final String name,
-                                          @NonNull final Collection<Producer<Reading.Item.Action>> producers,
+                                          @NonNull final Collection<Producer<Readable.Action>> producers,
                                           @NonNull final Collection<Observer.Read> observers) {
                     super();
 
@@ -225,14 +235,14 @@ public final class Instance {
 
                 @NonNull
                 @Override
-                public final Reading.Item.Action prepareRead() {
-                    final Collection<Reading.Item.Action> actions = new ArrayList<>(mProducers.size());
+                public final Readable.Action prepareRead() {
+                    final Collection<Readable.Action> actions = new ArrayList<>(mProducers.size());
 
-                    for (final Producer<Reading.Item.Action> producer : mProducers) {
+                    for (final Producer<Readable.Action> producer : mProducers) {
                         actions.add(producer.produce());
                     }
 
-                    return Reading.Item.compose(actions);
+                    return Instances.compose(actions);
                 }
 
                 @Override
@@ -255,7 +265,7 @@ public final class Instance {
         String getName();
 
         @NonNull
-        Writer prepareWrite();
+        Writer prepareWriter();
 
         @NonNull
         Writable and(@NonNull final Value other);
@@ -356,7 +366,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Writer produce() {
-                        return instance.prepareWrite();
+                        return instance.prepareWriter();
                     }
                 };
             }
@@ -380,7 +390,7 @@ public final class Instance {
                     @NonNull
                     @Override
                     public Writer produce() {
-                        return mapper.prepareWrite(something(getter.get()));
+                        return mapper.prepareWriter(something(getter.get()));
                     }
                 };
             }
@@ -415,7 +425,7 @@ public final class Instance {
 
                 @NonNull
                 @Override
-                public final Writer prepareWrite() {
+                public final Writer prepareWriter() {
                     final Collection<Writer> writers = new ArrayList<>(mProducers.size());
 
                     for (final Producer<Writer> producer : mProducers) {

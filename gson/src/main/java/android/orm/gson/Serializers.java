@@ -16,7 +16,7 @@
 
 package android.orm.gson;
 
-import android.orm.model.Reading;
+import android.orm.model.Plan;
 import android.orm.sql.Value;
 import android.orm.util.Function;
 import android.orm.util.Lens;
@@ -57,7 +57,7 @@ public final class Serializers {
     @NonNull
     public static Serializer<JsonElement> from(@NonNull final Gson gson,
                                                @NonNull final Value.Read<?> value) {
-        return new Serializer<>(value.getName(), new Reading.Item.Builder<>(
+        return new Serializer<>(value.getName(), new Plan.Read.Builder<>(
                 value.mapTo(new ToJson<>(gson))
         ));
     }

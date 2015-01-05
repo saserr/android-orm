@@ -17,6 +17,7 @@
 package android.orm.model;
 
 import android.orm.sql.Column;
+import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
@@ -82,14 +83,14 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
 
     @NonNull
     @Override
-    public final Reading.Item.Action prepareRead() {
-        return Reading.Item.action(mMapper, mSetter);
+    public final Instance.Readable.Action prepareRead() {
+        return Instances.action(mMapper, mSetter);
     }
 
     @NonNull
     @Override
-    public final Writer prepareWrite() {
-        return mMapper.prepareWrite(mCurrent);
+    public final Writer prepareWriter() {
+        return mMapper.prepareWriter(mCurrent);
     }
 
     @Override
@@ -141,14 +142,14 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
         @NonNull
         private final String mName;
         @NonNull
-        private final Reading.Item.Create<Long> mReading;
+        private final Reader.Element.Create<Long> mReader;
 
         public Mapper(@NonNull final Column<Long> column) {
             super();
 
             mColumn = column;
             mName = column.getName();
-            mReading = Reading.Item.Create.from(mColumn);
+            mReader = Plan.Read.from(mColumn);
         }
 
         @NonNull
@@ -159,19 +160,19 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
 
         @NonNull
         @Override
-        public final Reading.Item.Create<Long> prepareRead() {
-            return mReading;
+        public final Reader.Element.Create<Long> prepareReader() {
+            return mReader;
         }
 
         @NonNull
         @Override
-        public final Reading.Item.Create<Long> prepareRead(@NonNull final Long current) {
-            return mReading;
+        public final Reader.Element.Create<Long> prepareReader(@NonNull final Long current) {
+            return mReader;
         }
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<Long> value) {
+        public final Writer prepareWriter(@NonNull final Maybe<Long> value) {
             return new Write(mColumn, value);
         }
     }

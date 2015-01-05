@@ -16,6 +16,7 @@
 
 package android.orm.model;
 
+import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
 import android.orm.sql.Writer;
@@ -26,7 +27,6 @@ import android.util.Log;
 
 import org.jetbrains.annotations.NonNls;
 
-import static android.orm.model.Reading.Item.action;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
 
@@ -71,10 +71,10 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
     }
 
     @NonNull
-    protected abstract Reading.Item<V> prepareRead(@NonNull final Maybe<V> v);
+    protected abstract Reader.Element<V> prepareReader(@NonNull final Maybe<V> v);
 
     @NonNull
-    protected abstract Writer prepareWrite(@NonNull final Maybe<V> v);
+    protected abstract Writer prepareWriter(@NonNull final Maybe<V> v);
 
     public final boolean isSomething() {
         return mValue.isSomething();
@@ -106,13 +106,13 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
     @NonNull
     @Override
-    public final Reading.Item.Action prepareRead() {
-        return action(prepareRead(mValue), mSetter);
+    public final Instance.Readable.Action prepareRead() {
+        return Instances.action(prepareReader(mValue), mSetter);
     }
 
     @NonNull
     @Override
-    public final Writer prepareWrite() {
+    public final Writer prepareWriter() {
         final Writer result;
 
         if (mValue.equals(mSaved)) {
@@ -120,7 +120,7 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
         } else {
             if (mSaving == null) {
                 mSaving = mValue;
-                result = prepareWrite(mValue);
+                result = prepareWriter(mValue);
             } else {
                 Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
                 result = Writer.Empty;
@@ -179,13 +179,13 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
             @NonNull
             @Override
-            protected Reading.Item<V> prepareRead(@NonNull final Maybe<V> ignored) {
-                return Reading.Item.Create.from(value);
+            protected Reader.Element<V> prepareReader(@NonNull final Maybe<V> ignored) {
+                return Plan.Read.from(value);
             }
 
             @NonNull
             @Override
-            protected Writer prepareWrite(@NonNull final Maybe<V> model) {
+            protected Writer prepareWriter(@NonNull final Maybe<V> model) {
                 return Values.value(value, model);
             }
         };
@@ -198,15 +198,15 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
             @NonNull
             @Override
-            protected Reading.Item<M> prepareRead(@NonNull final Maybe<M> value) {
+            protected Reader.Element<M> prepareReader(@NonNull final Maybe<M> value) {
                 final M model = value.getOrElse(null);
-                return (model == null) ? mapper.prepareRead() : mapper.prepareRead(model);
+                return (model == null) ? mapper.prepareReader() : mapper.prepareReader(model);
             }
 
             @NonNull
             @Override
-            protected Writer prepareWrite(@NonNull final Maybe<M> value) {
-                return mapper.prepareWrite(value);
+            protected Writer prepareWriter(@NonNull final Maybe<M> value) {
+                return mapper.prepareWriter(value);
             }
         };
     }

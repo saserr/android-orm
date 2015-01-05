@@ -57,7 +57,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     private final ObjectPool.Receipt<Query> mReceipt;
 
     private Executor.Direct<?, ?> mDirect;
-    private Reader<Object> mReader;
+    private Reader.Collection<Object> mReader;
     private Condition mCondition;
     private Order mOrder;
     private Limit mLimit;
@@ -70,7 +70,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     }
 
     public final void init(@NonNull final Executor.Direct<?, ?> direct,
-                           @NonNull final Reader<?> reader,
+                           @NonNull final Reader.Collection<?> reader,
                            @NonNull final Condition condition,
                            @Nullable final Order order,
                            @Nullable final Limit limit,
@@ -147,7 +147,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <M> Result<M> select(@NonNull final Reading.Single<M> reading) {
-                return select(reading.preparePlan());
+                return select(reading.prepareReader());
             }
 
             @NonNull
@@ -155,11 +155,11 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             public final <M> Result<M> select(@NonNull final M model,
                                               @NonNull final Reading.Single<M> reading) {
                 beforeRead(model);
-                return select(reading.preparePlan(model));
+                return select(reading.prepareReader(model));
             }
 
             @NonNull
-            private <M> Result<M> select(@NonNull final Reader<M> reader) {
+            private <M> Result<M> select(@NonNull final Reader.Collection<M> reader) {
                 final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
                 return mExecutor.query(reader, mCondition, null, Limit.Single, null).flatMap(afterRead);
             }
@@ -239,7 +239,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
             @NonNull
             private <M> Result<M> select(@NonNull final Reading<M> reading) {
-                final Reader<M> reader = reading.preparePlan();
+                final Reader.Collection<M> reader = reading.prepareReader();
                 final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
                 return mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset).flatMap(afterRead);
             }

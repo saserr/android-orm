@@ -137,7 +137,7 @@ public class Condition implements Fragment {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
-                Model.toInstance(model).prepareWrite().write(Visit, writable);
+                Model.toInstance(model).prepareWriter().write(Visit, writable);
             }
         };
     }
@@ -147,7 +147,7 @@ public class Condition implements Fragment {
         return new ComplexPart<M>() {
             @Override
             protected void write(@NonNull final M model, @NonNull final Writable writable) {
-                model.prepareWrite().write(Visit, writable);
+                model.prepareWriter().write(Visit, writable);
             }
         };
     }
@@ -177,7 +177,7 @@ public class Condition implements Fragment {
         return new ComplexPart<M>() {
             @Override
             protected void write(@Nullable final M model, @NonNull final Writable writable) {
-                mapper.prepareWrite(something(model)).write(Visit, writable);
+                mapper.prepareWriter(something(model)).write(Visit, writable);
             }
         };
     }

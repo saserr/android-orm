@@ -19,9 +19,10 @@ package android.orm.playground;
 import android.content.Context;
 import android.orm.model.Binding;
 import android.orm.model.Instance;
+import android.orm.model.Instances;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
-import android.orm.model.Reading;
+import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
@@ -89,17 +90,17 @@ public class Form extends Instance.ReadWrite.Base {
 
     @NonNull
     @Override
-    public final Reading.Item.Action prepareRead() {
-        final Collection<Reading.Item.Action> actions = new ArrayList<>(mReads.size());
+    public final Instance.Readable.Action prepareRead() {
+        final Collection<Instance.Readable.Action> actions = new ArrayList<>(mReads.size());
         for (final Entry.Read<?> entry : mReads) {
             actions.add(entry.prepareRead(mContext));
         }
-        return Reading.Item.compose(actions);
+        return Instances.compose(actions);
     }
 
     @NonNull
     @Override
-    public final Writer prepareWrite() {
+    public final Writer prepareWriter() {
         final Collection<Writer> writers = new ArrayList<>(mWrites.size());
 
         for (final Entry.Write entry : mWrites) {
@@ -172,7 +173,7 @@ public class Form extends Instance.ReadWrite.Base {
             void set(@NonNull final Maybe<V> v);
 
             @NonNull
-            Reading.Item.Action prepareRead(@NonNull final Context context);
+            Instance.Readable.Action prepareRead(@NonNull final Context context);
         }
 
         public interface Write {
@@ -221,10 +222,10 @@ public class Form extends Instance.ReadWrite.Base {
 
             @NonNull
             @Override
-            public Reading.Item.Action prepareRead(@NonNull final Context context) {
+            public Instance.Readable.Action prepareRead(@NonNull final Context context) {
                 final V value = binding.get().getOrElse(null);
                 return action(
-                        (value == null) ? mapper.prepareRead() : mapper.prepareRead(value),
+                        (value == null) ? mapper.prepareReader() : mapper.prepareReader(value),
                         binding
                 );
             }
@@ -243,20 +244,20 @@ public class Form extends Instance.ReadWrite.Base {
     }
 
     @NonNull
-    public static <V> Reading.Item.Action action(@NonNull final Reading.Item<V> reading,
-                                                 @NonNull final Binding.Write<V> binding) {
-        return new Reading.Item.Action() {
+    public static <V> Instance.Readable.Action action(@NonNull final Reader.Element<V> reader,
+                                                      @NonNull final Binding.Write<V> binding) {
+        return new Instance.Readable.Action() {
 
             @NonNull
             @Override
             public Select.Projection getProjection() {
-                return reading.getProjection();
+                return reader.getProjection();
             }
 
             @NonNull
             @Override
             public Runnable read(@NonNull final android.orm.sql.Readable input) {
-                return set(reading.read(input), binding);
+                return set(reader.read(input), binding);
             }
         };
     }
@@ -264,7 +265,7 @@ public class Form extends Instance.ReadWrite.Base {
     @NonNull
     public static <V> Writer write(@NonNull final Mapper.Write<V> mapper,
                                    @NonNull final Binding.Read<V> binding) {
-        return mapper.prepareWrite(binding.get());
+        return mapper.prepareWriter(binding.get());
     }
 
     @NonNull

@@ -16,6 +16,7 @@
 
 package android.orm.model;
 
+import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
 import android.orm.util.Converter;
@@ -39,10 +40,10 @@ public final class Mapper {
         String getName();
 
         @NonNull
-        Reading.Item.Create<M> prepareRead();
+        Reader.Element.Create<M> prepareReader();
 
         @NonNull
-        Reading.Item<M> prepareRead(@NonNull final M m);
+        Reader.Element<M> prepareReader(@NonNull final M m);
 
         @NonNull
         <V> Read<Pair<M, V>> and(@NonNull final Value.Read<V> other);
@@ -79,48 +80,48 @@ public final class Mapper {
             @NonNls
             @NonNull
             private final String mName;
-            private final Reading.Item.Builder<M> mReading;
+            private final Plan.Read.Builder<M> mReader;
 
             public Builder(@NonNls @NonNull final String name,
                            @NonNull final Producer<M> producer) {
                 super();
 
                 mName = name;
-                mReading = Reading.Item.builder(name, producer);
+                mReader = Plan.Read.builder(name, producer);
             }
 
             public Builder(@NonNull final Value.Read<M> value) {
                 super();
 
                 mName = value.getName();
-                mReading = new Reading.Item.Builder<>(value);
+                mReader = new Plan.Read.Builder<>(value);
             }
 
             @NonNull
             public final <V> Builder<M> with(@NonNull final Value.Read<V> value,
                                              @NonNull final Lens.Write<M, V> lens) {
-                mReading.with(value, Maybes.lift(lens));
+                mReader.with(value, Maybes.lift(lens));
                 return this;
             }
 
             @NonNull
             public final <N> Builder<M> with(@NonNull final Read<N> mapper,
                                              @NonNull final Lens.ReadWrite<M, N> lens) {
-                mReading.with(mapper, Maybes.lift(lens));
+                mReader.with(mapper, Maybes.lift(lens));
                 return this;
             }
 
             @NonNull
             public final Read<M> build() {
-                return build(mName, new Reading.Item.Builder<>(mReading));
+                return build(mName, new Plan.Read.Builder<>(mReader));
             }
 
             @NonNull
             private static <M> Read<M> build(@NonNls @NonNull final String name,
-                                             @NonNull final Reading.Item.Builder<M> reading) {
+                                             @NonNull final Plan.Read.Builder<M> reader) {
                 return new Base<M>() {
 
-                    private final Reading.Item.Create<M> mCreate = reading.build();
+                    private final Reader.Element.Create<M> mCreate = reader.build();
 
                     @NonNls
                     @NonNull
@@ -131,14 +132,14 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Reading.Item.Create<M> prepareRead() {
+                    public Reader.Element.Create<M> prepareReader() {
                         return mCreate;
                     }
 
                     @NonNull
                     @Override
-                    public Reading.Item.Update<M> prepareRead(@NonNull final M model) {
-                        return reading.build(model);
+                    public Reader.Element.Update<M> prepareReader(@NonNull final M model) {
+                        return reader.build(model);
                     }
                 };
             }
@@ -152,7 +153,7 @@ public final class Mapper {
         String getName();
 
         @NonNull
-        Writer prepareWrite(@NonNull final Maybe<M> value);
+        Writer prepareWriter(@NonNull final Maybe<M> value);
 
         @NonNull
         Write<M> and(@NonNull final Value other);
@@ -198,7 +199,7 @@ public final class Mapper {
             @NonNls
             @NonNull
             private final String mName;
-            private final Plan.Write.Builder<M> mPlan = new Plan.Write.Builder<>();
+            private final Plan.Write.Builder<M> mWriter = new Plan.Write.Builder<>();
 
             public Builder(@NonNls @NonNull final String name) {
                 super();
@@ -208,32 +209,32 @@ public final class Mapper {
 
             @NonNull
             public final Builder<M> with(@NonNull final Writer writer) {
-                mPlan.with(writer);
+                mWriter.with(writer);
                 return this;
             }
 
             @NonNull
             public final <V> Builder<M> with(@NonNull final Value.Write<V> value,
                                              @NonNull final Lens.Read<M, V> lens) {
-                mPlan.with(value, Maybes.lift(lens));
+                mWriter.with(value, Maybes.lift(lens));
                 return this;
             }
 
             @NonNull
             public final <V> Builder<M> with(@NonNull final Write<V> mapper,
                                              @NonNull final Lens.Read<M, V> lens) {
-                mPlan.with(mapper, Maybes.lift(lens));
+                mWriter.with(mapper, Maybes.lift(lens));
                 return this;
             }
 
             @NonNull
             public final Write<M> build() {
-                return build(mName, new Plan.Write.Builder<>(mPlan));
+                return build(mName, new Plan.Write.Builder<>(mWriter));
             }
 
             @NonNull
             private static <M> Write<M> build(@NonNls @NonNull final String name,
-                                              @NonNull final Plan.Write.Builder<M> write) {
+                                              @NonNull final Plan.Write.Builder<M> writer) {
                 return new Base<M>() {
 
                     @NonNls
@@ -245,8 +246,8 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Writer prepareWrite(@NonNull final Maybe<M> value) {
-                        return write.build(value);
+                    public Writer prepareWriter(@NonNull final Maybe<M> value) {
+                        return writer.build(value);
                     }
                 };
             }

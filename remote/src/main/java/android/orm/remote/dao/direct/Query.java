@@ -21,6 +21,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Reader;
+import android.orm.sql.Readers;
 import android.orm.sql.Select;
 import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
@@ -56,7 +57,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
     private ContentResolver mResolver;
     private Uri mUri;
-    private Reader<Object> mReader;
+    private Reader.Collection<Object> mReader;
     private Condition mCondition;
     private Order mOrder;
     private Limit mLimit;
@@ -71,7 +72,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     @SuppressWarnings("unchecked")
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
-                           @NonNull final Reader<?> reader,
+                           @NonNull final Reader.Collection<?> reader,
                            @NonNull final Condition condition) {
         init(resolver, uri, reader, condition, null, null, null);
     }
@@ -79,14 +80,14 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     @SuppressWarnings("unchecked")
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
-                           @NonNull final Reader<?> reader,
+                           @NonNull final Reader.Collection<?> reader,
                            @NonNull final Condition condition,
                            @Nullable final Order order,
                            @Nullable final Limit limit,
                            @Nullable final Offset offset) {
         mResolver = resolver;
         mUri = uri;
-        mReader = (Reader<Object>) reader;
+        mReader = Readers.safeCast(reader);
         mCondition = condition;
         mOrder = order;
         mLimit = limit;

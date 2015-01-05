@@ -18,9 +18,9 @@ package android.orm.playground;
 
 import android.orm.model.Binding;
 import android.orm.model.Instance;
+import android.orm.model.Instances;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
-import android.orm.model.Reading;
 import android.orm.sql.Value;
 import android.support.annotation.NonNull;
 
@@ -56,12 +56,12 @@ public class Show extends Instance.Readable.Base {
 
     @NonNull
     @Override
-    public final Reading.Item.Action prepareRead() {
-        final Collection<Reading.Item.Action> actions = new ArrayList<>(mEntries.size());
+    public final Instance.Readable.Action prepareRead() {
+        final Collection<Instance.Readable.Action> actions = new ArrayList<>(mEntries.size());
         for (final Entry entry : mEntries) {
             actions.add(entry.prepareRead());
         }
-        return Reading.Item.compose(actions);
+        return Instances.compose(actions);
     }
 
     public static class Builder {
@@ -115,7 +115,7 @@ public class Show extends Instance.Readable.Base {
 
     private interface Entry {
         @NonNull
-        Reading.Item.Action prepareRead();
+        Instance.Readable.Action prepareRead();
     }
 
     @NonNull
@@ -124,8 +124,8 @@ public class Show extends Instance.Readable.Base {
         return new Entry() {
             @NonNull
             @Override
-            public Reading.Item.Action prepareRead() {
-                return action(mapper.prepareRead(), binding);
+            public Instance.Readable.Action prepareRead() {
+                return action(mapper.prepareReader(), binding);
             }
         };
     }
@@ -136,10 +136,10 @@ public class Show extends Instance.Readable.Base {
         return new Entry() {
             @NonNull
             @Override
-            public Reading.Item.Action prepareRead() {
+            public Instance.Readable.Action prepareRead() {
                 final V value = binding.get().getOrElse(null);
                 return action(
-                        (value == null) ? mapper.prepareRead() : mapper.prepareRead(value),
+                        (value == null) ? mapper.prepareReader() : mapper.prepareReader(value),
                         binding
                 );
             }

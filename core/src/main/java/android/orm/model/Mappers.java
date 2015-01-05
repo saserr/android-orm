@@ -16,6 +16,7 @@
 
 package android.orm.model;
 
+import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
@@ -128,12 +129,12 @@ public final class Mappers {
         };
 
         @NonNull
-        private final Lazy<Reading.Item.Create<M>> mCreateReading = new Lazy.Volatile<Reading.Item.Create<M>>() {
+        private final Lazy<Reader.Element.Create<M>> mCreateReader = new Lazy.Volatile<Reader.Element.Create<M>>() {
             @NonNull
             @Override
-            protected Reading.Item.Create<M> produce() {
+            protected Reader.Element.Create<M> produce() {
                 final Select.Projection projection = mCreateBlueprint.get().prepareRead().getProjection();
-                return Reading.Item.Create.from(projection, mProducer);
+                return Plan.Read.from(projection, mProducer);
             }
         };
 
@@ -152,14 +153,14 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Reading.Item.Create<M> prepareRead() {
-            return mCreateReading.get();
+        public final Reader.Element.Create<M> prepareReader() {
+            return mCreateReader.get();
         }
 
         @NonNull
         @Override
-        public final Reading.Item.Update<M> prepareRead(@NonNull final M model) {
-            return Reading.Item.Update.from(model);
+        public final Reader.Element.Update<M> prepareReader(@NonNull final M model) {
+            return Plan.Read.from(model);
         }
     }
 
@@ -168,13 +169,13 @@ public final class Mappers {
         @NonNull
         private final Value.Read<V> mValue;
         @NonNull
-        private final Reading.Item.Create<V> mReading;
+        private final Reader.Element.Create<V> mReader;
 
         private ValueRead(@NonNull final Value.Read<V> value) {
             super();
 
             mValue = value;
-            mReading = Reading.Item.Create.from(value);
+            mReader = Plan.Read.from(value);
         }
 
         @NonNls
@@ -186,14 +187,14 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Reading.Item.Create<V> prepareRead() {
-            return mReading;
+        public final Reader.Element.Create<V> prepareReader() {
+            return mReader;
         }
 
         @NonNull
         @Override
-        public final Reading.Item.Create<V> prepareRead(@NonNull final V v) {
-            return mReading;
+        public final Reader.Element.Create<V> prepareReader(@NonNull final V v) {
+            return mReader;
         }
     }
 
@@ -218,9 +219,9 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<M> value) {
+        public final Writer prepareWriter(@NonNull final Maybe<M> value) {
             final M model = value.getOrElse(null);
-            return (model == null) ? Writer.Empty : model.prepareWrite();
+            return (model == null) ? Writer.Empty : model.prepareWriter();
         }
     }
 
@@ -244,7 +245,7 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<V> value) {
+        public final Writer prepareWriter(@NonNull final Maybe<V> value) {
             return Values.value(mValue, value);
         }
     }
@@ -277,19 +278,19 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Reading.Item.Create<Pair<M, N>> prepareRead() {
-            return mFirst.prepareRead().and(mSecond.prepareRead());
+        public final Reader.Element.Create<Pair<M, N>> prepareReader() {
+            return mFirst.prepareReader().and(mSecond.prepareReader());
         }
 
         @NonNull
         @Override
-        public final Reading.Item<Pair<M, N>> prepareRead(@NonNull final Pair<M, N> pair) {
-            final Reading.Item<M> first = (pair.first == null) ?
-                    mFirst.prepareRead() :
-                    mFirst.prepareRead(pair.first);
-            final Reading.Item<N> second = (pair.second == null) ?
-                    mSecond.prepareRead() :
-                    mSecond.prepareRead(pair.second);
+        public final Reader.Element<Pair<M, N>> prepareReader(@NonNull final Pair<M, N> pair) {
+            final Reader.Element<M> first = (pair.first == null) ?
+                    mFirst.prepareReader() :
+                    mFirst.prepareReader(pair.first);
+            final Reader.Element<N> second = (pair.second == null) ?
+                    mSecond.prepareReader() :
+                    mSecond.prepareReader(pair.second);
             return first.and(second);
         }
     }
@@ -322,8 +323,8 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<M> value) {
-            return Writers.compose(Arrays.asList(mFirst.prepareWrite(value), mSecond));
+        public final Writer prepareWriter(@NonNull final Maybe<M> value) {
+            return Writers.compose(Arrays.asList(mFirst.prepareWriter(value), mSecond));
         }
     }
 
@@ -355,10 +356,10 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<Pair<M, N>> value) {
+        public final Writer prepareWriter(@NonNull final Maybe<Pair<M, N>> value) {
             return Writers.compose(Arrays.asList(
-                    mFirst.prepareWrite(first(value)),
-                    mSecond.prepareWrite(second(value))
+                    mFirst.prepareWriter(first(value)),
+                    mSecond.prepareWriter(second(value))
             ));
         }
 
@@ -406,14 +407,14 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Reading.Item.Create<N> prepareRead() {
-            return mRead.prepareRead().convert(mFrom);
+        public final Reader.Element.Create<N> prepareReader() {
+            return mRead.prepareReader().convert(mFrom);
         }
 
         @NonNull
         @Override
-        public final Reading.Item<N> prepareRead(@NonNull final N model) {
-            return mRead.prepareRead(mConverter.to(model)).convert(mFrom);
+        public final Reader.Element<N> prepareReader(@NonNull final N model) {
+            return mRead.prepareReader(mConverter.to(model)).convert(mFrom);
         }
     }
 
@@ -445,8 +446,8 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<N> value) {
-            return mWrite.prepareWrite(mConverter.invoke(value));
+        public final Writer prepareWriter(@NonNull final Maybe<N> value) {
+            return mWrite.prepareWriter(mConverter.invoke(value));
         }
     }
 
@@ -474,20 +475,20 @@ public final class Mappers {
 
         @NonNull
         @Override
-        public final Reading.Item.Create<M> prepareRead() {
-            return mRead.prepareRead();
+        public final Reader.Element.Create<M> prepareReader() {
+            return mRead.prepareReader();
         }
 
         @NonNull
         @Override
-        public final Reading.Item<M> prepareRead(@NonNull final M model) {
-            return mRead.prepareRead(model);
+        public final Reader.Element<M> prepareReader(@NonNull final M model) {
+            return mRead.prepareReader(model);
         }
 
         @NonNull
         @Override
-        public final Writer prepareWrite(@NonNull final Maybe<M> value) {
-            return mWrite.prepareWrite(value);
+        public final Writer prepareWriter(@NonNull final Maybe<M> value) {
+            return mWrite.prepareWriter(value);
         }
     }
 

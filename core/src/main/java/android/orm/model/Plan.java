@@ -18,7 +18,6 @@ package android.orm.model;
 
 import android.orm.sql.Readable;
 import android.orm.sql.Reader;
-import android.orm.sql.Readers;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
@@ -30,210 +29,297 @@ import android.orm.util.Maybes;
 import android.orm.util.Producer;
 import android.orm.util.Producers;
 import android.support.annotation.NonNull;
-import android.util.Log;
-import android.util.Pair;
-import android.util.SparseArray;
+import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.orm.util.Lenses.get;
 import static android.orm.util.Maybes.something;
-import static android.util.Log.DEBUG;
 
 public final class Plan {
 
     public static final class Read {
 
-        private static final String TAG = Read.class.getSimpleName();
-
         @NonNull
-        public static <V> Reader<V> single(@NonNls @NonNull final String name,
-                                           @NonNull final Reading.Item<V> reading) {
-            return reading.isEmpty() ? Readers.<V>empty() : new Single<>(name, reading);
-        }
+        public static <M extends Instance.Readable> Reader.Element.Create<M> from(@NonNull final Select.Projection projection,
+                                                                                  @NonNull final Producer<M> producer) {
+            return new Reader.Element.Create<M>() {
 
-        @NonNull
-        public static <V> Reader<List<V>> list(@NonNls @NonNull final String name,
-                                               @NonNull final Reading.Item.Create<V> reading) {
-            return reading.isEmpty() ?
-                    Readers.<List<V>>empty() :
-                    new Many<V, List<V>>(name, reading) {
-
-                        @NonNull
-                        @Override
-                        protected List<V> create(final int size) {
-                            return new ArrayList<>(size);
-                        }
-
-                        @Override
-                        protected void add(@NonNull final List<V> to, @NonNull final V value) {
-                            to.add(value);
-                        }
-                    };
-        }
-
-        @NonNull
-        public static <V> Reader<Set<V>> set(@NonNls @NonNull final String name,
-                                             @NonNull final Reading.Item.Create<V> reading) {
-            return reading.isEmpty() ?
-                    Readers.<Set<V>>empty() :
-                    new Many<V, Set<V>>(name, reading) {
-
-                        @NonNull
-                        @Override
-                        protected Set<V> create(final int size) {
-                            return new HashSet<>(size);
-                        }
-
-                        @Override
-                        protected void add(@NonNull final Set<V> to, @NonNull final V value) {
-                            to.add(value);
-                        }
-                    };
-        }
-
-        @NonNull
-        public static <K, V> Reader<Map<K, V>> map(@NonNls @NonNull final String name,
-                                                   @NonNull final Reading.Item.Create<K> key,
-                                                   @NonNull final Reading.Item.Create<V> value) {
-            return (key.isEmpty() || value.isEmpty()) ?
-                    Readers.<Map<K, V>>empty() :
-                    new Many<Pair<K, V>, Map<K, V>>(name, key.and(value)) {
-
-                        @NonNull
-                        @Override
-                        protected Map<K, V> create(final int size) {
-                            return new HashMap<>(size);
-                        }
-
-                        @Override
-                        protected void add(@NonNull final Map<K, V> to,
-                                           @NonNull final Pair<K, V> pair) {
-                            to.put(pair.first, pair.second);
-                        }
-                    };
-        }
-
-        @NonNull
-        public static <V> Reader<SparseArray<V>> sparseArray(@NonNls @NonNull final String name,
-                                                             @NonNull final Reading.Item.Create<Integer> key,
-                                                             @NonNull final Reading.Item.Create<V> value) {
-            return (key.isEmpty() || value.isEmpty()) ?
-                    Readers.<SparseArray<V>>empty() :
-                    new Many<Pair<Integer, V>, SparseArray<V>>(name, key.and(value)) {
-
-                        @NonNull
-                        @Override
-                        protected SparseArray<V> create(final int size) {
-                            return new SparseArray<>(size);
-                        }
-
-                        @Override
-                        protected void add(@NonNull final SparseArray<V> to,
-                                           @NonNull final Pair<Integer, V> pair) {
-                            to.put(pair.first, pair.second);
-                        }
-                    };
-        }
-
-        private static class Single<V> extends Reader.Base<V> {
-
-            @NonNls
-            @NonNull
-            private final String mName;
-            @NonNull
-            private final Reading.Item<V> mReading;
-
-            private Single(@NonNls @NonNull final String name, @NonNull final Reading.Item<V> reading) {
-                super();
-
-                mName = name;
-                mReading = reading;
-            }
-
-            @NonNull
-            @Override
-            public final Select.Projection getProjection() {
-                return mReading.getProjection();
-            }
-
-            @NonNull
-            @Override
-            public final Producer<Maybe<V>> read(@NonNull final Readable input) {
-                final Producer<Maybe<V>> result;
-
-                @NonNls final int size = input.size();
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Rows in input for " + mName + ": " + size); //NON-NLS
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return projection;
                 }
 
-                if (input.start()) {
-                    result = mReading.read(input);
-                    if (size > 1) {
-                        Log.w(TAG, "Reading a single '" + mName + "' from cursor that contains multiple ones. Please consider from list/set item"); //NON-NLS
-                    }
+                @NonNull
+                @Override
+                public Producer<Maybe<M>> read(@NonNull final Readable input) {
+                    final M model = producer.produce();
+                    model.prepareRead().read(input).run();
+                    return Producers.constant(something(model));
+                }
+            };
+        }
+
+        @NonNull
+        public static <M extends Instance.Readable> Reader.Element.Update<M> from(@NonNull final M model) {
+            return new Reader.Element.Update<M>() {
+
+                private final Instance.Readable.Action mAction = model.prepareRead();
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return mAction.getProjection();
+                }
+
+                @NonNull
+                @Override
+                public Producer<Maybe<M>> read(@NonNull final Readable input) {
+                    return update(model, mAction, input);
+                }
+            };
+        }
+
+        @NonNull
+        public static <M> Reader.Element.Create<M> from(@NonNull final Value.Read<M> value) {
+            return new Reader.Element.Create<M>() {
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return value.getProjection();
+                }
+
+                @NonNull
+                @Override
+                public Producer<Maybe<M>> read(@NonNull final Readable input) {
+                    return Producers.constant(value.read(input));
+                }
+            };
+        }
+
+        @NonNull
+        public static <M> Builder<M> builder(@NonNls @NonNull final String name,
+                                             @NonNull final Producer<M> producer) {
+            return new Builder<>(new Value.Read.Base<M>() {
+
+                private final Producer<Maybe<M>> mProducer = Maybes.lift(producer);
+
+                @NonNls
+                @NonNull
+                @Override
+                public String getName() {
+                    return name;
+                }
+
+                @NonNull
+                @Override
+                public Select.Projection getProjection() {
+                    return Select.Projection.Nothing;
+                }
+
+                @NonNull
+                @Override
+                public Maybe<M> read(@NonNull final android.orm.sql.Readable input) {
+                    return mProducer.produce();
+                }
+            });
+        }
+
+        @NonNull
+        private static <M> Producer<Maybe<M>> create(@NonNull final Value.Read<M> producer,
+                                                     @NonNull final Collection<Function<M, Instance.Readable.Action>> factories,
+                                                     @NonNull final Readable input) {
+            final Maybe<M> result = producer.read(input);
+            final Producer<Maybe<M>> product;
+
+            if (result.isSomething()) {
+                final M model = result.get();
+                if (model == null) {
+                    product = Producers.constant(result);
                 } else {
-                    result = Producers.constant(Maybes.<V>nothing());
-                }
+                    for (final Function<M, Instance.Readable.Action> factory : factories) {
+                        factory.invoke(model).read(input).run();
+                    }
 
-                return result;
+                    product = Producers.constant(something(model));
+                }
+            } else {
+                product = Producers.constant(result);
             }
+
+            return product;
         }
 
-        private abstract static class Many<V, C> extends Reader.Base<C> {
+        @NonNull
+        private static <M> Producer<Maybe<M>> update(@NonNull final M model,
+                                                     @NonNull final Instance.Readable.Action action,
+                                                     @NonNull final Readable input) {
+            return new Producer<Maybe<M>>() {
 
-            @NonNls
-            @NonNull
-            private final String mName;
-            @NonNull
-            private final Reading.Item.Create<V> mReading;
+                private final Maybe<M> mResult = something(model);
+                private final AtomicBoolean mNeedsExecution = new AtomicBoolean(true);
 
-            private Many(@NonNls @NonNull final String name,
-                         @NonNull final Reading.Item.Create<V> reading) {
+                @NonNull
+                @Override
+                public Maybe<M> produce() {
+                    if (mNeedsExecution.getAndSet(false)) {
+                        action.read(input).run();
+                    }
+
+                    return mResult;
+                }
+            };
+        }
+
+        public static class Builder<M> {
+
+            @NonNull
+            private final Value.Read<M> mProducer;
+            @NonNull
+            private Select.Projection mCreateProjection;
+
+            private final Collection<Function<M, Instance.Readable.Action>> mFactories;
+
+            public Builder(@NonNull final Value.Read<M> producer) {
                 super();
 
-                mName = name;
-                mReading = reading;
+                mProducer = producer;
+                mCreateProjection = producer.getProjection();
+                mFactories = new ArrayList<>();
+            }
+
+            public Builder(@NonNull final Builder<M> builder) {
+                super();
+
+                mProducer = builder.mProducer;
+                mCreateProjection = builder.mCreateProjection;
+                mFactories = new ArrayList<>(builder.mFactories);
             }
 
             @NonNull
-            protected abstract C create(final int size);
-
-            protected abstract void add(@NonNull final C to, @NonNull final V v);
-
-            @NonNull
-            @Override
-            public final Select.Projection getProjection() {
-                return mReading.getProjection();
+            public final <V> Builder<M> with(@NonNull final Value.Read<V> value,
+                                             @NonNull final Lens.Write<M, Maybe<V>> lens) {
+                return with(value.getProjection(), factory(value, lens));
             }
 
             @NonNull
-            @Override
-            public final Producer<Maybe<C>> read(@NonNull final Readable input) {
-                final C result = create(input.size());
+            public final <V> Builder<M> with(@NonNull final Mapper.Read<V> mapper,
+                                             @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
+                return with(mapper.prepareReader().getProjection(), factory(mapper, lens));
+            }
 
-                @NonNls final int size = input.size();
-                if (Log.isLoggable(TAG, DEBUG)) {
-                    Log.d(TAG, "Rows in input for " + mName + ": " + size); //NON-NLS
+            @NonNull
+            public final Reader.Element.Create<M> build() {
+                return build(mProducer, mCreateProjection, mFactories);
+            }
+
+            @NonNull
+            public final Reader.Element.Update<M> build(@NonNull final M model) {
+                return build(model, mProducer, mFactories);
+            }
+
+            private Builder<M> with(@NonNull final Select.Projection projection,
+                                    @NonNull final Function<M, Instance.Readable.Action> factory) {
+                mCreateProjection = mCreateProjection.and(projection);
+                mFactories.add(factory);
+                return this;
+            }
+
+            @NonNull
+            private static <M> Reader.Element.Create<M> build(@NonNull final Value.Read<M> producer,
+                                                              @NonNull final Select.Projection projection,
+                                                              @NonNull final Collection<Function<M, Instance.Readable.Action>> factories) {
+                return new Reader.Element.Create<M>() {
+
+                    @NonNull
+                    @Override
+                    public Select.Projection getProjection() {
+                        return projection;
+                    }
+
+                    @NonNull
+                    @Override
+                    public Producer<Maybe<M>> read(@NonNull final Readable input) {
+                        return create(producer, factories, input);
+                    }
+                };
+            }
+
+            @NonNull
+            private static <M> Reader.Element.Update<M> build(@NonNull final M model,
+                                                              @NonNull final Value.Read<M> producer,
+                                                              @NonNull final Collection<Function<M, Instance.Readable.Action>> factories) {
+                final Collection<Instance.Readable.Action> actions = new ArrayList<>(factories.size());
+                for (final Function<M, Instance.Readable.Action> factory : factories) {
+                    actions.add(factory.invoke(model));
                 }
+                final Instance.Readable.Action action = Instances.compose(actions);
+                final Select.Projection producerOnly = producer.getProjection().without(action.getProjection());
 
-                if (input.start()) {
-                    do {
-                        final V model = mReading.read(input).produce().getOrElse(null);
-                        if (model != null) {
-                            add(result, model);
-                        }
-                    } while (input.next());
-                }
+                return new Reader.Element.Update<M>() {
 
-                return Producers.constant(something(result));
+                    @NonNull
+                    @Override
+                    public Select.Projection getProjection() {
+                        return action.getProjection();
+                    }
+
+                    @NonNull
+                    @Override
+                    public Producer<Maybe<M>> read(@NonNull final Readable input) {
+                        return producerOnly.isAny(input.getKeys()) ?
+                                create(producer, factories, input) :
+                                update(model, action, input);
+                    }
+                };
+            }
+
+            @NonNull
+            private static <M, V> Function<M, Instance.Readable.Action> factory(@NonNull final Value.Read<V> value,
+                                                                                @NonNull final Lens.Write<M, Maybe<V>> lens) {
+                return new Function<M, Instance.Readable.Action>() {
+                    @NonNull
+                    @Override
+                    public Instance.Readable.Action invoke(@NonNull final M model) {
+                        return Instances.action(value, new Instance.Setter<V>() {
+                            @Override
+                            public void set(@Nullable final V value) {
+                                lens.set(model, something(value));
+                            }
+                        });
+                    }
+                };
+            }
+
+            @NonNull
+            private static <M, V> Function<M, Instance.Readable.Action> factory(@NonNull final Mapper.Read<V> mapper,
+                                                                                @NonNull final Lens.ReadWrite<M, Maybe<V>> lens) {
+                return new Function<M, Instance.Readable.Action>() {
+                    @NonNull
+                    @Override
+                    public Instance.Readable.Action invoke(@NonNull final M model) {
+                        return Instances.action(mapper, new Instance.Access<V>() {
+
+                            @Nullable
+                            @Override
+                            public V get() {
+                                final Maybe<V> value = lens.get(model);
+                                return (value == null) ? null : value.getOrElse(null);
+                            }
+
+                            @Override
+                            public void set(@Nullable final V value) {
+                                lens.set(model, something(value));
+                            }
+                        });
+                    }
+                };
             }
         }
 
@@ -305,7 +391,7 @@ public final class Plan {
                     @NonNull
                     @Override
                     public Writer invoke(@NonNull final Maybe<M> model) {
-                        return mapper.prepareWrite(get(model, lens));
+                        return mapper.prepareWriter(get(model, lens));
                     }
                 };
             }

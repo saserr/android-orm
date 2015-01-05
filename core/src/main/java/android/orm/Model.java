@@ -17,11 +17,11 @@
 package android.orm;
 
 import android.orm.model.Instance;
+import android.orm.model.Instances;
 import android.orm.model.Mapper;
 import android.orm.model.Mappers;
 import android.orm.model.Observer;
 import android.orm.model.Property;
-import android.orm.model.Reading;
 import android.orm.model.Storage;
 import android.orm.model.Version;
 import android.orm.model.View;
@@ -249,25 +249,25 @@ public abstract class Model {
 
         @NonNull
         @Override
-        public final Reading.Item.Action prepareRead() {
+        public final Instance.Readable.Action prepareRead() {
             final Collection<Instance.Readable> instances = getReadableInstances(mModel);
-            final Collection<Reading.Item.Action> actions = new ArrayList<>(instances.size());
+            final Collection<Instance.Readable.Action> actions = new ArrayList<>(instances.size());
 
             for (final Instance.Readable instance : instances) {
                 actions.add(instance.prepareRead());
             }
 
-            return Reading.Item.compose(actions);
+            return Instances.compose(actions);
         }
 
         @NonNull
         @Override
-        public final Writer prepareWrite() {
+        public final Writer prepareWriter() {
             final Collection<Instance.Writable> instances = getWritableInstances(mModel);
             final Collection<Writer> writers = new ArrayList<>(instances.size());
 
             for (final Instance.Writable instance : instances) {
-                writers.add(instance.prepareWrite());
+                writers.add(instance.prepareWriter());
             }
 
             return Writers.compose(writers);

@@ -44,7 +44,7 @@ public interface Executor<E, I, U, D> {
     interface Direct<I, U> extends Executor<Maybe<Boolean>, Maybe<I>, Maybe<U>, Maybe<Integer>> {
 
         @NonNull
-        <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
+        <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
                                             @NonNull final Condition condition,
                                             @Nullable final Order order,
                                             @Nullable final Limit limit,
@@ -68,7 +68,7 @@ public interface Executor<E, I, U, D> {
     interface Async<I, U> extends Executor<Result<Boolean>, Result<I>, Result<U>, Result<Integer>> {
 
         @NonNull
-        <M> Result<Producer<Maybe<M>>> query(@NonNull final Reader<M> reader,
+        <M> Result<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
                                              @NonNull final Condition condition,
                                              @Nullable final Order order,
                                              @Nullable final Limit limit,

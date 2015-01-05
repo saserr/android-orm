@@ -64,7 +64,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
     @Nullable
     private final Reading.Single<M> mSingleReading;
     @NonNull
-    private final AtomicReference<Reader<M>> mReader;
+    private final AtomicReference<Reader.Collection<M>> mReader;
 
     @SuppressWarnings("unchecked")
     private final Function<Producer<Maybe<M>>, Maybe<M>> mAfterRead = afterRead();
@@ -90,9 +90,9 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         mCallback = callback;
 
         mSingleReading = (reading instanceof Reading.Single) ? (Reading.Single<M>) reading : null;
-        final Reader<M> reader = ((mSingleReading == null) || (model == null)) ?
-                reading.preparePlan() :
-                mSingleReading.preparePlan(model);
+        final Reader.Collection<M> reader = ((mSingleReading == null) || (model == null)) ?
+                reading.prepareReader() :
+                mSingleReading.prepareReader(model);
         mReader = new AtomicReference<>(reader);
     }
 
@@ -102,10 +102,10 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         final M model = current.getOrElse(null);
 
         if ((mSingleReading == null) || (model == null)) {
-            mReader.set(mReading.preparePlan());
+            mReader.set(mReading.prepareReader());
         } else {
             beforeRead(model);
-            mReader.set(mSingleReading.preparePlan(model));
+            mReader.set(mSingleReading.prepareReader(model));
         }
 
         mCallback.onResult(Maybes.<R>safeCast(current));

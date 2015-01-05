@@ -80,7 +80,7 @@ public final class Access {
         @Override
         public final I insert(@NonNull final Instance.Writable model) {
             beforeCreate(model);
-            return insert(model, model.prepareWrite());
+            return insert(model, model.prepareWriter());
         }
 
         @NonNull
@@ -103,7 +103,7 @@ public final class Access {
         public final <M> I insert(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
             beforeCreate(model);
-            return insert(model, mapper.prepareWrite(something(model)));
+            return insert(model, mapper.prepareWriter(something(model)));
         }
 
         @NonNull
@@ -122,14 +122,14 @@ public final class Access {
         @Override
         public final U update(@NonNull final Instance.Writable model) {
             beforeUpdate(model);
-            return update(model, model.prepareWrite());
+            return update(model, model.prepareWriter());
         }
 
         @NonNull
         @Override
         public final U update(@NonNull final Condition condition, @NonNull final Instance.Writable model) {
             beforeUpdate(model);
-            return update(model, condition, model.prepareWrite());
+            return update(model, condition, model.prepareWriter());
         }
 
         @NonNull
@@ -169,7 +169,7 @@ public final class Access {
         public final <M> U update(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
             beforeUpdate(model);
-            return update(model, mapper.prepareWrite(something(model)));
+            return update(model, mapper.prepareWriter(something(model)));
         }
 
         @NonNull
@@ -178,7 +178,7 @@ public final class Access {
                                   @Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
             beforeUpdate(model);
-            return update(model, condition, mapper.prepareWrite(something(model)));
+            return update(model, condition, mapper.prepareWriter(something(model)));
         }
 
         @NonNull

@@ -17,7 +17,8 @@
 package android.orm.gson;
 
 import android.orm.model.Mapper;
-import android.orm.model.Reading;
+import android.orm.model.Plan;
+import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -36,12 +37,12 @@ public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
     @NonNull
     private final String mName;
     @NonNull
-    private final Reading.Item.Builder<E> mReading;
+    private final Plan.Read.Builder<E> mReading;
     @NonNull
-    private final Reading.Item.Create<E> mCreate;
+    private final Reader.Element.Create<E> mCreate;
 
     public Serializer(@NonNls @NonNull final String name,
-                      @NonNull final Reading.Item.Builder<E> reading) {
+                      @NonNull final Plan.Read.Builder<E> reading) {
         super();
 
         mName = name;
@@ -58,13 +59,13 @@ public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
 
     @NonNull
     @Override
-    public final Reading.Item.Create<E> prepareRead() {
+    public final Reader.Element.Create<E> prepareReader() {
         return mCreate;
     }
 
     @NonNull
     @Override
-    public final Reading.Item<E> prepareRead(@NonNull final E element) {
+    public final Reader.Element<E> prepareReader(@NonNull final E element) {
         return mReading.build(element);
     }
 
@@ -84,7 +85,7 @@ public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
         @NonNull
         private final Gson mGson;
         @NonNull
-        private final Reading.Item.Builder<JsonObject> mReading;
+        private final Plan.Read.Builder<JsonObject> mReading;
 
         public Builder(@NonNls @NonNull final String name,
                        @NonNull final Gson gson) {
@@ -92,7 +93,7 @@ public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
 
             mName = name;
             mGson = gson;
-            mReading = Reading.Item.builder(name, PRODUCER);
+            mReading = Plan.Read.builder(name, PRODUCER);
         }
 
         @NonNull
