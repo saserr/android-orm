@@ -19,8 +19,8 @@ package android.orm.model;
 import android.orm.util.Validation;
 import android.support.annotation.NonNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import static android.orm.model.Validators.validator;
 
@@ -30,7 +30,7 @@ public interface Validator {
 
     class Builder {
 
-        private final Collection<Validator> mValidators = new ArrayList<>();
+        private final Collection<Validator> mValidators = new LinkedList<>();
 
         @NonNull
         public final Builder with(@NonNull final Validator validator) {

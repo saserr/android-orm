@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import static android.orm.playground.Form.action;
@@ -70,7 +71,7 @@ public class Show extends Instance.Readable.Base {
         @NonNull
         private final String mName;
 
-        private final List<Entry> mEntries = new ArrayList<>();
+        private final List<Entry> mEntries = new LinkedList<>();
 
         public Builder(@NonNls @NonNull final String name) {
             super();

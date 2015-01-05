@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import static android.orm.model.Instances.instance;
 import static android.orm.util.Maybes.something;
@@ -102,8 +103,8 @@ public final class Instance {
             @NonNull
             private final String mName;
 
-            private final Collection<Producer<Readable.Action>> mProducers = new ArrayList<>();
-            private final Collection<Observer.Read> mObservers = new ArrayList<>();
+            private final Collection<Producer<Readable.Action>> mProducers = new LinkedList<>();
+            private final Collection<Observer.Read> mObservers = new LinkedList<>();
 
             public Builder(@NonNls @NonNull final String name) {
                 super();
@@ -303,8 +304,8 @@ public final class Instance {
             @NonNull
             private final String mName;
 
-            private final Collection<Producer<Writer>> mProducers = new ArrayList<>();
-            private final Collection<Observer.Write> mObservers = new ArrayList<>();
+            private final Collection<Producer<Writer>> mProducers = new LinkedList<>();
+            private final Collection<Observer.Write> mObservers = new LinkedList<>();
 
             public Builder(@NonNls @NonNull final String name) {
                 super();

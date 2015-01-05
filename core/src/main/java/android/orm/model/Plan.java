@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.orm.util.Lenses.get;
@@ -191,7 +192,7 @@ public final class Plan {
 
                 mProducer = producer;
                 mCreateProjection = producer.getProjection();
-                mFactories = new ArrayList<>();
+                mFactories = new LinkedList<>();
             }
 
             public Builder(@NonNull final Builder<M> builder) {
@@ -199,7 +200,7 @@ public final class Plan {
 
                 mProducer = builder.mProducer;
                 mCreateProjection = builder.mCreateProjection;
-                mFactories = new ArrayList<>(builder.mFactories);
+                mFactories = new LinkedList<>(builder.mFactories);
             }
 
             @NonNull
@@ -216,12 +217,12 @@ public final class Plan {
 
             @NonNull
             public final Reader.Element.Create<M> build() {
-                return build(mProducer, mCreateProjection, mFactories);
+                return build(mProducer, mCreateProjection, new ArrayList<>(mFactories));
             }
 
             @NonNull
             public final Reader.Element.Update<M> build(@NonNull final M model) {
-                return build(model, mProducer, mFactories);
+                return build(model, mProducer, new ArrayList<>(mFactories));
             }
 
             private Builder<M> with(@NonNull final Select.Projection projection,

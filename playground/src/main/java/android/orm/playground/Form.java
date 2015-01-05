@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import static android.orm.util.Maybes.something;
@@ -47,14 +48,14 @@ public class Form extends Instance.ReadWrite.Base {
     @NonNull
     private final String mName;
     @NonNull
-    private final List<Entry.Read<?>> mReads;
+    private final Collection<Entry.Read<?>> mReads;
     @NonNull
     private final List<Entry.Write> mWrites;
 
     private Form(@NonNull final Context context,
                  @NonNls @NonNull final String name,
-                 @NonNull final List<Entry.Read<?>> reads,
-                 @NonNull final List<Entry.Write> writes) {
+                 @NonNull final Collection<Entry.Read<?>> reads,
+                 @NonNull final Collection<Entry.Write> writes) {
         super();
 
         mContext = context;
@@ -116,8 +117,8 @@ public class Form extends Instance.ReadWrite.Base {
         @NonNull
         private final String mName;
 
-        private final List<Entry.Read<?>> mReads = new ArrayList<>();
-        private final List<Entry.Write> mWrites = new ArrayList<>();
+        private final List<Entry.Read<?>> mReads = new LinkedList<>();
+        private final List<Entry.Write> mWrites = new LinkedList<>();
 
         public Builder(@NonNls @NonNull final String name) {
             super();

@@ -22,6 +22,7 @@ import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 
 public interface Writer {
 
@@ -53,15 +54,15 @@ public interface Writer {
         public Builder() {
             super();
 
-            mWriters = new ArrayList<>();
-            mFactories = new ArrayList<>();
+            mWriters = new LinkedList<>();
+            mFactories = new LinkedList<>();
         }
 
         public Builder(@NonNull final Builder<V> builder) {
             super();
 
-            mWriters = new ArrayList<>(builder.mWriters);
-            mFactories = new ArrayList<>(builder.mFactories);
+            mWriters = new LinkedList<>(builder.mWriters);
+            mFactories = new LinkedList<>(builder.mFactories);
         }
 
         @NonNull

@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NonNls;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Value.Write.Operation.Update;
@@ -47,7 +48,7 @@ public abstract class Transaction<R> {
     @Nullable
     private String mAuthority;
     @NonNull
-    private Collection<Producer<ContentProviderOperation>> mBatch = new ArrayList<>();
+    private final Collection<Producer<ContentProviderOperation>> mBatch = new LinkedList<>();
 
     protected Transaction() {
         super();
@@ -64,9 +65,9 @@ public abstract class Transaction<R> {
 
     @NonNull
     public final R commit() {
-        final R result = commit(mAuthority, mBatch);
+        final R result = commit(mAuthority, new ArrayList<>(mBatch));
         mAuthority = null;
-        mBatch = new ArrayList<>();
+        mBatch.clear();
         return result;
     }
 

@@ -21,7 +21,7 @@ import android.support.annotation.Nullable;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public interface Validation<V> {
@@ -154,7 +154,7 @@ public interface Validation<V> {
 
     class Builder<V> {
 
-        private final List<Validation<? super V>> mValidations = new ArrayList<>();
+        private final List<Validation<? super V>> mValidations = new LinkedList<>();
 
         @NonNull
         public final Builder<V> with(@NonNull final Validation<? super V> validation) {
