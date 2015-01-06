@@ -19,82 +19,116 @@ package android.orm.model;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.util.Arrays;
-
 public final class Observer {
 
     public static void beforeRead(@Nullable final Object model) {
-        if (model instanceof Read) {
-            ((Read) model).beforeRead();
-        }
+        if (model != null) {
+            if (model instanceof Read) {
+                ((Read) model).beforeRead();
+            }
 
-        if (model instanceof Iterable<?>) {
-            for (final Object element : (Iterable<?>) model) {
-                beforeRead(element);
+            if (model instanceof Iterable<?>) {
+                for (final Object element : (Iterable<?>) model) {
+                    beforeRead(element);
+                }
+            } else if (model.getClass().isArray()) {
+                for (final Object element : (Object[]) model) {
+                    beforeRead(element);
+                }
             }
         }
     }
 
     public static void afterRead(@Nullable final Object model) {
-        if (model instanceof Read) {
-            ((Read) model).afterRead();
-        }
+        if (model != null) {
+            if (model instanceof Read) {
+                ((Read) model).afterRead();
+            }
 
-        if (model instanceof Iterable<?>) {
-            for (final Object element : (Iterable<?>) model) {
-                afterRead(element);
+            if (model instanceof Iterable<?>) {
+                for (final Object element : (Iterable<?>) model) {
+                    afterRead(element);
+                }
+            } else if (model.getClass().isArray()) {
+                for (final Object element : (Object[]) model) {
+                    afterRead(element);
+                }
             }
         }
     }
 
-    public static void beforeCreate(@Nullable final Object model) {
-        if (model instanceof Write) {
-            ((Write) model).beforeCreate();
-            ((Write) model).beforeSave();
-        }
+    public static void beforeInsert(@Nullable final Object model) {
+        if (model != null) {
+            if (model instanceof Write) {
+                ((Write) model).beforeInsert();
+                ((Write) model).beforeSave();
+            }
 
-        if (model instanceof Iterable<?>) {
-            for (final Object element : (Iterable<?>) model) {
-                beforeCreate(element);
+            if (model instanceof Iterable<?>) {
+                for (final Object element : (Iterable<?>) model) {
+                    beforeInsert(element);
+                }
+            } else if (model.getClass().isArray()) {
+                for (final Object element : (Object[]) model) {
+                    beforeInsert(element);
+                }
             }
         }
     }
 
-    public static void afterCreate(@Nullable final Object model) {
-        if (model instanceof Write) {
-            ((Write) model).afterSave();
-            ((Write) model).afterCreate();
-        }
+    public static void afterInsert(@Nullable final Object model) {
+        if (model != null) {
+            if (model instanceof Write) {
+                ((Write) model).afterSave();
+                ((Write) model).afterInsert();
+            }
 
-        if (model instanceof Iterable<?>) {
-            for (final Object element : (Iterable<?>) model) {
-                afterCreate(element);
+            if (model instanceof Iterable<?>) {
+                for (final Object element : (Iterable<?>) model) {
+                    afterInsert(element);
+                }
+            } else if (model.getClass().isArray()) {
+                for (final Object element : (Object[]) model) {
+                    afterInsert(element);
+                }
             }
         }
     }
 
     public static void beforeUpdate(@Nullable final Object model) {
-        if (model instanceof Write) {
-            ((Write) model).beforeUpdate();
-            ((Write) model).beforeSave();
-        }
+        if (model != null) {
+            if (model instanceof Write) {
+                ((Write) model).beforeUpdate();
+                ((Write) model).beforeSave();
+            }
 
-        if (model instanceof Iterable<?>) {
-            for (final Object element : (Iterable<?>) model) {
-                beforeUpdate(element);
+            if (model instanceof Iterable<?>) {
+                for (final Object element : (Iterable<?>) model) {
+                    beforeUpdate(element);
+                }
+            } else if (model.getClass().isArray()) {
+                for (final Object element : (Object[]) model) {
+                    beforeUpdate(element);
+                }
             }
         }
     }
 
     public static void afterUpdate(@Nullable final Object model) {
-        if (model instanceof Write) {
-            ((Write) model).afterSave();
-            ((Write) model).afterUpdate();
-        }
+        if (model != null) {
+            if (model instanceof Write) {
+                ((Write) model).afterSave();
+                ((Write) model).afterUpdate();
+            }
 
-        if (model instanceof Iterable<?>) {
-            for (final Object element : (Iterable<?>) model) {
-                afterUpdate(element);
+            if (model instanceof Iterable<?>) {
+                for (final Object element : (Iterable<?>) model) {
+                    afterUpdate(element);
+                }
+            } else if (model.getClass().isArray()) {
+                for (final Object element : (Object[]) model) {
+                    afterUpdate(element);
+                }
             }
         }
     }
@@ -121,9 +155,9 @@ public final class Observer {
 
     public interface Write {
 
-        void beforeCreate();
+        void beforeInsert();
 
-        void afterCreate();
+        void afterInsert();
 
         void beforeUpdate();
 
@@ -140,10 +174,10 @@ public final class Observer {
         abstract class Base implements Write {
 
             @Override
-            public void beforeCreate() {/* do nothing */}
+            public void beforeInsert() {/* do nothing */}
 
             @Override
-            public void afterCreate() {/* do nothing */}
+            public void afterInsert() {/* do nothing */}
 
             @Override
             public void beforeUpdate() {/* do nothing */}
@@ -174,10 +208,10 @@ public final class Observer {
             public void afterRead() {/* do nothing */}
 
             @Override
-            public void beforeCreate() {/* do nothing */}
+            public void beforeInsert() {/* do nothing */}
 
             @Override
-            public void afterCreate() {/* do nothing */}
+            public void afterInsert() {/* do nothing */}
 
             @Override
             public void beforeUpdate() {/* do nothing */}
@@ -191,11 +225,6 @@ public final class Observer {
             @Override
             public void afterSave() {/* do nothing */}
         }
-    }
-
-    @NonNull
-    public static Read read(@NonNull final Read... observers) {
-        return read(Arrays.asList(observers));
     }
 
     @NonNull
@@ -219,25 +248,20 @@ public final class Observer {
     }
 
     @NonNull
-    public static Write write(@NonNull final Write... observers) {
-        return write(Arrays.asList(observers));
-    }
-
-    @NonNull
     public static Write write(@NonNull final Iterable<Write> observers) {
         return new Write() {
 
             @Override
-            public void beforeCreate() {
+            public void beforeInsert() {
                 for (final Write observer : observers) {
-                    observer.beforeCreate();
+                    observer.beforeInsert();
                 }
             }
 
             @Override
-            public void afterCreate() {
+            public void afterInsert() {
                 for (final Write observer : observers) {
-                    observer.afterCreate();
+                    observer.afterInsert();
                 }
             }
 
@@ -286,13 +310,13 @@ public final class Observer {
             }
 
             @Override
-            public void beforeCreate() {
-                write.beforeCreate();
+            public void beforeInsert() {
+                write.beforeInsert();
             }
 
             @Override
-            public void afterCreate() {
-                write.afterCreate();
+            public void afterInsert() {
+                write.afterInsert();
             }
 
             @Override

@@ -104,13 +104,13 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
     }
 
     @Override
-    public final void beforeCreate() {
-        mObserver.beforeCreate();
+    public final void beforeInsert() {
+        mObserver.beforeInsert();
     }
 
     @Override
-    public final void afterCreate() {
-        mObserver.afterCreate();
+    public final void afterInsert() {
+        mObserver.afterInsert();
     }
 
     @Override

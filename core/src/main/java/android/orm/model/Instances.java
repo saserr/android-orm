@@ -522,7 +522,7 @@ public final class Instances {
 
             if (first instanceof Observer.Read) {
                 mObserver = (second instanceof Observer.Read) ?
-                        Observer.read((Observer.Read) first, (Observer.Read) second) :
+                        Observer.read(Arrays.asList((Observer.Read) first, (Observer.Read) second)) :
                         (Observer.Read) first;
             } else {
                 mObserver = (second instanceof Observer.Read) ?
@@ -577,7 +577,7 @@ public final class Instances {
 
             if (first instanceof Observer.Write) {
                 mObserver = (second instanceof Observer.Write) ?
-                        Observer.write((Observer.Write) first, (Observer.Write) second) :
+                        Observer.write(Arrays.asList((Observer.Write) first, (Observer.Write) second)) :
                         (Observer.Write) first;
             } else {
                 mObserver = (second instanceof Observer.Write) ?
@@ -600,13 +600,13 @@ public final class Instances {
         }
 
         @Override
-        public final void beforeCreate() {
-            mObserver.beforeCreate();
+        public final void beforeInsert() {
+            mObserver.beforeInsert();
         }
 
         @Override
-        public final void afterCreate() {
-            mObserver.afterCreate();
+        public final void afterInsert() {
+            mObserver.afterInsert();
         }
 
         @Override
@@ -680,13 +680,13 @@ public final class Instances {
         }
 
         @Override
-        public final void beforeCreate() {
-            mObserver.beforeCreate();
+        public final void beforeInsert() {
+            mObserver.beforeInsert();
         }
 
         @Override
-        public final void afterCreate() {
-            mObserver.afterCreate();
+        public final void afterInsert() {
+            mObserver.afterInsert();
         }
 
         @Override

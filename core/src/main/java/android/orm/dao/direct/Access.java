@@ -68,10 +68,10 @@ public final class Access {
         }
 
         @Override
-        protected final Maybe<K> afterCreate(@Nullable final Object model,
+        protected final Maybe<K> afterInsert(@Nullable final Object model,
                                              @NonNull final Maybe<K> result) {
             if (result.getOrElse(null) != null) {
-                Observer.afterCreate(model);
+                Observer.afterInsert(model);
             }
 
             return result;
@@ -106,10 +106,10 @@ public final class Access {
         }
 
         @Override
-        protected final Maybe<K> afterCreate(@Nullable final Object model,
+        protected final Maybe<K> afterInsert(@Nullable final Object model,
                                              @NonNull final Maybe<K> result) {
             if (result.getOrElse(null) != null) {
-                Observer.afterCreate(model);
+                Observer.afterInsert(model);
             }
 
             return result;

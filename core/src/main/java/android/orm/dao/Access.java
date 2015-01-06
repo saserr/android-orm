@@ -25,7 +25,7 @@ import android.orm.sql.fragment.Condition;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import static android.orm.model.Observer.beforeCreate;
+import static android.orm.model.Observer.beforeInsert;
 import static android.orm.model.Observer.beforeUpdate;
 import static android.orm.util.Maybes.something;
 
@@ -54,7 +54,7 @@ public final class Access {
             mExecutor = executor;
         }
 
-        protected abstract I afterCreate(@Nullable final Object model, @NonNull final I result);
+        protected abstract I afterInsert(@Nullable final Object model, @NonNull final I result);
 
         protected abstract U afterUpdate(@Nullable final Object model, @NonNull final U result);
 
@@ -79,14 +79,14 @@ public final class Access {
         @NonNull
         @Override
         public final I insert(@NonNull final Instance.Writable model) {
-            beforeCreate(model);
+            beforeInsert(model);
             return insert(model, model.prepareWriter());
         }
 
         @NonNull
         @Override
         public final I insert(@NonNull final Writer writer) {
-            beforeCreate(writer);
+            beforeInsert(writer);
             return insert(writer, writer);
         }
 
@@ -94,7 +94,7 @@ public final class Access {
         @Override
         public final <M> I insert(@Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
-            beforeCreate(model);
+            beforeInsert(model);
             return insert(model, value.write(model));
         }
 
@@ -102,7 +102,7 @@ public final class Access {
         @Override
         public final <M> I insert(@Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
-            beforeCreate(model);
+            beforeInsert(model);
             return insert(model, mapper.prepareWriter(something(model)));
         }
 
@@ -195,7 +195,7 @@ public final class Access {
 
         @NonNull
         private I insert(@Nullable final Object model, @NonNull final Writer writer) {
-            return afterCreate(model, mExecutor.insert(writer));
+            return afterInsert(model, mExecutor.insert(writer));
         }
 
         @NonNull

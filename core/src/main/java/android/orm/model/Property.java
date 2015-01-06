@@ -141,13 +141,13 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
     }
 
     @Override
-    public final void beforeCreate() {
-        mObserver.beforeCreate();
+    public final void beforeInsert() {
+        mObserver.beforeInsert();
     }
 
     @Override
-    public final void afterCreate() {
-        mObserver.afterCreate();
+    public final void afterInsert() {
+        mObserver.afterInsert();
     }
 
     @Override

@@ -72,14 +72,14 @@ public final class Access {
         }
 
         @Override
-        protected final Result<K> afterCreate(@Nullable final Object model,
+        protected final Result<K> afterInsert(@Nullable final Object model,
                                               @NonNull final Result<K> result) {
             return (model instanceof Observer.Write) ?
                     result.onComplete(new Result.Callback<K>() {
                         @Override
                         public void onResult(@NonNull final Maybe<K> key) {
                             if (key.getOrElse(null) != null) {
-                                Observer.afterCreate(model);
+                                Observer.afterInsert(model);
                             }
                         }
                     }) :
@@ -120,14 +120,14 @@ public final class Access {
         }
 
         @Override
-        protected final Result<K> afterCreate(@Nullable final Object model,
+        protected final Result<K> afterInsert(@Nullable final Object model,
                                               @NonNull final Result<K> result) {
             return (model instanceof Observer.Write) ?
                     result.onComplete(new Result.Callback<K>() {
                         @Override
                         public void onResult(@NonNull final Maybe<K> key) {
                             if (key.getOrElse(null) != null) {
-                                Observer.afterCreate(model);
+                                Observer.afterInsert(model);
                             }
                         }
                     }) :

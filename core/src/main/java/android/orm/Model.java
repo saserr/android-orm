@@ -294,23 +294,23 @@ public abstract class Model {
         }
 
         @Override
-        public final void beforeCreate() {
+        public final void beforeInsert() {
             for (final Instance.Writable instance : getWritableInstances(mModel)) {
                 if (instance instanceof Observer.Write) {
-                    ((Observer.Write) instance).beforeCreate();
+                    ((Observer.Write) instance).beforeInsert();
                 }
             }
-            mObserver.beforeCreate();
+            mObserver.beforeInsert();
         }
 
         @Override
-        public final void afterCreate() {
+        public final void afterInsert() {
             for (final Instance.Writable instance : getWritableInstances(mModel)) {
                 if (instance instanceof Observer.Write) {
-                    ((Observer.Write) instance).afterCreate();
+                    ((Observer.Write) instance).afterInsert();
                 }
             }
-            mObserver.afterCreate();
+            mObserver.afterInsert();
         }
 
         @Override
