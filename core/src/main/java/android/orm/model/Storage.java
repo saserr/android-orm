@@ -43,10 +43,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
 
     @NonNull
     private Maybe<V> mValue = nothing();
-    @Nullable
-    private Maybe<V> mSaving;
-    @Nullable
-    private Maybe<V> mSaved;
+    private boolean mSaving = false;
 
     protected Storage(@NonNls @NonNull final String name, @Nullable final Observer.Write observer) {
         super();
@@ -74,16 +71,12 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
     public final Writer prepareWriter() {
         final Writer result;
 
-        if (mValue.equals(mSaved)) {
+        if (mSaving) {
+            Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
             result = Writer.Empty;
         } else {
-            if (mSaving == null) {
-                mSaving = mValue;
-                result = prepareWriter(mValue);
-            } else {
-                Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
-                result = Writer.Empty;
-            }
+            mSaving = true;
+            result = prepareWriter(mValue);
         }
 
         return result;
@@ -116,8 +109,7 @@ public abstract class Storage<V> extends Instance.Writable.Base implements Obser
 
     @Override
     public final void afterSave() {
-        mSaved = mSaving;
-        mSaving = null;
+        mSaving = false;
         mObserver.afterSave();
     }
 

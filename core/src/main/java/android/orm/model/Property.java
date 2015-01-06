@@ -115,16 +115,12 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
     public final Writer prepareWriter() {
         final Writer result;
 
-        if (mValue.equals(mSaved)) {
-            result = Writer.Empty;
+        if (mSaving == null) {
+            mSaving = mValue;
+            result = prepareWriter(mValue);
         } else {
-            if (mSaving == null) {
-                mSaving = mValue;
-                result = prepareWriter(mValue);
-            } else {
-                Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
-                result = Writer.Empty;
-            }
+            Log.w(TAG, mName + " is being already saved! This call creates a race condition which value will actually be saved in the database and thus will be ignored.", new Throwable()); //NON-NLS
+            result = Writer.Empty;
         }
 
         return result;
@@ -167,8 +163,11 @@ public abstract class Property<V> extends Instance.ReadWrite.Base implements Obs
 
     @Override
     public final void afterSave() {
-        mSaved = mSaving;
-        mSaving = null;
+        if (mSaving != null) {
+            mSaved = mSaving;
+            mSaving = null;
+        }
+
         mObserver.afterSave();
     }
 

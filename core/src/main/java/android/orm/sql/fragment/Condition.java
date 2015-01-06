@@ -59,10 +59,10 @@ public class Condition implements Fragment {
     @Nullable
     private final String mSQL;
 
-    public Condition(@NonNls @Nullable final String selection) {
+    public Condition(@NonNls @Nullable final String sql) {
         super();
 
-        mSQL = selection;
+        mSQL = sql;
     }
 
     public final boolean isEmpty() {
