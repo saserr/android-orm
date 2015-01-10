@@ -184,7 +184,7 @@ public final class Plan {
             private final Value.Read<M> mProducer;
             @NonNull
             private Select.Projection mCreateProjection;
-
+            @NonNull
             private final Collection<Function<M, Instance.Readable.Action>> mFactories;
 
             public Builder(@NonNull final Value.Read<M> producer) {

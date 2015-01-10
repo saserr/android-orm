@@ -28,7 +28,6 @@ import android.orm.sql.Types;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
-import android.orm.util.Function;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -593,106 +592,5 @@ public class Condition implements Fragment {
                 }
             }
         }
-    }
-
-    public interface Builder<V> {
-
-        @NonNull
-        Builder<V> not();
-
-        @NonNull
-        Builder<V> and(@NonNull final Condition other);
-
-        @NonNull
-        Builder<V> and(@NonNull final Builder<? super V> other);
-
-        @NonNull
-        Builder<V> or(@NonNull final Condition other);
-
-        @NonNull
-        Builder<V> or(@NonNull final Builder<? super V> other);
-
-        @NonNull
-        Condition build(@NonNull final V value);
-
-        Builder<Object> None = builder(new Function<Object, Condition>() {
-            @NonNull
-            @Override
-            public Condition invoke(@NonNull final Object argument) {
-                return Condition.None;
-            }
-        });
-    }
-
-    @NonNull
-    public static <V> Builder<V> builder(@NonNull final Function<V, Condition> factory) {
-        return new Builder<V>() {
-
-            @NonNull
-            @Override
-            public Builder<V> not() {
-                return builder(new Function<V, Condition>() {
-                    @NonNull
-                    @Override
-                    public Condition invoke(@NonNull final V value) {
-                        return factory.invoke(value).not();
-                    }
-                });
-            }
-
-            @NonNull
-            @Override
-            public Builder<V> and(@NonNull final Condition other) {
-                return builder(new Function<V, Condition>() {
-                    @NonNull
-                    @Override
-                    public Condition invoke(@NonNull final V value) {
-                        return factory.invoke(value).and(other);
-                    }
-                });
-            }
-
-            @NonNull
-            @Override
-            public Builder<V> and(@NonNull final Builder<? super V> other) {
-                return builder(new Function<V, Condition>() {
-                    @NonNull
-                    @Override
-                    public Condition invoke(@NonNull final V value) {
-                        return factory.invoke(value).and(other.build(value));
-                    }
-                });
-            }
-
-            @NonNull
-            @Override
-            public Builder<V> or(@NonNull final Condition other) {
-                return builder(new Function<V, Condition>() {
-                    @NonNull
-                    @Override
-                    public Condition invoke(@NonNull final V value) {
-                        return factory.invoke(value).or(other);
-                    }
-                });
-            }
-
-            @NonNull
-            @Override
-            public Builder<V> or(@NonNull final Builder<? super V> other) {
-                return builder(new Function<V, Condition>() {
-                    @NonNull
-                    @Override
-                    public Condition invoke(@NonNull final V value) {
-                        return factory.invoke(value).or(other.build(value));
-                    }
-                });
-            }
-
-            @NonNull
-            @Override
-            public Condition build(@NonNull final V value) {
-                return factory.invoke(value);
-            }
-        };
     }
 }

@@ -18,41 +18,74 @@ package android.orm.remote.route;
 
 import android.orm.sql.Column;
 import android.orm.sql.fragment.Condition;
-import android.orm.util.Function;
 import android.support.annotation.NonNull;
-
-import static android.orm.sql.Helper.escape;
 
 public final class Argument {
 
     @NonNull
     public static <V> Segment.Argument<V> isEqualTo(@NonNull final Column<V> column) {
-        return segment(validate(column), " = ");
+        return new Segment.Argument<V>(validate(column)) {
+            @NonNull
+            @Override
+            public Condition getCondition(@NonNull final V value) {
+                return Condition.on(column).isEqualTo(value);
+            }
+        };
     }
 
     @NonNull
     public static <V> Segment.Argument<V> isNotEqualTo(@NonNull final Column<V> column) {
-        return segment(validate(column), " <> ");
+        return new Segment.Argument<V>(validate(column)) {
+            @NonNull
+            @Override
+            public Condition getCondition(@NonNull final V value) {
+                return Condition.on(column).isNotEqualTo(value);
+            }
+        };
     }
 
     @NonNull
     public static <V> Segment.Argument<V> isLessThan(@NonNull final Column<V> column) {
-        return segment(validate(column), " > ");
+        return new Segment.Argument<V>(validate(column)) {
+            @NonNull
+            @Override
+            public Condition getCondition(@NonNull final V value) {
+                return Condition.on(column).isGreaterThan(value);
+            }
+        };
     }
 
     @NonNull
     public static <V> Segment.Argument<V> isLessOrEqualThan(@NonNull final Column<V> column) {
-        return segment(validate(column), " >= ");
+        return new Segment.Argument<V>(validate(column)) {
+            @NonNull
+            @Override
+            public Condition getCondition(@NonNull final V value) {
+                return Condition.on(column).isGreaterOrEqualThan(value);
+            }
+        };
     }
 
     @NonNull
     public static <V> Segment.Argument<V> isGreaterThan(@NonNull final Column<V> column) {
-        return segment(validate(column), " < ");
+        return new Segment.Argument<V>(validate(column)) {
+            @NonNull
+            @Override
+            public Condition getCondition(@NonNull final V value) {
+                return Condition.on(column).isLessThan(value);
+            }
+        };
     }
 
     @NonNull
     public static <V> Segment.Argument<V> isGreaterOrEqualThan(@NonNull final Column<V> column) {
-        return segment(validate(column), " <= ");
+        return new Segment.Argument<V>(validate(column)) {
+            @NonNull
+            @Override
+            public Condition getCondition(@NonNull final V value) {
+                return Condition.on(column).isLessOrEqualThan(value);
+            }
+        };
     }
 
     @NonNull
@@ -62,18 +95,6 @@ public final class Argument {
         }
 
         return column;
-    }
-
-    @NonNull
-    private static <V> Segment.Argument<V> segment(@NonNull final Column<V> column,
-                                                   @NonNull final String operation) {
-        return new Segment.Argument<>(column, Condition.builder(new Function<V, Condition>() {
-            @NonNull
-            @Override
-            public Condition invoke(@NonNull final V value) {
-                return new Condition(escape(column.getName()) + operation + column.escape(value));
-            }
-        }));
     }
 
     private Argument() {

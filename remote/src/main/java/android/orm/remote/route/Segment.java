@@ -56,7 +56,7 @@ public interface Segment {
         }
     }
 
-    class Argument<V> implements Segment {
+    abstract class Argument<V> implements Segment {
 
         @NonNull
         private final Column<V> mColumn;
@@ -65,14 +65,11 @@ public interface Segment {
         private final String mName;
         @NonNull
         private final Select.Projection mProjection;
-        @NonNull
-        private final Condition.Builder<V> mCondition;
         @NonNls
         @NonNull
         private final String mWildcard;
 
-        public Argument(@NonNull final Column<V> column,
-                        @NonNull final Condition.Builder<V> condition) {
+        protected Argument(@NonNull final Column<V> column) {
             super();
 
             mColumn = column;
@@ -80,8 +77,19 @@ public interface Segment {
             mProjection = column.getProjection();
             final Type.Primitive primitive = column.getType().getPrimitive();
             mWildcard = (primitive == Type.Primitive.Integer) ? "#" : "*";
-            mCondition = condition;
         }
+
+        private Argument(@NonNull final Argument<V> other) {
+            super();
+
+            mColumn = other.mColumn;
+            mName = other.mName;
+            mProjection = other.mProjection;
+            mWildcard = other.mWildcard;
+        }
+
+        @NonNull
+        public abstract Condition getCondition(@NonNull final V value);
 
         @NonNls
         @NonNull
@@ -113,11 +121,6 @@ public interface Segment {
         }
 
         @NonNull
-        public final Condition.Builder<V> getCondition() {
-            return mCondition;
-        }
-
-        @NonNull
         public final Maybe<V> read(@NonNull final Readable input) {
             return mColumn.read(input);
         }
@@ -130,17 +133,52 @@ public interface Segment {
 
         @NonNull
         public final Argument<V> not() {
-            return new Argument<>(mColumn, mCondition.not());
+            return not(this);
         }
 
         @NonNull
         public final Argument<V> and(@NonNull final Condition condition) {
-            return new Argument<>(mColumn, mCondition.and(condition));
+            return and(this, condition);
         }
 
         @NonNull
         public final Argument<V> or(@NonNull final Condition condition) {
-            return new Argument<>(mColumn, mCondition.or(condition));
+            return or(this, condition);
+        }
+
+        @NonNull
+        private static <V> Argument<V> not(final Argument<V> argument) {
+            return new Argument<V>(argument) {
+                @NonNull
+                @Override
+                public Condition getCondition(@NonNull final V value) {
+                    return argument.getCondition(value).not();
+                }
+            };
+        }
+
+        @NonNull
+        private static <V> Argument<V> and(@NonNull final Argument<V> argument,
+                                           @NonNull final Condition condition) {
+            return new Argument<V>(argument) {
+                @NonNull
+                @Override
+                public Condition getCondition(@NonNull final V value) {
+                    return argument.getCondition(value).and(condition);
+                }
+            };
+        }
+
+        @NonNull
+        private static <V> Argument<V> or(@NonNull final Argument<V> argument,
+                                          @NonNull final Condition condition) {
+            return new Argument<V>(argument) {
+                @NonNull
+                @Override
+                public Condition getCondition(@NonNull final V value) {
+                    return argument.getCondition(value).or(condition);
+                }
+            };
         }
     }
 }

@@ -40,7 +40,6 @@ import static android.orm.sql.Value.Write.Operation.Insert;
 import static android.orm.sql.Writables.writable;
 import static android.orm.util.Maybes.nothing;
 import static android.orm.util.Maybes.something;
-import static java.lang.System.arraycopy;
 
 public class Path {
 
@@ -66,21 +65,17 @@ public class Path {
     private final SparseArray<Segment.Argument<?>> mArguments;
     @NonNull
     private final Select.Projection mProjection;
-    @NonNull
-    private final Condition.Builder<?>[] mConditions;
 
     private Path(@NonNull final List<Segment> segments,
                  @NonNull final SparseArray<Segment.Argument<?>> arguments,
                  @NonNls @NonNull final String path,
-                 @NonNull final Select.Projection projection,
-                 @NonNull final Condition.Builder<?>... conditions) {
+                 @NonNull final Select.Projection projection) {
         super();
 
         mSegments = segments;
         mPath = path;
         mArguments = arguments;
         mProjection = projection;
-        mConditions = conditions;
     }
 
     @NonNull
@@ -108,7 +103,6 @@ public class Path {
 
         final SparseArray<Segment.Argument<?>> arguments;
         final Select.Projection projection;
-        final Condition.Builder<?>[] conditions;
 
         if (segment instanceof Segment.Argument) {
             final Segment.Argument<?> argument = (Segment.Argument<?>) segment;
@@ -120,17 +114,12 @@ public class Path {
             arguments.put(mSegments.size(), argument);
 
             projection = mProjection.and(argument.getProjection());
-
-            conditions = new Condition.Builder<?>[mConditions.length + 1];
-            arraycopy(mConditions, 0, conditions, 0, mConditions.length);
-            conditions[mConditions.length] = argument.getCondition();
         } else {
             arguments = mArguments;
             projection = mProjection;
-            conditions = mConditions;
         }
 
-        return new Path(segments, arguments, path, projection, conditions);
+        return new Path(segments, arguments, path, projection);
     }
 
     @NonNull
@@ -179,14 +168,15 @@ public class Path {
     @NonNull
     @SuppressWarnings("unchecked")
     public final Condition createCondition(@NonNull final Object... arguments) {
-        if (mConditions.length != arguments.length) {
-            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mConditions.length, arguments.length}));
+        final int length = arguments.length;
+        if (mArguments.size() != length) {
+            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mArguments.size(), length}));
         }
 
         Condition condition = Condition.None;
 
-        for (int i = 0; i < mConditions.length; i++) {
-            condition = condition.and(((Condition.Builder<Object>) mConditions[i]).build(arguments[i]));
+        for (int i = 0; i < length; i++) {
+            condition = condition.and(((Segment.Argument<Object>) mArguments.valueAt(i)).getCondition(arguments[i]));
         }
 
         return condition;
@@ -200,13 +190,13 @@ public class Path {
     @NonNull
     @SuppressWarnings("unchecked")
     public final ContentValues createValues(@NonNull final Object... arguments) {
-        if (mArguments.size() != arguments.length) {
-            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mArguments.size(), arguments.length}));
+        final int length = arguments.length;
+        if (mArguments.size() != length) {
+            throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mArguments.size(), length}));
         }
 
         final ContentValues result = new ContentValues();
 
-        final int length = arguments.length;
         if (length > 0) {
             final Writable output = writable(result);
             for (int i = 0; i < length; i++) {
