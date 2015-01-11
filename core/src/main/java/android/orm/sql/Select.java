@@ -223,8 +223,6 @@ public class Select {
         @NonNull
         Projection without(@NonNull final Set<String> names);
 
-        boolean isAny(@NonNull final Collection<String> columns);
-
         Projection Nothing = new Projection() {
 
             @Override
@@ -260,11 +258,6 @@ public class Select {
             @Override
             public Projection without(@NonNull final Set<String> names) {
                 return this;
-            }
-
-            @Override
-            public boolean isAny(@NonNull final Collection<String> columns) {
-                return false;
             }
         };
 
@@ -348,7 +341,6 @@ public class Select {
                         Nothing :
                         new Base() {
 
-                            private final Set<String> mNames = projection.keySet();
                             private final Lazy<String[]> mArray = projectionAsArray(projection);
 
                             @Override
@@ -366,13 +358,6 @@ public class Select {
                             @Override
                             public Map<String, String> asMap() {
                                 return projection;
-                            }
-
-                            @Override
-                            public boolean isAny(@NonNull final Collection<String> columns) {
-                                final Collection<String> difference = new HashSet<>(mNames);
-                                difference.retainAll(columns);
-                                return !difference.isEmpty();
                             }
                         };
             }

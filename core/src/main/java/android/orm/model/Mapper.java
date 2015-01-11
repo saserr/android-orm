@@ -87,14 +87,14 @@ public final class Mapper {
                 super();
 
                 mName = name;
-                mReader = Plan.Read.builder(name, producer);
+                mReader = Plan.Read.builder(producer);
             }
 
             public Builder(@NonNull final Value.Read<M> value) {
                 super();
 
                 mName = value.getName();
-                mReader = new Plan.Read.Builder<>(value);
+                mReader = new Plan.Read.Builder<>(Plan.Read.from(value));
             }
 
             @NonNull
@@ -138,7 +138,7 @@ public final class Mapper {
 
                     @NonNull
                     @Override
-                    public Reader.Element.Update<M> prepareReader(@NonNull final M model) {
+                    public Reader.Element<M> prepareReader(@NonNull final M model) {
                         return reader.build(model);
                     }
                 };

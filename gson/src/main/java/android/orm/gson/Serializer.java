@@ -93,7 +93,7 @@ public class Serializer<E extends JsonElement> extends Mapper.Read.Base<E> {
 
             mName = name;
             mGson = gson;
-            mReading = Plan.Read.builder(name, PRODUCER);
+            mReading = Plan.Read.builder(PRODUCER);
         }
 
         @NonNull

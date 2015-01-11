@@ -244,6 +244,8 @@ public interface Reader<V> {
                 private final Element<T> mSecond;
                 @NonNull
                 private final Select.Projection mProjection;
+                @NonNull
+                private final Function<Pair<Maybe<V>, Maybe<T>>, Maybe<Pair<V, T>>> mLift;
 
                 private Composition(@NonNull final Element<V> first,
                                     @NonNull final Element<T> second) {
@@ -252,6 +254,7 @@ public interface Reader<V> {
                     mFirst = first;
                     mSecond = second;
                     mProjection = mFirst.getProjection().and(mSecond.getProjection());
+                    mLift = Maybes.liftPair();
                 }
 
                 @NonNull
@@ -265,7 +268,7 @@ public interface Reader<V> {
                 public final Producer<Maybe<Pair<V, T>>> read(@NonNull final Readable input) {
                     final Producer<Maybe<V>> result1 = mFirst.read(input);
                     final Producer<Maybe<T>> result2 = mSecond.read(input);
-                    return Producers.convert(Producers.compose(result1, result2), Maybes.<V, T>liftPair());
+                    return Producers.convert(Producers.compose(result1, result2), mLift);
                 }
             }
 

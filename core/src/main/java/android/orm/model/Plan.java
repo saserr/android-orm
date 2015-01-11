@@ -31,8 +31,6 @@ import android.orm.util.Producers;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import org.jetbrains.annotations.NonNls;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -81,7 +79,7 @@ public final class Plan {
                 @NonNull
                 @Override
                 public Producer<Maybe<M>> read(@NonNull final Readable input) {
-                    return update(model, mAction, input);
+                    return lazy(model, mAction.read(input));
                 }
             };
         }
@@ -105,18 +103,10 @@ public final class Plan {
         }
 
         @NonNull
-        public static <M> Builder<M> builder(@NonNls @NonNull final String name,
-                                             @NonNull final Producer<M> producer) {
-            return new Builder<>(new Value.Read.Base<M>() {
+        public static <M> Builder<M> builder(@NonNull final Producer<M> producer) {
+            return new Builder<>(new Reader.Element.Create<M>() {
 
                 private final Producer<Maybe<M>> mProducer = Maybes.lift(producer);
-
-                @NonNls
-                @NonNull
-                @Override
-                public String getName() {
-                    return name;
-                }
 
                 @NonNull
                 @Override
@@ -126,41 +116,28 @@ public final class Plan {
 
                 @NonNull
                 @Override
-                public Maybe<M> read(@NonNull final android.orm.sql.Readable input) {
-                    return mProducer.produce();
+                public Producer<Maybe<M>> read(@NonNull final Readable input) {
+                    return mProducer;
                 }
             });
         }
 
-        @NonNull
-        private static <M> Producer<Maybe<M>> create(@NonNull final Value.Read<M> producer,
-                                                     @NonNull final Collection<Function<M, Instance.Readable.Action>> factories,
-                                                     @NonNull final Readable input) {
-            final Maybe<M> result = producer.read(input);
-            final Producer<Maybe<M>> product;
-
+        private static <M> void eager(@NonNull final Maybe<M> result,
+                                      @NonNull final Collection<Function<M, Instance.Readable.Action>> factories,
+                                      @NonNull final Readable input) {
             if (result.isSomething()) {
                 final M model = result.get();
-                if (model == null) {
-                    product = Producers.constant(result);
-                } else {
+                if (model != null) {
                     for (final Function<M, Instance.Readable.Action> factory : factories) {
                         factory.invoke(model).read(input).run();
                     }
-
-                    product = Producers.constant(something(model));
                 }
-            } else {
-                product = Producers.constant(result);
             }
-
-            return product;
         }
 
         @NonNull
-        private static <M> Producer<Maybe<M>> update(@NonNull final M model,
-                                                     @NonNull final Instance.Readable.Action action,
-                                                     @NonNull final Readable input) {
+        private static <M> Producer<Maybe<M>> lazy(@NonNull final M model,
+                                                   @NonNull final Runnable update) {
             return new Producer<Maybe<M>>() {
 
                 private final Maybe<M> mResult = something(model);
@@ -170,7 +147,7 @@ public final class Plan {
                 @Override
                 public Maybe<M> produce() {
                     if (mNeedsExecution.getAndSet(false)) {
-                        action.read(input).run();
+                        update.run();
                     }
 
                     return mResult;
@@ -181,24 +158,24 @@ public final class Plan {
         public static class Builder<M> {
 
             @NonNull
-            private final Value.Read<M> mProducer;
+            private final Reader.Element.Create<M> mCreate;
             @NonNull
             private Select.Projection mCreateProjection;
             @NonNull
             private final Collection<Function<M, Instance.Readable.Action>> mFactories;
 
-            public Builder(@NonNull final Value.Read<M> producer) {
+            public Builder(@NonNull final Reader.Element.Create<M> create) {
                 super();
 
-                mProducer = producer;
-                mCreateProjection = producer.getProjection();
+                mCreate = create;
+                mCreateProjection = create.getProjection();
                 mFactories = new LinkedList<>();
             }
 
             public Builder(@NonNull final Builder<M> builder) {
                 super();
 
-                mProducer = builder.mProducer;
+                mCreate = builder.mCreate;
                 mCreateProjection = builder.mCreateProjection;
                 mFactories = new LinkedList<>(builder.mFactories);
             }
@@ -217,14 +194,22 @@ public final class Plan {
 
             @NonNull
             public final Reader.Element.Create<M> build() {
-                return build(mProducer, mCreateProjection, new ArrayList<>(mFactories));
+                return build(mCreate, mCreateProjection, new ArrayList<>(mFactories));
             }
 
             @NonNull
-            public final Reader.Element.Update<M> build(@NonNull final M model) {
-                return build(model, mProducer, new ArrayList<>(mFactories));
+            public final Reader.Element<M> build(@NonNull final M model) {
+                final Collection<Instance.Readable.Action> actions = new ArrayList<>(mFactories.size());
+                for (final Function<M, Instance.Readable.Action> factory : mFactories) {
+                    actions.add(factory.invoke(model));
+                }
+                final Instance.Readable.Action action = Instances.compose(actions);
+                return mCreate.getProjection().without(action.getProjection()).isEmpty() ?
+                        build(model, action) :
+                        build();
             }
 
+            @NonNull
             private Builder<M> with(@NonNull final Select.Projection projection,
                                     @NonNull final Function<M, Instance.Readable.Action> factory) {
                 mCreateProjection = mCreateProjection.and(projection);
@@ -233,7 +218,7 @@ public final class Plan {
             }
 
             @NonNull
-            private static <M> Reader.Element.Create<M> build(@NonNull final Value.Read<M> producer,
+            private static <M> Reader.Element.Create<M> build(@NonNull final Reader.Element.Create<M> create,
                                                               @NonNull final Select.Projection projection,
                                                               @NonNull final Collection<Function<M, Instance.Readable.Action>> factories) {
                 return new Reader.Element.Create<M>() {
@@ -247,22 +232,16 @@ public final class Plan {
                     @NonNull
                     @Override
                     public Producer<Maybe<M>> read(@NonNull final Readable input) {
-                        return create(producer, factories, input);
+                        final Maybe<M> result = create.read(input).produce();
+                        eager(result, factories, input);
+                        return Producers.constant(result);
                     }
                 };
             }
 
             @NonNull
             private static <M> Reader.Element.Update<M> build(@NonNull final M model,
-                                                              @NonNull final Value.Read<M> producer,
-                                                              @NonNull final Collection<Function<M, Instance.Readable.Action>> factories) {
-                final Collection<Instance.Readable.Action> actions = new ArrayList<>(factories.size());
-                for (final Function<M, Instance.Readable.Action> factory : factories) {
-                    actions.add(factory.invoke(model));
-                }
-                final Instance.Readable.Action action = Instances.compose(actions);
-                final Select.Projection producerOnly = producer.getProjection().without(action.getProjection());
-
+                                                              @NonNull final Instance.Readable.Action action) {
                 return new Reader.Element.Update<M>() {
 
                     @NonNull
@@ -274,9 +253,7 @@ public final class Plan {
                     @NonNull
                     @Override
                     public Producer<Maybe<M>> read(@NonNull final Readable input) {
-                        return producerOnly.isAny(input.getKeys()) ?
-                                create(producer, factories, input) :
-                                update(model, action, input);
+                        return lazy(model, action.read(input));
                     }
                 };
             }
