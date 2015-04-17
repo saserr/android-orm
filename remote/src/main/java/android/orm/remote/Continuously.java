@@ -54,10 +54,10 @@ import static android.orm.remote.dao.Executors.many;
 import static android.orm.remote.dao.Executors.single;
 import static java.lang.Runtime.getRuntime;
 
-public class Watchers {
+public class Continuously {
 
     @NonNls
-    private static final String ERROR_STOPPED = "DAO is stopped";
+    private static final String ERROR_STOPPED = "Continuously is stopped";
 
     @NonNull
     private final ContentResolver mResolver;
@@ -67,11 +67,11 @@ public class Watchers {
     private final Handler mHandler = new Handler();
     private final AtomicBoolean mStopped = new AtomicBoolean(false);
 
-    public Watchers(@NonNull final ContentResolver resolver) {
+    public Continuously(@NonNull final ContentResolver resolver) {
         this(resolver, Executors.Default.get());
     }
 
-    public Watchers(@NonNull final ContentResolver resolver, @NonNull final Executor executor) {
+    public Continuously(@NonNull final ContentResolver resolver, @NonNull final Executor executor) {
         super();
 
         mResolver = resolver;
@@ -322,7 +322,7 @@ public class Watchers {
 
             @NonNull
             @Override
-            public final Cancelable onChange(@NonNull final Result.Callback<? super M> callback) {
+            public final Cancelable andOnChange(@NonNull final Result.Callback<? super M> callback) {
                 return mObservable.onChange(new Watcher<>(mExecutor, mHandler, mModel, mReading, mCondition, mOrder, mLimit, mOffset, callback));
             }
         }

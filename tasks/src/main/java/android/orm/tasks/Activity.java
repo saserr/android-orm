@@ -22,7 +22,7 @@ import android.orm.Access;
 import android.orm.Remote;
 import android.orm.dao.ErrorHandler;
 import android.orm.dao.Result;
-import android.orm.remote.Watchers;
+import android.orm.remote.Continuously;
 import android.orm.sql.fragment.Condition;
 import android.orm.tasks.model.Task;
 import android.orm.tasks.view.Form;
@@ -52,7 +52,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     private static final String EDITED_TASK_STATE = "edited_task"; //NON-NLS
 
     private Remote.Async mDAO;
-    private Watchers mWatchers;
+    private Continuously mContinuously;
     private Access.Async.Many<Uri> mTasks;
     private long mEditedTask = Task.NoId;
 
@@ -113,7 +113,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
         super.onCreate(savedInstanceState);
 
         mDAO = ((Application) getApplication()).getDAO();
-        mWatchers = new Watchers(getContentResolver());
+        mContinuously = new Continuously(getContentResolver());
         mDAO.setErrorHandler(LogErrors);
         mTasks = mDAO.at(Tasks);
 
@@ -135,7 +135,7 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
             mList = (List) fragments.findFragmentById(R.id.tasks_list);
         }
 
-        mWatchers.at(Tasks).watch(Task.Mapper).onChange(mShowTasks);
+        mContinuously.at(Tasks).watch(Task.Mapper).andOnChange(mShowTasks);
     }
 
     @Override
@@ -189,19 +189,19 @@ public class Activity extends ActionBarActivity implements Form.Controller, List
     @Override
     public final void onResume() {
         super.onResume();
-        mWatchers.start();
+        mContinuously.start();
     }
 
     @Override
     public final void onPause() {
-        mWatchers.pause();
+        mContinuously.pause();
         super.onPause();
     }
 
     @Override
     public final void onDestroy() {
-        mWatchers.stop();
-        mWatchers = null;
+        mContinuously.stop();
+        mContinuously = null;
         mDAO = null;
         super.onDestroy();
     }

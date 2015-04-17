@@ -22,5 +22,5 @@ import android.support.annotation.NonNull;
 
 public interface Watchable<V> {
     @NonNull
-    Cancelable onChange(@NonNull final Result.Callback<? super V> callback);
+    Cancelable andOnChange(@NonNull final Result.Callback<? super V> callback);
 }

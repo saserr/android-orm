@@ -33,7 +33,7 @@ public class ArrayAdapter<V> extends android.widget.ArrayAdapter<V> {
                                                   @NonNull final Watchable<C> access) {
         super(context, layout, textView);
 
-        access.onChange(new Result.Callback<Collection<V>>() {
+        access.andOnChange(new Result.Callback<Collection<V>>() {
             @Override
             public void onResult(@NonNull final Maybe<Collection<V>> values) {
                 setNotifyOnChange(false);

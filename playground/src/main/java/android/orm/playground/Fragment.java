@@ -19,7 +19,7 @@ package android.orm.playground;
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.content.Context;
-import android.orm.remote.Watchers;
+import android.orm.remote.Continuously;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -28,14 +28,14 @@ import org.jetbrains.annotations.NonNls;
 public abstract class Fragment extends DialogFragment {
 
     @Nullable
-    private Watchers mDAO;
+    private Continuously mDAO;
 
     protected Fragment() {
         super();
     }
 
     @NonNull
-    protected abstract Watchers create(@NonNull final Context context);
+    protected abstract Continuously create(@NonNull final Context context);
 
     @Override
     public final void onAttach(@NonNull final Activity activity) {
@@ -71,7 +71,7 @@ public abstract class Fragment extends DialogFragment {
     }
 
     @NonNull
-    protected final Watchers getWatcher() {
+    protected final Continuously getWatcher() {
         if (mDAO == null) {
             throw new UnsupportedOperationException("You are accessing DAO too early or to late");
         }
