@@ -18,8 +18,8 @@ apply plugin: 'com.android.application'
 
 dependencies {
     compile(project(':remote'))
-    compile 'com.android.support:support-v4:21.0.3'
-    compile 'com.android.support:appcompat-v7:21.0.3'
+    compile 'com.android.support:support-v4:22.2.0'
+    compile 'com.android.support:appcompat-v7:22.2.0'
 }
 
 android {

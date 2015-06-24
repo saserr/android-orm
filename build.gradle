@@ -19,10 +19,10 @@ buildscript {
     project.ext {
         versionCode = 1
         versionName = "0.8"
-        compileSdkVersion = 21
-        buildToolsVersion = "21.1.2"
+        compileSdkVersion = 22
+        buildToolsVersion = "22.0.1"
         minSdkVersion = 5
-        targetSdkVersion = 21
+        targetSdkVersion = 22
         rootPackage = "android.orm"
         resourcePrefix = 'android_orm_'
     }
@@ -32,7 +32,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.0.0'
+        classpath 'com.android.tools.build:gradle:1.2.3'
     }
 }
 
