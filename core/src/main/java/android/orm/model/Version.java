@@ -21,7 +21,7 @@ import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -184,7 +184,7 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
         @NonNull
         private final Maybe<Long> mValue;
         @NonNull
-        private final Condition mOnUpdate;
+        private final Predicate mOnUpdate;
 
         private Write(@NonNull final Column<Long> column, @NonNull final Maybe<Long> value) {
             super();
@@ -194,13 +194,13 @@ public class Version extends Instance.ReadWrite.Base implements Observer.ReadWri
 
             final Long current = value.getOrElse(null);
             mOnUpdate = (current == null) ?
-                    Condition.Fail :
-                    Condition.on(column).isEqualTo(current);
+                    Predicate.Fail :
+                    Predicate.on(column).isEqualTo(current);
         }
 
         @NonNull
         @Override
-        public final Condition onUpdate() {
+        public final Predicate onUpdate() {
             return mOnUpdate;
         }
 

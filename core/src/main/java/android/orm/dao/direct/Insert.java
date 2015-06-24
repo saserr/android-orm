@@ -26,8 +26,8 @@ import android.orm.sql.Value;
 import android.orm.sql.Values;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
@@ -57,7 +57,7 @@ public class Insert implements Expression<Object> {
     };
 
     private static final String TAG = Insert.class.getSimpleName();
-    private static final Condition.ComplexPart.WithNull<Long> WHERE_ROW_ID = Condition.on(RowId);
+    private static final Predicate.ComplexPart.WithNull<Long> WHERE_ROW_ID = Predicate.on(RowId);
 
     @NonNull
     private final ObjectPool.Receipt<Insert> mReceipt;
@@ -110,8 +110,8 @@ public class Insert implements Expression<Object> {
                 if (remaining.isEmpty()) {
                     result = mKey.read(readable(values));
                 } else {
-                    final Condition condition = WHERE_ROW_ID.isEqualTo(id);
-                    final Select select = select(mTable).with(condition).with(Limit.Single).build();
+                    final Predicate predicate = WHERE_ROW_ID.isEqualTo(id);
+                    final Select select = select(mTable).with(predicate).with(Limit.Single).build();
                     final Readable input = select.execute(remaining, database);
                     if ((input == null) || !input.start()) {
                         result = nothing();
@@ -125,7 +125,7 @@ public class Insert implements Expression<Object> {
                 }
 
                 if (result.isNothing()) {
-                    throw new SQLException("Couldn't create item uri after insert");
+                    throw new SQLException("Couldn't read item's key after insert");
                 }
             } else {
                 result = nothing();

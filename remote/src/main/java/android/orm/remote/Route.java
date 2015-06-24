@@ -24,9 +24,9 @@ import android.orm.sql.Column;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
@@ -55,7 +55,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
     @NonNull
     private final String mTable;
     @NonNull
-    private final Condition mCondition;
+    private final Predicate mPredicate;
     @NonNull
     private final Path mPath;
     @NonNls
@@ -81,7 +81,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
     private Route(@NonNull final Manager manager,
                   @NonNls @NonNull final String table,
-                  @NonNull final Condition condition,
+                  @NonNull final Predicate predicate,
                   @Nullable final Order order,
                   @Nullable final Limit limit,
                   @NonNull final Path path) {
@@ -89,7 +89,7 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         mManager = manager;
         mTable = table;
-        mCondition = condition;
+        mPredicate = predicate;
         mOrder = order;
         mLimit = limit;
         mPath = path;
@@ -149,8 +149,8 @@ public abstract class Route extends Value.Read.Base<Uri> {
     }
 
     @NonNull
-    public final Condition createCondition(@NonNull final Object... arguments) {
-        return mCondition.and(mPath.createCondition(arguments));
+    public final Predicate createPredicate(@NonNull final Object... arguments) {
+        return mPredicate.and(mPath.createPredicate(arguments));
     }
 
     @NonNull
@@ -177,11 +177,11 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         public Many(@NonNull final Manager manager,
                     @NonNull final Single singleRoute,
-                    @NonNull final Condition condition,
+                    @NonNull final Predicate predicate,
                     @Nullable final Order order,
                     @Nullable final Limit limit,
                     @NonNull final Path path) {
-            super(manager, singleRoute.getTable(), condition, order, limit, path);
+            super(manager, singleRoute.getTable(), predicate, order, limit, path);
 
             mSingleRoute = singleRoute;
         }
@@ -200,18 +200,18 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         public Single(@NonNull final Manager manager,
                       @NonNls @NonNull final String table,
-                      @NonNull final Condition condition,
+                      @NonNull final Predicate predicate,
                       @NonNull final Path path) {
-            super(manager, table, condition, null, Limit.Single, path);
+            super(manager, table, predicate, null, Limit.Single, path);
 
             mSingleRoute = this;
         }
 
         public Single(@NonNull final Manager manager,
                       @NonNull final Single singleRoute,
-                      @NonNull final Condition condition,
+                      @NonNull final Predicate predicate,
                       @NonNull final Path path) {
-            super(manager, singleRoute.getTable(), condition, singleRoute.getOrder(), Limit.Single, path);
+            super(manager, singleRoute.getTable(), predicate, singleRoute.getOrder(), Limit.Single, path);
 
             mSingleRoute = singleRoute;
         }
@@ -294,39 +294,39 @@ public abstract class Route extends Value.Read.Base<Uri> {
                                @Nullable final Order order,
                                @Nullable final Limit limit,
                                @NonNull final Path path) {
-            return many(singleRoute, Condition.None, order, limit, path);
+            return many(singleRoute, Predicate.None, order, limit, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Condition condition,
+                               @NonNull final Predicate predicate,
                                @NonNull final Path path) {
-            return many(singleRoute, condition, null, null, path);
+            return many(singleRoute, predicate, null, null, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Condition condition,
+                               @NonNull final Predicate predicate,
                                @NonNull final Order order,
                                @NonNull final Path path) {
-            return many(singleRoute, condition, order, null, path);
+            return many(singleRoute, predicate, order, null, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Condition condition,
+                               @NonNull final Predicate predicate,
                                @NonNull final Limit limit,
                                @NonNull final Path path) {
-            return many(singleRoute, condition, null, limit, path);
+            return many(singleRoute, predicate, null, limit, path);
         }
 
         @NonNull
         public final Many many(@NonNull final Single singleRoute,
-                               @NonNull final Condition condition,
+                               @NonNull final Predicate predicate,
                                @Nullable final Order order,
                                @Nullable final Limit limit,
                                @NonNull final Path path) {
-            final Many route = new Many(this, singleRoute, condition, order, limit, path);
+            final Many route = new Many(this, singleRoute, predicate, order, limit, path);
             with(route);
             return route;
         }
@@ -343,14 +343,14 @@ public abstract class Route extends Value.Read.Base<Uri> {
 
         @NonNull
         public final Single single(@NonNls @NonNull final String table, @NonNull final Path path) {
-            return single(table, Condition.None, path);
+            return single(table, Predicate.None, path);
         }
 
         @NonNull
         public final Single single(@NonNls @NonNull final String table,
-                                   @NonNull final Condition condition,
+                                   @NonNull final Predicate predicate,
                                    @NonNull final Path path) {
-            final Single route = new Single(this, table, condition, path);
+            final Single route = new Single(this, table, predicate, path);
             with(route);
             return route;
         }
@@ -369,14 +369,14 @@ public abstract class Route extends Value.Read.Base<Uri> {
         @NonNull
         public final Single single(@NonNull final Single singleRoute,
                                    @NonNull final Path path) {
-            return single(singleRoute, Condition.None, path);
+            return single(singleRoute, Predicate.None, path);
         }
 
         @NonNull
         public final Single single(@NonNull final Single singleRoute,
-                                   @NonNull final Condition condition,
+                                   @NonNull final Predicate predicate,
                                    @NonNull final Path path) {
-            final Single route = new Single(this, singleRoute, condition, path);
+            final Single route = new Single(this, singleRoute, predicate, path);
             with(route);
             return route;
         }

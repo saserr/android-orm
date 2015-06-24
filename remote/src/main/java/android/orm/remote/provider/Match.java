@@ -27,9 +27,9 @@ import android.orm.remote.route.Path;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -53,7 +53,7 @@ public class Match {
 
     private Route.Single mSingleRoute;
     private ContentValues mOnInsert;
-    private Condition mCondition;
+    private Predicate mPredicate;
     @NonNls
     private String mTable;
     private String mOrder;
@@ -68,7 +68,7 @@ public class Match {
     public final void init(@NonNull final Route route, @NonNull final Uri uri) {
         mSingleRoute = route.getSingleRoute();
         final Path path = route.getPath();
-        mCondition = path.createCondition(uri);
+        mPredicate = path.createPredicate(uri);
         mOnInsert = path.createValues(uri);
         mTable = escape(route.getTable());
 
@@ -90,7 +90,7 @@ public class Match {
         try {
             final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
             builder.setTables(mTable);
-            final String where = mCondition.and(new Condition(selection)).toSQL();
+            final String where = mPredicate.and(new Predicate(selection)).toSQL();
             result = builder.query(database, projection, where, arguments, null, null, (order == null) ? mOrder : order, mLimit);
         } finally {
             clean();
@@ -130,7 +130,7 @@ public class Match {
         final int result;
 
         try {
-            final String where = mCondition.and(new Condition(selection)).toSQL();
+            final String where = mPredicate.and(new Predicate(selection)).toSQL();
             result = database.update(mTable, values, where, arguments);
         } finally {
             clean();
@@ -146,7 +146,7 @@ public class Match {
         final int result;
 
         try {
-            final String where = mCondition.and(new Condition(selection)).toSQL();
+            final String where = mPredicate.and(new Predicate(selection)).toSQL();
             result = database.delete(mTable, where, arguments);
         } finally {
             clean();
@@ -158,7 +158,7 @@ public class Match {
 
     private void clean() {
         mSingleRoute = null;
-        mCondition = null;
+        mPredicate = null;
         mOnInsert = null;
         mTable = null;
         mOrder = null;
@@ -194,8 +194,8 @@ public class Match {
 
             @NonNull
             @Override
-            public final Condition onUpdate() {
-                return Condition.None;
+            public final Predicate onUpdate() {
+                return Predicate.None;
             }
 
             @Override

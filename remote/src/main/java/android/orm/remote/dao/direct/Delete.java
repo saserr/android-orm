@@ -19,7 +19,7 @@ package android.orm.remote.dao.direct;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.orm.dao.async.ExecutionContext;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.ObjectPool;
@@ -42,7 +42,7 @@ public class Delete implements ExecutionContext.Task<Integer> {
 
     private ContentResolver mResolver;
     private Uri mUri;
-    private Condition mCondition;
+    private Predicate mPredicate;
 
     private Delete(@NonNull final ObjectPool.Receipt<Delete> receipt) {
         super();
@@ -52,10 +52,10 @@ public class Delete implements ExecutionContext.Task<Integer> {
 
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
-                           @NonNull final Condition condition) {
+                           @NonNull final Predicate predicate) {
         mResolver = resolver;
         mUri = uri;
-        mCondition = condition;
+        mPredicate = predicate;
     }
 
     @NonNull
@@ -64,11 +64,11 @@ public class Delete implements ExecutionContext.Task<Integer> {
         final int deleted;
 
         try {
-            deleted = mResolver.delete(mUri, mCondition.toSQL(), null);
+            deleted = mResolver.delete(mUri, mPredicate.toSQL(), null);
         } finally {
             mResolver = null;
             mUri = null;
-            mCondition = null;
+            mPredicate = null;
             mReceipt.yield();
         }
 

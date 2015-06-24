@@ -22,10 +22,10 @@ import android.orm.sql.Reader;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -43,26 +43,26 @@ public final class Executors {
     @NonNull
     public static <K> Executor.Direct.Single<K> single(@NonNull final android.orm.sql.Executor executor,
                                                        @NonNls @NonNull final String table,
-                                                       @NonNull final Condition condition,
+                                                       @NonNull final Predicate predicate,
                                                        @NonNull final ContentValues onInsert,
                                                        @NonNull final Value.Read<K> key) {
-        return new Single<>(executor, escape(table), condition, onInsert, key);
+        return new Single<>(executor, escape(table), predicate, onInsert, key);
     }
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
                                                    @NonNls @NonNull final String table,
                                                    @NonNull final Value.Read<K> key) {
-        return new Many<>(executor, escape(table), Condition.None, EMPTY, key);
+        return new Many<>(executor, escape(table), Predicate.None, EMPTY, key);
     }
 
     @NonNull
     public static <K> Executor.Direct.Many<K> many(@NonNull final android.orm.sql.Executor executor,
                                                    @NonNls @NonNull final String table,
-                                                   @NonNull final Condition condition,
+                                                   @NonNull final Predicate predicate,
                                                    @NonNull final ContentValues onInsert,
                                                    @NonNull final Value.Read<K> key) {
-        return new Many<>(executor, escape(table), condition, onInsert, key);
+        return new Many<>(executor, escape(table), predicate, onInsert, key);
     }
 
     private static class Single<K> extends Some<K, K> implements Executor.Direct.Single<K> {
@@ -73,7 +73,7 @@ public final class Executors {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Condition mCondition;
+        private final Predicate mPredicate;
         @NonNull
         private final ContentValues mOnInsert;
         @NonNull
@@ -81,14 +81,14 @@ public final class Executors {
 
         private Single(@NonNull final android.orm.sql.Executor executor,
                        @NonNls @NonNull final String table,
-                       @NonNull final Condition condition,
+                       @NonNull final Predicate predicate,
                        @NonNull final ContentValues onInsert,
                        @NonNull final Value.Read<K> key) {
-            super(executor, table, condition, onInsert, key);
+            super(executor, table, predicate, onInsert, key);
 
             mExecutor = executor;
             mTable = table;
-            mCondition = condition;
+            mPredicate = predicate;
             mOnInsert = onInsert;
             mKey = key;
         }
@@ -97,12 +97,12 @@ public final class Executors {
         @Override
         @SuppressWarnings("unchecked")
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                                         @NonNull final Condition condition,
+                                                         @NonNull final Predicate predicate,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
             final Select select = select(mTable)
-                    .with(mCondition.and(condition))
+                    .with(mPredicate.and(predicate))
                     .with(Limit.Single)
                     .build();
             final Query query = Query.Pool.borrow();
@@ -113,10 +113,10 @@ public final class Executors {
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final Maybe<K> update(@NonNull final Condition condition,
+        public final Maybe<K> update(@NonNull final Predicate predicate,
                                      @NonNull final Writer writer) {
             final Update.Single update = Update.Single.Pool.borrow();
-            update.init(mTable, mCondition.and(condition), writer, mOnInsert, mKey);
+            update.init(mTable, mPredicate.and(predicate), writer, mOnInsert, mKey);
             return (Maybe<K>) (Object) mExecutor.execute(update);
         }
     }
@@ -129,30 +129,30 @@ public final class Executors {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Condition mCondition;
+        private final Predicate mPredicate;
 
         private Many(@NonNull final android.orm.sql.Executor executor,
                      @NonNls @NonNull final String table,
-                     @NonNull final Condition condition,
+                     @NonNull final Predicate predicate,
                      @NonNull final ContentValues onInsert,
                      @NonNull final Value.Read<K> key) {
-            super(executor, table, condition, onInsert, key);
+            super(executor, table, predicate, onInsert, key);
 
             mExecutor = executor;
             mTable = table;
-            mCondition = condition;
+            mPredicate = predicate;
         }
 
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                                         @NonNull final Condition condition,
+                                                         @NonNull final Predicate predicate,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
             final Select select = select(mTable)
-                    .with(mCondition.and(condition))
+                    .with(mPredicate.and(predicate))
                     .with(order)
                     .with(limit)
                     .with(offset)
@@ -164,10 +164,10 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> update(@NonNull final Condition condition,
+        public final Maybe<Integer> update(@NonNull final Predicate predicate,
                                            @NonNull final Writer writer) {
             final Update.Many update = Update.Many.Pool.borrow();
-            update.init(mTable, mCondition.and(condition), writer);
+            update.init(mTable, mPredicate.and(predicate), writer);
             return mExecutor.execute(update);
         }
     }
@@ -180,7 +180,7 @@ public final class Executors {
         @NonNull
         private final String mTable;
         @NonNull
-        private final Condition mCondition;
+        private final Predicate mPredicate;
         @NonNull
         private final ContentValues mOnInsert;
         @NonNull
@@ -188,23 +188,23 @@ public final class Executors {
 
         protected Some(@NonNull final android.orm.sql.Executor executor,
                        @NonNls @NonNull final String table,
-                       @NonNull final Condition condition,
+                       @NonNull final Predicate predicate,
                        @NonNull final ContentValues onInsert,
                        @NonNull final Value.Read<K> key) {
             super();
 
             mExecutor = executor;
             mTable = table;
-            mCondition = condition;
+            mPredicate = predicate;
             mOnInsert = onInsert;
             mKey = key;
         }
 
         @NonNull
         @Override
-        public final Maybe<Boolean> exists(@NonNull final Condition condition) {
+        public final Maybe<Boolean> exists(@NonNull final Predicate predicate) {
             final Exists exists = Exists.Pool.borrow();
-            exists.init(mTable, mCondition.and(condition));
+            exists.init(mTable, mPredicate.and(predicate));
             return mExecutor.execute(exists);
         }
 
@@ -219,9 +219,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> delete(@NonNull final Condition condition) {
+        public final Maybe<Integer> delete(@NonNull final Predicate predicate) {
             final Delete delete = Delete.Pool.borrow();
-            delete.init(mTable, mCondition.and(condition));
+            delete.init(mTable, mPredicate.and(predicate));
             return mExecutor.execute(delete);
         }
     }

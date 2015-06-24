@@ -25,8 +25,8 @@ import android.orm.sql.Select;
 import android.orm.sql.Value;
 import android.orm.sql.Values;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.ObjectPool;
@@ -64,7 +64,7 @@ public final class Update {
 
         @NonNls
         private String mTable;
-        private Condition mCondition;
+        private Predicate mPredicate;
         private Writer mWriter;
         private ContentValues mAdditional;
         private Value.Read<Object> mKey;
@@ -77,16 +77,16 @@ public final class Update {
         }
 
         public final void init(@NonNls @NonNull final String table,
-                               @NonNull final Condition condition,
+                               @NonNull final Predicate predicate,
                                @NonNull final Writer writer,
                                @NonNull final ContentValues additional,
                                @NonNull final Value.Read<?> key) {
             mTable = table;
-            mCondition = condition.and(writer.onUpdate());
+            mPredicate = predicate.and(writer.onUpdate());
             mWriter = writer;
             mAdditional = additional;
             mKey = Values.safeCast(key);
-            mSelect = select(table).with(condition).with(Limit.Single).build();
+            mSelect = select(table).with(predicate).with(Limit.Single).build();
         }
 
         @NonNull
@@ -97,7 +97,7 @@ public final class Update {
             try {
                 final ContentValues values = new ContentValues();
                 mWriter.write(Update, writable(values));
-                final int updated = update(database, mTable, mCondition, values);
+                final int updated = update(database, mTable, mPredicate, values);
 
                 if (updated > 1) {
                     throw new SQLException("More than one row was updated");
@@ -129,7 +129,7 @@ public final class Update {
                 }
             } finally {
                 mTable = null;
-                mCondition = null;
+                mPredicate = null;
                 mWriter = null;
                 mAdditional = null;
                 mKey = null;
@@ -156,7 +156,7 @@ public final class Update {
 
         @NonNls
         private String mTable;
-        private Condition mCondition;
+        private Predicate mPredicate;
         private Writer mWriter;
 
         private Many(@NonNull final ObjectPool.Receipt<Many> receipt) {
@@ -166,10 +166,10 @@ public final class Update {
         }
 
         public final void init(@NonNls @NonNull final String table,
-                               @NonNull final Condition condition,
+                               @NonNull final Predicate predicate,
                                @NonNull final Writer writer) {
             mTable = table;
-            mCondition = condition.and(writer.onUpdate());
+            mPredicate = predicate.and(writer.onUpdate());
             mWriter = writer;
         }
 
@@ -181,10 +181,10 @@ public final class Update {
             try {
                 final ContentValues values = new ContentValues();
                 mWriter.write(Update, writable(values));
-                updated = update(database, mTable, mCondition, values);
+                updated = update(database, mTable, mPredicate, values);
             } finally {
                 mTable = null;
-                mCondition = null;
+                mPredicate = null;
                 mWriter = null;
                 mReceipt.yield();
             }
@@ -195,12 +195,12 @@ public final class Update {
 
     private static int update(@NonNull final SQLiteDatabase database,
                               @NonNls @NonNull final String table,
-                              @NonNull final Condition condition,
+                              @NonNull final Predicate predicate,
                               @NonNull final ContentValues values) {
         final int updated;
 
         if (values.size() > 0) {
-            updated = database.update(table, values, condition.toSQL(), null);
+            updated = database.update(table, values, predicate.toSQL(), null);
         } else {
             updated = 0;
             if (Log.isLoggable(TAG, INFO)) {

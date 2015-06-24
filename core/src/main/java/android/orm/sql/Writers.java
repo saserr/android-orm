@@ -16,7 +16,7 @@
 
 package android.orm.sql;
 
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.support.annotation.NonNull;
 
 public final class Writers {
@@ -31,14 +31,14 @@ public final class Writers {
         @NonNull
         private final Iterable<Writer> mWriters;
         @NonNull
-        private final Condition mOnUpdate;
+        private final Predicate mOnUpdate;
 
         private Composition(@NonNull final Iterable<Writer> writers) {
             super();
 
             mWriters = writers;
 
-            Condition onUpdate = Condition.None;
+            Predicate onUpdate = Predicate.None;
             for (final Writer writer : writers) {
                 onUpdate = onUpdate.and(writer.onUpdate());
             }
@@ -47,7 +47,7 @@ public final class Writers {
 
         @NonNull
         @Override
-        public final Condition onUpdate() {
+        public final Predicate onUpdate() {
             return mOnUpdate;
         }
 

@@ -16,7 +16,7 @@
 
 package android.orm.sql;
 
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -128,8 +128,8 @@ public final class Values {
 
         @NonNull
         @Override
-        public final Condition onUpdate() {
-            return Condition.None;
+        public final Predicate onUpdate() {
+            return Predicate.None;
         }
 
         @Override
@@ -163,8 +163,8 @@ public final class Values {
 
         @NonNull
         @Override
-        public final Condition onUpdate() {
-            return Condition.None;
+        public final Predicate onUpdate() {
+            return Predicate.None;
         }
 
         @Override
@@ -278,7 +278,7 @@ public final class Values {
         @NonNull
         private final String mName;
         @NonNull
-        private final Condition mOnUpdate;
+        private final Predicate mOnUpdate;
 
         private ValueComposition(@NonNull final Value first, @NonNull final Value second) {
             super();
@@ -298,7 +298,7 @@ public final class Values {
 
         @NonNull
         @Override
-        public final Condition onUpdate() {
+        public final Predicate onUpdate() {
             return mOnUpdate;
         }
 

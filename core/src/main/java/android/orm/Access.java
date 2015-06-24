@@ -24,10 +24,10 @@ import android.orm.sql.AggregateFunction;
 import android.orm.sql.Reader;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -70,7 +70,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Single with(@Nullable final Condition condition);
+                    Single with(@Nullable final Predicate predicate);
 
                     @NonNull
                     @Override
@@ -103,7 +103,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Many with(@Nullable final Condition condition);
+                    Many with(@Nullable final Predicate predicate);
 
                     @NonNull
                     @Override
@@ -244,7 +244,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Single with(@Nullable final Condition condition);
+                    Single with(@Nullable final Predicate predicate);
 
                     @NonNull
                     @Override
@@ -277,7 +277,7 @@ public final class Access {
 
                     @NonNull
                     @Override
-                    Many with(@Nullable final Condition condition);
+                    Many with(@Nullable final Predicate predicate);
 
                     @NonNull
                     @Override
@@ -390,7 +390,7 @@ public final class Access {
         R exists();
 
         @NonNull
-        R exists(@NonNull final Condition condition);
+        R exists(@NonNull final Predicate predicate);
     }
 
     public static final class Query {
@@ -417,7 +417,7 @@ public final class Access {
             public interface Single {
 
                 @NonNull
-                Single with(@Nullable final Condition condition);
+                Single with(@Nullable final Predicate predicate);
 
                 @NonNull
                 <V> Object select(@NonNull final Value.Read<V> value);
@@ -441,7 +441,7 @@ public final class Access {
             public interface Many {
 
                 @NonNull
-                Many with(@Nullable final Condition condition);
+                Many with(@Nullable final Predicate predicate);
 
                 @NonNull
                 Many with(@Nullable final Order order);
@@ -515,25 +515,25 @@ public final class Access {
         R update(@NonNull final Model model);
 
         @NonNull
-        R update(@NonNull final Condition condition, @NonNull final Model model);
+        R update(@NonNull final Predicate predicate, @NonNull final Model model);
 
         @NonNull
         R update(@NonNull final Instance.Writable model);
 
         @NonNull
-        R update(@NonNull final Condition condition, @NonNull final Instance.Writable model);
+        R update(@NonNull final Predicate predicate, @NonNull final Instance.Writable model);
 
         @NonNull
         R update(@NonNull final Writer writer);
 
         @NonNull
-        R update(@NonNull final Condition condition, @NonNull final Writer writer);
+        R update(@NonNull final Predicate predicate, @NonNull final Writer writer);
 
         @NonNull
         <M> R update(@Nullable final M model, @NonNull final Value.Write<M> value);
 
         @NonNull
-        <M> R update(@NonNull final Condition condition,
+        <M> R update(@NonNull final Predicate predicate,
                      @Nullable final M model,
                      @NonNull final Value.Write<M> value);
 
@@ -541,7 +541,7 @@ public final class Access {
         <M> R update(@Nullable final M model, @NonNull final Mapper.Write<M> mapper);
 
         @NonNull
-        <M> R update(@NonNull final Condition condition,
+        <M> R update(@NonNull final Predicate predicate,
                      @Nullable final M model,
                      @NonNull final Mapper.Write<M> mapper);
     }
@@ -552,7 +552,7 @@ public final class Access {
         R delete();
 
         @NonNull
-        R delete(@NonNull final Condition condition);
+        R delete(@NonNull final Predicate predicate);
     }
 
     public interface Some<E, I, D> extends Exists<E>, Insert<I>, Delete<D> {

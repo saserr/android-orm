@@ -26,10 +26,10 @@ import android.orm.sql.AggregateFunction;
 import android.orm.sql.Reader;
 import android.orm.sql.Readers;
 import android.orm.sql.Value;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
@@ -59,7 +59,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
     private Executor.Direct<?, ?> mDirect;
     private Reader.Collection<Object> mReader;
-    private Condition mCondition;
+    private Predicate mPredicate;
     private Order mOrder;
     private Limit mLimit;
     private Offset mOffset;
@@ -72,13 +72,13 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
     public final void init(@NonNull final Executor.Direct<?, ?> direct,
                            @NonNull final Reader.Collection<?> reader,
-                           @NonNull final Condition condition,
+                           @NonNull final Predicate predicate,
                            @Nullable final Order order,
                            @Nullable final Limit limit,
                            @Nullable final Offset offset) {
         mDirect = direct;
         mReader = Readers.safeCast(reader);
-        mCondition = condition;
+        mPredicate = predicate;
         mOrder = order;
         mLimit = limit;
         mOffset = offset;
@@ -90,11 +90,11 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
         final Maybe<Producer<Maybe<Object>>> result;
 
         try {
-            result = mDirect.query(mReader, mCondition, mOrder, mLimit, mOffset);
+            result = mDirect.query(mReader, mPredicate, mOrder, mLimit, mOffset);
         } finally {
             mDirect = null;
             mReader = null;
-            mCondition = null;
+            mPredicate = null;
             mOrder = null;
             mLimit = null;
             mOffset = null;
@@ -111,7 +111,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             private final Executor.Async<?, ?> mExecutor;
 
             @NonNull
-            private Condition mCondition = Condition.None;
+            private Predicate mPredicate = Predicate.None;
 
             public Single(@NonNull final Executor.Async<?, ?> executor) {
                 super();
@@ -121,8 +121,8 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
             @NonNull
             @Override
-            public final Single with(@Nullable final Condition condition) {
-                mCondition = (condition == null) ? Condition.None : condition;
+            public final Single with(@Nullable final Predicate predicate) {
+                mPredicate = (predicate == null) ? Predicate.None : predicate;
                 return this;
             }
 
@@ -163,7 +163,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             @Override
             public final <V> Result<V> select(@NonNull final Reader.Collection<V> reader) {
                 final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
-                return mExecutor.query(reader, mCondition, null, Limit.Single, null).flatMap(afterRead);
+                return mExecutor.query(reader, mPredicate, null, Limit.Single, null).flatMap(afterRead);
             }
         }
 
@@ -173,7 +173,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             private final Executor.Async<?, ?> mExecutor;
 
             @NonNull
-            private Condition mCondition = Condition.None;
+            private Predicate mPredicate = Predicate.None;
             @Nullable
             private Order mOrder;
             @Nullable
@@ -189,8 +189,8 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
 
             @NonNull
             @Override
-            public final Many with(@Nullable final Condition condition) {
-                mCondition = (condition == null) ? Condition.None : condition;
+            public final Many with(@Nullable final Predicate predicate) {
+                mPredicate = (predicate == null) ? Predicate.None : predicate;
                 return this;
             }
 
@@ -243,7 +243,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             @Override
             public final <V> Result<V> select(@NonNull final Reader.Collection<V> reader) {
                 final Function<Producer<Maybe<V>>, Maybe<V>> afterRead = afterRead();
-                return mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset).flatMap(afterRead);
+                return mExecutor.query(reader, mPredicate, mOrder, mLimit, mOffset).flatMap(afterRead);
             }
         }
 

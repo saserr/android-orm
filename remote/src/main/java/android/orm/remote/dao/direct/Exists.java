@@ -20,7 +20,7 @@ import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.orm.dao.async.ExecutionContext;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
@@ -44,7 +44,7 @@ public class Exists implements ExecutionContext.Task<Boolean> {
 
     private ContentResolver mResolver;
     private Uri mUri;
-    private Condition mCondition;
+    private Predicate mPredicate;
 
     private Exists(@NonNull final ObjectPool.Receipt<Exists> receipt) {
         super();
@@ -54,10 +54,10 @@ public class Exists implements ExecutionContext.Task<Boolean> {
 
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
-                           @NonNull final Condition condition) {
+                           @NonNull final Predicate predicate) {
         mResolver = resolver;
         mUri = uri;
-        mCondition = condition;
+        mPredicate = predicate;
     }
 
     @NonNull
@@ -67,12 +67,12 @@ public class Exists implements ExecutionContext.Task<Boolean> {
 
         Cursor cursor = null;
         try {
-            cursor = mResolver.query(mUri, PROJECTION, mCondition.toSQL(), null, null);
+            cursor = mResolver.query(mUri, PROJECTION, mPredicate.toSQL(), null, null);
             result = something((cursor != null) && (cursor.getCount() > 0));
         } finally {
             mResolver = null;
             mUri = null;
-            mCondition = null;
+            mPredicate = null;
             mReceipt.yield();
 
             if (cursor != null) {

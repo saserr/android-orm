@@ -22,7 +22,7 @@ import android.orm.sql.Select;
 import android.orm.sql.Type;
 import android.orm.sql.Value;
 import android.orm.sql.Writable;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 
@@ -89,7 +89,7 @@ public interface Segment {
         }
 
         @NonNull
-        public abstract Condition getCondition(@NonNull final V value);
+        public abstract Predicate getPredicate(@NonNull final V value);
 
         @NonNls
         @NonNull
@@ -137,13 +137,13 @@ public interface Segment {
         }
 
         @NonNull
-        public final Argument<V> and(@NonNull final Condition condition) {
-            return and(this, condition);
+        public final Argument<V> and(@NonNull final Predicate predicate) {
+            return and(this, predicate);
         }
 
         @NonNull
-        public final Argument<V> or(@NonNull final Condition condition) {
-            return or(this, condition);
+        public final Argument<V> or(@NonNull final Predicate predicate) {
+            return or(this, predicate);
         }
 
         @NonNull
@@ -151,32 +151,32 @@ public interface Segment {
             return new Argument<V>(argument) {
                 @NonNull
                 @Override
-                public Condition getCondition(@NonNull final V value) {
-                    return argument.getCondition(value).not();
+                public Predicate getPredicate(@NonNull final V value) {
+                    return argument.getPredicate(value).not();
                 }
             };
         }
 
         @NonNull
         private static <V> Argument<V> and(@NonNull final Argument<V> argument,
-                                           @NonNull final Condition condition) {
+                                           @NonNull final Predicate predicate) {
             return new Argument<V>(argument) {
                 @NonNull
                 @Override
-                public Condition getCondition(@NonNull final V value) {
-                    return argument.getCondition(value).and(condition);
+                public Predicate getPredicate(@NonNull final V value) {
+                    return argument.getPredicate(value).and(predicate);
                 }
             };
         }
 
         @NonNull
         private static <V> Argument<V> or(@NonNull final Argument<V> argument,
-                                          @NonNull final Condition condition) {
+                                          @NonNull final Predicate predicate) {
             return new Argument<V>(argument) {
                 @NonNull
                 @Override
-                public Condition getCondition(@NonNull final V value) {
-                    return argument.getCondition(value).or(condition);
+                public Predicate getPredicate(@NonNull final V value) {
+                    return argument.getPredicate(value).or(predicate);
                 }
             };
         }

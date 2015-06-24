@@ -23,10 +23,10 @@ import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Reader;
 import android.orm.sql.Readers;
 import android.orm.sql.Select;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
 import android.orm.util.Producer;
@@ -58,7 +58,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     private ContentResolver mResolver;
     private Uri mUri;
     private Reader.Collection<Object> mReader;
-    private Condition mCondition;
+    private Predicate mPredicate;
     private Order mOrder;
     private Limit mLimit;
     private Offset mOffset;
@@ -73,22 +73,22 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
                            @NonNull final Reader.Collection<?> reader,
-                           @NonNull final Condition condition) {
-        init(resolver, uri, reader, condition, null, null, null);
+                           @NonNull final Predicate predicate) {
+        init(resolver, uri, reader, predicate, null, null, null);
     }
 
     @SuppressWarnings("unchecked")
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
                            @NonNull final Reader.Collection<?> reader,
-                           @NonNull final Condition condition,
+                           @NonNull final Predicate predicate,
                            @Nullable final Order order,
                            @Nullable final Limit limit,
                            @Nullable final Offset offset) {
         mResolver = resolver;
         mUri = uri;
         mReader = Readers.safeCast(reader);
-        mCondition = condition;
+        mPredicate = predicate;
         mOrder = order;
         mLimit = limit;
         mOffset = offset;
@@ -108,7 +108,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
                     Log.i(TAG, "Nothing was queried"); //NON-NLS
                 }
             } else {
-                final String where = mCondition.toSQL();
+                final String where = mPredicate.toSQL();
                 final String order = (mOrder == null) ? null : mOrder.toSQL();
                 final Cursor cursor = mResolver.query(mUri, projection.asArray(), where, null, order);
                 if (cursor == null) {
@@ -125,7 +125,7 @@ public class Query implements ExecutionContext.Task<Producer<Maybe<Object>>> {
             mResolver = null;
             mUri = null;
             mReader = null;
-            mCondition = null;
+            mPredicate = null;
             mOrder = null;
             mLimit = null;
             mOffset = null;

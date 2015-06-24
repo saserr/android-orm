@@ -22,7 +22,7 @@ import android.orm.sql.Column;
 import android.orm.sql.Readable;
 import android.orm.sql.Select;
 import android.orm.sql.Writable;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -161,25 +161,25 @@ public class Path {
     }
 
     @NonNull
-    public final Condition createCondition(@NonNull final Uri uri) {
-        return createCondition(parseArguments(uri));
+    public final Predicate createPredicate(@NonNull final Uri uri) {
+        return createPredicate(parseArguments(uri));
     }
 
     @NonNull
     @SuppressWarnings("unchecked")
-    public final Condition createCondition(@NonNull final Object... arguments) {
+    public final Predicate createPredicate(@NonNull final Object... arguments) {
         final int length = arguments.length;
         if (mArguments.size() != length) {
             throw new IllegalArgumentException(WRONG_ARGUMENTS_ERROR.format(new Object[]{mArguments.size(), length}));
         }
 
-        Condition condition = Condition.None;
+        Predicate predicate = Predicate.None;
 
         for (int i = 0; i < length; i++) {
-            condition = condition.and(((Segment.Argument<Object>) mArguments.valueAt(i)).getCondition(arguments[i]));
+            predicate = predicate.and(((Segment.Argument<Object>) mArguments.valueAt(i)).getPredicate(arguments[i]));
         }
 
-        return condition;
+        return predicate;
     }
 
     @NonNull

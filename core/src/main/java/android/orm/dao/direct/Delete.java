@@ -18,7 +18,7 @@ package android.orm.dao.direct;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Expression;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.ObjectPool;
@@ -41,7 +41,7 @@ public class Delete implements Expression<Integer> {
 
     @NonNls
     private String mTable;
-    private Condition mCondition;
+    private Predicate mPredicate;
 
     private Delete(@NonNull final ObjectPool.Receipt<Delete> receipt) {
         super();
@@ -50,9 +50,9 @@ public class Delete implements Expression<Integer> {
     }
 
     public final void init(@NonNls @NonNull final String table,
-                           @NonNull final Condition condition) {
+                           @NonNull final Predicate predicate) {
         mTable = table;
-        mCondition = condition;
+        mPredicate = predicate;
     }
 
     @NonNull
@@ -61,10 +61,10 @@ public class Delete implements Expression<Integer> {
         final int deleted;
 
         try {
-            deleted = database.delete(mTable, mCondition.toSQL(), null);
+            deleted = database.delete(mTable, mPredicate.toSQL(), null);
         } finally {
             mTable = null;
-            mCondition = null;
+            mPredicate = null;
             mReceipt.yield();
         }
 

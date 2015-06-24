@@ -20,7 +20,7 @@ import android.net.Uri;
 import android.orm.dao.Executor;
 import android.orm.sql.Reader;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
@@ -60,9 +60,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Uri> update(@NonNull final Condition condition,
+        public final Maybe<Uri> update(@NonNull final Predicate predicate,
                                        @NonNull final Writer writer) {
-            final Maybe<Uri> result = mExecutor.update(condition, writer);
+            final Maybe<Uri> result = mExecutor.update(predicate, writer);
             notifyChange(result);
             return result;
         }
@@ -83,9 +83,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> update(@NonNull final Condition condition,
+        public final Maybe<Integer> update(@NonNull final Predicate predicate,
                                            @NonNull final Writer writer) {
-            final Maybe<Integer> result = mExecutor.update(condition, writer);
+            final Maybe<Integer> result = mExecutor.update(predicate, writer);
             notifyIfChanged(result);
             return result;
         }
@@ -112,18 +112,18 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Boolean> exists(@NonNull final Condition condition) {
-            return mExecutor.exists(condition);
+        public final Maybe<Boolean> exists(@NonNull final Predicate predicate) {
+            return mExecutor.exists(predicate);
         }
 
         @NonNull
         @Override
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                                         @NonNull final Condition condition,
+                                                         @NonNull final Predicate predicate,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
-            return mExecutor.query(reader, condition, order, limit, offset);
+            return mExecutor.query(reader, predicate, order, limit, offset);
         }
 
         @NonNull
@@ -136,8 +136,8 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> delete(@NonNull final Condition condition) {
-            final Maybe<Integer> result = mExecutor.delete(condition);
+        public final Maybe<Integer> delete(@NonNull final Predicate predicate) {
+            final Maybe<Integer> result = mExecutor.delete(predicate);
             notifyIfChanged(result);
             return result;
         }

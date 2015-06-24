@@ -17,7 +17,7 @@
 package android.orm.remote.route;
 
 import android.orm.sql.Column;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.support.annotation.NonNull;
 
 public final class Argument {
@@ -27,8 +27,8 @@ public final class Argument {
         return new Segment.Argument<V>(validate(column)) {
             @NonNull
             @Override
-            public Condition getCondition(@NonNull final V value) {
-                return Condition.on(column).isEqualTo(value);
+            public Predicate getPredicate(@NonNull final V value) {
+                return Predicate.on(column).isEqualTo(value);
             }
         };
     }
@@ -38,8 +38,8 @@ public final class Argument {
         return new Segment.Argument<V>(validate(column)) {
             @NonNull
             @Override
-            public Condition getCondition(@NonNull final V value) {
-                return Condition.on(column).isNotEqualTo(value);
+            public Predicate getPredicate(@NonNull final V value) {
+                return Predicate.on(column).isNotEqualTo(value);
             }
         };
     }
@@ -49,8 +49,8 @@ public final class Argument {
         return new Segment.Argument<V>(validate(column)) {
             @NonNull
             @Override
-            public Condition getCondition(@NonNull final V value) {
-                return Condition.on(column).isGreaterThan(value);
+            public Predicate getPredicate(@NonNull final V value) {
+                return Predicate.on(column).isGreaterThan(value);
             }
         };
     }
@@ -60,8 +60,8 @@ public final class Argument {
         return new Segment.Argument<V>(validate(column)) {
             @NonNull
             @Override
-            public Condition getCondition(@NonNull final V value) {
-                return Condition.on(column).isGreaterOrEqualThan(value);
+            public Predicate getPredicate(@NonNull final V value) {
+                return Predicate.on(column).isGreaterOrEqualThan(value);
             }
         };
     }
@@ -71,8 +71,8 @@ public final class Argument {
         return new Segment.Argument<V>(validate(column)) {
             @NonNull
             @Override
-            public Condition getCondition(@NonNull final V value) {
-                return Condition.on(column).isLessThan(value);
+            public Predicate getPredicate(@NonNull final V value) {
+                return Predicate.on(column).isLessThan(value);
             }
         };
     }
@@ -82,8 +82,8 @@ public final class Argument {
         return new Segment.Argument<V>(validate(column)) {
             @NonNull
             @Override
-            public Condition getCondition(@NonNull final V value) {
-                return Condition.on(column).isLessOrEqualThan(value);
+            public Predicate getPredicate(@NonNull final V value) {
+                return Predicate.on(column).isLessOrEqualThan(value);
             }
         };
     }

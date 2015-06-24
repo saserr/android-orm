@@ -21,10 +21,10 @@ import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.model.Reading;
 import android.orm.sql.Reader;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Future;
 import android.orm.util.Maybe;
@@ -52,7 +52,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
     @NonNull
     private final Reading<M> mReading;
     @NonNull
-    private final Condition mCondition;
+    private final Predicate mPredicate;
     @Nullable
     private final Order mOrder;
     @Nullable
@@ -73,7 +73,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
                    @NonNull final Handler handler,
                    @Nullable final M model,
                    @NonNull final Reading<M> reading,
-                   @NonNull final Condition condition,
+                   @NonNull final Predicate predicate,
                    @Nullable final Order order,
                    @Nullable final Limit limit,
                    @Nullable final Offset offset,
@@ -83,7 +83,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         mExecutor = executor;
         mHandler = handler;
         mReading = reading;
-        mCondition = condition;
+        mPredicate = predicate;
         mOrder = order;
         mLimit = limit;
         mOffset = offset;
@@ -121,7 +121,7 @@ public class Watcher<R, M extends R> implements Future.Callback<Maybe<Producer<M
         final Promise<Maybe<Producer<Maybe<M>>>> promise = new Promise<>();
         promise.getFuture().onComplete(mHandler, this);
         try {
-            promise.success(mExecutor.query(mReader.get(), mCondition, mOrder, mLimit, mOffset));
+            promise.success(mExecutor.query(mReader.get(), mPredicate, mOrder, mLimit, mOffset));
         } catch (final Throwable error) {
             promise.failure(error);
         }

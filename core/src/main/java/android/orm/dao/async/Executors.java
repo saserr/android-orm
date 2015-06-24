@@ -20,10 +20,10 @@ import android.orm.dao.Executor;
 import android.orm.dao.Result;
 import android.orm.sql.Reader;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -74,9 +74,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Result<Boolean> exists(@NonNull final Condition condition) {
+        public final Result<Boolean> exists(@NonNull final Predicate predicate) {
             final Exists exists = Exists.Pool.borrow();
-            exists.init(mDirect, condition);
+            exists.init(mDirect, predicate);
             return mExecutionContext.execute(exists);
         }
 
@@ -84,12 +84,12 @@ public final class Executors {
         @Override
         @SuppressWarnings("unchecked")
         public final <M> Result<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                                          @NonNull final Condition condition,
+                                                          @NonNull final Predicate predicate,
                                                           @Nullable final Order order,
                                                           @Nullable final Limit limit,
                                                           @Nullable final Offset offset) {
             final Query query = Query.Pool.borrow();
-            query.init(mDirect, reader, condition, order, limit, offset);
+            query.init(mDirect, reader, predicate, order, limit, offset);
             return (Result<Producer<Maybe<M>>>) (Object) mExecutionContext.execute(query);
         }
 
@@ -104,19 +104,19 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Result<Integer> delete(@NonNull final Condition condition) {
+        public final Result<Integer> delete(@NonNull final Predicate predicate) {
             final Delete delete = Delete.Pool.borrow();
-            delete.init(mDirect, condition);
+            delete.init(mDirect, predicate);
             return mExecutionContext.execute(delete);
         }
 
         @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public final Result<U> update(@NonNull final Condition condition,
+        public final Result<U> update(@NonNull final Predicate predicate,
                                       @NonNull final Writer writer) {
             final Update update = Update.Pool.borrow();
-            update.init(mDirect, condition, writer);
+            update.init(mDirect, predicate, writer);
             return (Result<U>) (Object) mExecutionContext.execute(update);
         }
     }

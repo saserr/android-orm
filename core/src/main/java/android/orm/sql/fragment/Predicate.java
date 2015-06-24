@@ -42,7 +42,7 @@ import static android.orm.sql.Types.Text;
 import static android.orm.sql.Value.Write.Operation.Visit;
 import static android.orm.util.Maybes.something;
 
-public class Condition implements Fragment {
+public class Predicate implements Fragment {
 
     @NonNls
     private static final MessageFormat NOT = new MessageFormat("not ({0})");
@@ -51,14 +51,14 @@ public class Condition implements Fragment {
     @NonNls
     private static final MessageFormat OR = new MessageFormat("({0}) or ({1})");
 
-    public static final Condition None = new Condition(null);
-    public static final Condition Fail = new Condition("0 <> 0");
+    public static final Predicate None = new Predicate(null);
+    public static final Predicate Fail = new Predicate("0 <> 0");
 
     @NonNls
     @Nullable
     private final String mSQL;
 
-    public Condition(@NonNls @Nullable final String sql) {
+    public Predicate(@NonNls @Nullable final String sql) {
         super();
 
         mSQL = sql;
@@ -69,35 +69,35 @@ public class Condition implements Fragment {
     }
 
     @NonNull
-    public final Condition not() {
-        return (mSQL == null) ? None : new Condition(NOT.format(new String[]{mSQL}));
+    public final Predicate not() {
+        return (mSQL == null) ? None : new Predicate(NOT.format(new String[]{mSQL}));
     }
 
     @NonNull
-    public final Condition and(@NonNull final Condition other) {
-        final Condition result;
+    public final Predicate and(@NonNull final Predicate other) {
+        final Predicate result;
 
         if (mSQL == null) {
             result = (other.mSQL == null) ? None : other;
         } else {
             result = (other.mSQL == null) ?
                     this :
-                    new Condition(AND.format(new String[]{mSQL, other.mSQL}));
+                    new Predicate(AND.format(new String[]{mSQL, other.mSQL}));
         }
 
         return result;
     }
 
     @NonNull
-    public final Condition or(@NonNull final Condition other) {
-        final Condition result;
+    public final Predicate or(@NonNull final Predicate other) {
+        final Predicate result;
 
         if (mSQL == null) {
             result = (other.mSQL == null) ? None : other;
         } else {
             result = (other.mSQL == null) ?
                     this :
-                    new Condition(OR.format(new String[]{mSQL, other.mSQL}));
+                    new Predicate(OR.format(new String[]{mSQL, other.mSQL}));
         }
 
         return result;
@@ -197,157 +197,157 @@ public class Condition implements Fragment {
         }
 
         @NonNull
-        public final Condition isNull() {
-            return new Condition(mEscapedName + " is null");
+        public final Predicate isNull() {
+            return new Predicate(mEscapedName + " is null");
         }
 
         @NonNull
-        public final Condition isNotNull() {
-            return new Condition(mEscapedName + " is not null");
+        public final Predicate isNotNull() {
+            return new Predicate(mEscapedName + " is not null");
         }
 
         @NonNull
-        public final Condition isEqualTo(@NonNull final V value) {
+        public final Predicate isEqualTo(@NonNull final V value) {
             return isEqualTo(escape(value));
         }
 
         @NonNull
-        public final Condition isEqualTo(@NonNull final Column<V> column) {
+        public final Predicate isEqualTo(@NonNull final Column<V> column) {
             return isEqualTo(escape(column));
         }
 
         @NonNull
-        public final Condition isNotEqualTo(@NonNull final V value) {
+        public final Predicate isNotEqualTo(@NonNull final V value) {
             return isNotEqualTo(escape(value));
         }
 
         @NonNull
-        public final Condition isNotEqualTo(@NonNull final Column<V> column) {
+        public final Predicate isNotEqualTo(@NonNull final Column<V> column) {
             return isNotEqualTo(escape(column));
         }
 
         @NonNull
-        public final Condition isLessThan(@NonNull final V value) {
+        public final Predicate isLessThan(@NonNull final V value) {
             return isLessThan(escape(value));
         }
 
         @NonNull
-        public final Condition isLessThan(@NonNull final Column<V> column) {
+        public final Predicate isLessThan(@NonNull final Column<V> column) {
             return isLessThan(escape(column));
         }
 
         @NonNull
-        public final Condition isLessOrEqualThan(@NonNull final V value) {
+        public final Predicate isLessOrEqualThan(@NonNull final V value) {
             return isLessOrEqualThan(escape(value));
         }
 
         @NonNull
-        public final Condition isLessOrEqualThan(@NonNull final Column<V> column) {
+        public final Predicate isLessOrEqualThan(@NonNull final Column<V> column) {
             return isLessOrEqualThan(escape(column));
         }
 
         @NonNull
-        public final Condition isGreaterThan(@NonNull final V value) {
+        public final Predicate isGreaterThan(@NonNull final V value) {
             return isGreaterThan(escape(value));
         }
 
         @NonNull
-        public final Condition isGreaterThan(@NonNull final Column<V> column) {
+        public final Predicate isGreaterThan(@NonNull final Column<V> column) {
             return isGreaterThan(escape(column));
         }
 
         @NonNull
-        public final Condition isGreaterOrEqualThan(@NonNull final V value) {
+        public final Predicate isGreaterOrEqualThan(@NonNull final V value) {
             return isGreaterOrEqualThan(escape(value));
         }
 
         @NonNull
-        public final Condition isGreaterOrEqualThan(@NonNull final Column<V> column) {
+        public final Predicate isGreaterOrEqualThan(@NonNull final Column<V> column) {
             return isGreaterOrEqualThan(escape(column));
         }
 
         @NonNull
-        public final Condition isBetween(@NonNull final V min, @NonNull final V max) {
+        public final Predicate isBetween(@NonNull final V min, @NonNull final V max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isBetween(@NonNull final Column<V> min, @NonNull final V max) {
+        public final Predicate isBetween(@NonNull final Column<V> min, @NonNull final V max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isBetween(@NonNull final V min, @NonNull final Column<V> max) {
+        public final Predicate isBetween(@NonNull final V min, @NonNull final Column<V> max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isBetween(@NonNull final Column<V> min,
+        public final Predicate isBetween(@NonNull final Column<V> min,
                                          @NonNull final Column<V> max) {
             return isBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isNotBetween(@NonNull final V min, @NonNull final V max) {
+        public final Predicate isNotBetween(@NonNull final V min, @NonNull final V max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isNotBetween(@NonNull final Column<V> min, @NonNull final V max) {
+        public final Predicate isNotBetween(@NonNull final Column<V> min, @NonNull final V max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isNotBetween(@NonNull final V min, @NonNull final Column<V> max) {
+        public final Predicate isNotBetween(@NonNull final V min, @NonNull final Column<V> max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        public final Condition isNotBetween(@NonNull final Column<V> min,
+        public final Predicate isNotBetween(@NonNull final Column<V> min,
                                             @NonNull final Column<V> max) {
             return isNotBetween(escape(min), escape(max));
         }
 
         @NonNull
-        private Condition isEqualTo(@NonNls @NonNull final String value) {
-            return new Condition(mEscapedName + " = " + value);
+        private Predicate isEqualTo(@NonNls @NonNull final String value) {
+            return new Predicate(mEscapedName + " = " + value);
         }
 
         @NonNull
-        private Condition isNotEqualTo(@NonNls @NonNull final String value) {
-            return new Condition(mEscapedName + " <> " + value);
+        private Predicate isNotEqualTo(@NonNls @NonNull final String value) {
+            return new Predicate(mEscapedName + " <> " + value);
         }
 
         @NonNull
-        private Condition isLessThan(@NonNls @NonNull final String value) {
-            return new Condition(mEscapedName + " < " + value);
+        private Predicate isLessThan(@NonNls @NonNull final String value) {
+            return new Predicate(mEscapedName + " < " + value);
         }
 
         @NonNull
-        private Condition isLessOrEqualThan(@NonNls @NonNull final String value) {
-            return new Condition(mEscapedName + " <= " + value);
+        private Predicate isLessOrEqualThan(@NonNls @NonNull final String value) {
+            return new Predicate(mEscapedName + " <= " + value);
         }
 
         @NonNull
-        private Condition isGreaterThan(@NonNls @NonNull final String value) {
-            return new Condition(mEscapedName + " > " + value);
+        private Predicate isGreaterThan(@NonNls @NonNull final String value) {
+            return new Predicate(mEscapedName + " > " + value);
         }
 
         @NonNull
-        private Condition isGreaterOrEqualThan(@NonNls @NonNull final String value) {
-            return new Condition(mEscapedName + " >= " + value);
+        private Predicate isGreaterOrEqualThan(@NonNls @NonNull final String value) {
+            return new Predicate(mEscapedName + " >= " + value);
         }
 
         @NonNull
-        private Condition isBetween(@NonNls @NonNull final String min,
+        private Predicate isBetween(@NonNls @NonNull final String min,
                                     @NonNls @NonNull final String max) {
-            return new Condition(mEscapedName + " between " + min + " and " + max);
+            return new Predicate(mEscapedName + " between " + min + " and " + max);
         }
 
         @NonNull
-        private Condition isNotBetween(@NonNls @NonNull final String min,
+        private Predicate isNotBetween(@NonNls @NonNull final String min,
                                        @NonNls @NonNull final String max) {
-            return new Condition(mEscapedName + " not between " + min + " and " + max);
+            return new Predicate(mEscapedName + " not between " + min + " and " + max);
         }
 
         @NonNls
@@ -376,33 +376,33 @@ public class Condition implements Fragment {
         }
 
         @NonNull
-        public final Condition isLike(@NonNull final String pattern) {
-            return new Condition(mEscapedName + " like " + escape(pattern));
+        public final Predicate isLike(@NonNull final String pattern) {
+            return new Predicate(mEscapedName + " like " + escape(pattern));
         }
 
         @NonNull
-        public final Condition isNotLike(@NonNull final String pattern) {
-            return new Condition(mEscapedName + " not like " + escape(pattern));
+        public final Predicate isNotLike(@NonNull final String pattern) {
+            return new Predicate(mEscapedName + " not like " + escape(pattern));
         }
 
         @NonNull
-        public final Condition isLikeGlob(@NonNull final String pattern) {
-            return new Condition(mEscapedName + " glob " + escape(pattern));
+        public final Predicate isLikeGlob(@NonNull final String pattern) {
+            return new Predicate(mEscapedName + " glob " + escape(pattern));
         }
 
         @NonNull
-        public final Condition isNotLikeGlob(@NonNull final String pattern) {
-            return new Condition(mEscapedName + " not glob " + escape(pattern));
+        public final Predicate isNotLikeGlob(@NonNull final String pattern) {
+            return new Predicate(mEscapedName + " not glob " + escape(pattern));
         }
 
         @NonNull
-        public final Condition isLikeRegexp(@NonNull final String pattern) {
-            return new Condition(mEscapedName + " regexp " + escape(pattern));
+        public final Predicate isLikeRegexp(@NonNull final String pattern) {
+            return new Predicate(mEscapedName + " regexp " + escape(pattern));
         }
 
         @NonNull
-        public final Condition isNotLikeRegexp(@NonNull final String pattern) {
-            return new Condition(mEscapedName + " not regexp " + escape(pattern));
+        public final Predicate isNotLikeRegexp(@NonNull final String pattern) {
+            return new Predicate(mEscapedName + " not regexp " + escape(pattern));
         }
     }
 
@@ -411,42 +411,42 @@ public class Condition implements Fragment {
         protected abstract void write(@NonNull final V v, @NonNull final Writable writable);
 
         @NonNull
-        public final Condition isEqualTo(@NonNull final V value) {
+        public final Predicate isEqualTo(@NonNull final V value) {
             final Builder builder = new Builder.IsEqualTo();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Condition isNotEqualTo(@NonNull final V value) {
+        public final Predicate isNotEqualTo(@NonNull final V value) {
             final Builder builder = new Builder.IsNotEqualTo();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Condition isLessThan(@NonNull final V value) {
+        public final Predicate isLessThan(@NonNull final V value) {
             final Builder builder = new Builder.IsLessThan();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Condition isLessOrEqualThan(@NonNull final V value) {
+        public final Predicate isLessOrEqualThan(@NonNull final V value) {
             final Builder builder = new Builder.IsLessOrEqualThan();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Condition isGreaterThan(@NonNull final V value) {
+        public final Predicate isGreaterThan(@NonNull final V value) {
             final Builder builder = new Builder.IsGreaterThan();
             write(value, builder);
             return builder.result();
         }
 
         @NonNull
-        public final Condition isGreaterOrEqualThan(@NonNull final V value) {
+        public final Predicate isGreaterOrEqualThan(@NonNull final V value) {
             final Builder builder = new Builder.IsGreaterOrEqualThan();
             write(value, builder);
             return builder.result();
@@ -458,14 +458,14 @@ public class Condition implements Fragment {
             protected abstract void write(@Nullable final V v, @NonNull final Writable writable);
 
             @NonNull
-            public final Condition isNull() {
+            public final Predicate isNull() {
                 final ComplexPart.Builder builder = new ComplexPart.Builder.IsEqualTo();
                 write(null, builder);
                 return builder.result();
             }
 
             @NonNull
-            public final Condition isNotNull() {
+            public final Predicate isNotNull() {
                 final ComplexPart.Builder builder = new ComplexPart.Builder.IsNotEqualTo();
                 write(null, builder);
                 return builder.result();
@@ -475,10 +475,10 @@ public class Condition implements Fragment {
         private abstract static class Builder implements Writable {
 
             @NonNull
-            private Condition mCondition = None;
+            private Predicate mPredicate = None;
 
             @Nullable
-            protected abstract <V> Condition operation(@NonNull final SimplePart<V> part,
+            protected abstract <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                        @Nullable final V value);
 
             @Override
@@ -501,8 +501,8 @@ public class Condition implements Fragment {
                 add(operation(new SimplePart<>(key, Real), value));
             }
 
-            private void add(@Nullable final Condition condition) {
-                mCondition = (condition == null) ? mCondition : mCondition.and(condition);
+            private void add(@Nullable final Predicate predicate) {
+                mPredicate = (predicate == null) ? mPredicate : mPredicate.and(predicate);
             }
 
             @Override
@@ -534,14 +534,14 @@ public class Condition implements Fragment {
             }
 
             @NonNull
-            public final Condition result() {
-                return mCondition;
+            public final Predicate result() {
+                return mPredicate;
             }
 
             public static class IsEqualTo extends ComplexPart.Builder {
                 @NonNull
                 @Override
-                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                protected final <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                         @Nullable final V value) {
                     return (value == null) ? part.isNull() : part.isEqualTo(value);
                 }
@@ -550,7 +550,7 @@ public class Condition implements Fragment {
             public static class IsNotEqualTo extends ComplexPart.Builder {
                 @NonNull
                 @Override
-                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                protected final <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                         @Nullable final V value) {
                     return (value == null) ? part.isNotNull() : part.isNotEqualTo(value);
                 }
@@ -559,7 +559,7 @@ public class Condition implements Fragment {
             public static class IsLessThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                protected final <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                         @Nullable final V value) {
                     return (value == null) ? null : part.isLessThan(value);
                 }
@@ -568,7 +568,7 @@ public class Condition implements Fragment {
             public static class IsLessOrEqualThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                protected final <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                         @Nullable final V value) {
                     return (value == null) ? null : part.isLessOrEqualThan(value);
                 }
@@ -577,7 +577,7 @@ public class Condition implements Fragment {
             public static class IsGreaterThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                protected final <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                         @Nullable final V value) {
                     return (value == null) ? null : part.isGreaterThan(value);
                 }
@@ -586,7 +586,7 @@ public class Condition implements Fragment {
             public static class IsGreaterOrEqualThan extends ComplexPart.Builder {
                 @Nullable
                 @Override
-                protected final <V> Condition operation(@NonNull final SimplePart<V> part,
+                protected final <V> Predicate operation(@NonNull final SimplePart<V> part,
                                                         @Nullable final V value) {
                     return (value == null) ? null : part.isGreaterOrEqualThan(value);
                 }

@@ -24,8 +24,8 @@ import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.sql.Reader;
 import android.orm.sql.Readers;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Consumer;
 import android.orm.util.Function;
 import android.orm.util.Functions;
@@ -62,7 +62,7 @@ public final class Access {
             beforeRead(model);
             final Reader.Collection<M> reader = Readers.single(model.getName(), Plan.Read.from(model));
             final Function<Producer<Maybe<M>>, Maybe<M>> afterRead = afterRead();
-            return mExecutor.query(reader, Condition.None, null, Limit.Single, null).flatMap(afterRead);
+            return mExecutor.query(reader, Predicate.None, null, Limit.Single, null).flatMap(afterRead);
         }
 
         @NonNull

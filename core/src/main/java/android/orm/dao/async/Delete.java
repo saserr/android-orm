@@ -17,7 +17,7 @@
 package android.orm.dao.async;
 
 import android.orm.dao.Executor;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
 import android.support.annotation.NonNull;
@@ -36,7 +36,7 @@ public class Delete implements ExecutionContext.Task<Integer> {
     private final ObjectPool.Receipt<Delete> mReceipt;
 
     private Executor.Direct<?, ?> mDirect;
-    private Condition mCondition;
+    private Predicate mPredicate;
 
     private Delete(@NonNull final ObjectPool.Receipt<Delete> receipt) {
         super();
@@ -45,9 +45,9 @@ public class Delete implements ExecutionContext.Task<Integer> {
     }
 
     public final void init(@NonNull final Executor.Direct<?, ?> direct,
-                           @NonNull final Condition condition) {
+                           @NonNull final Predicate predicate) {
         mDirect = direct;
-        mCondition = condition;
+        mPredicate = predicate;
     }
 
     @NonNull
@@ -56,10 +56,10 @@ public class Delete implements ExecutionContext.Task<Integer> {
         final Maybe<Integer> result;
 
         try {
-            result = mDirect.delete(mCondition);
+            result = mDirect.delete(mPredicate);
         } finally {
             mDirect = null;
-            mCondition = null;
+            mPredicate = null;
             mReceipt.yield();
         }
 

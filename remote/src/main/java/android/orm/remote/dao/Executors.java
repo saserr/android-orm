@@ -27,10 +27,10 @@ import android.orm.remote.dao.direct.Query;
 import android.orm.remote.dao.direct.Update;
 import android.orm.sql.Reader;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
@@ -95,10 +95,10 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Uri> update(@NonNull final Condition condition,
+        public final Maybe<Uri> update(@NonNull final Predicate predicate,
                                        @NonNull final Writer writer) {
             final Update update = Update.Pool.borrow();
-            update.init(mResolver, mUri, condition, writer);
+            update.init(mResolver, mUri, predicate, writer);
             return update.run().flatMap(mToUri);
         }
     }
@@ -119,10 +119,10 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> update(@NonNull final Condition condition,
+        public final Maybe<Integer> update(@NonNull final Predicate predicate,
                                            @NonNull final Writer writer) {
             final Update update = Update.Pool.borrow();
-            update.init(mResolver, mUri, condition, writer);
+            update.init(mResolver, mUri, predicate, writer);
             return update.run();
         }
     }
@@ -143,9 +143,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Boolean> exists(@NonNull final Condition condition) {
+        public final Maybe<Boolean> exists(@NonNull final Predicate predicate) {
             final Exists exists = Exists.Pool.borrow();
-            exists.init(mResolver, mUri, condition);
+            exists.init(mResolver, mUri, predicate);
             return exists.run();
         }
 
@@ -153,12 +153,12 @@ public final class Executors {
         @Override
         @SuppressWarnings("unchecked")
         public final <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                                         @NonNull final Condition condition,
+                                                         @NonNull final Predicate predicate,
                                                          @Nullable final Order order,
                                                          @Nullable final Limit limit,
                                                          @Nullable final Offset offset) {
             final Query query = Query.Pool.borrow();
-            query.init(mResolver, mUri, reader, condition, order, limit, offset);
+            query.init(mResolver, mUri, reader, predicate, order, limit, offset);
             return (Maybe<Producer<Maybe<M>>>) (Object) query.run();
         }
 
@@ -172,9 +172,9 @@ public final class Executors {
 
         @NonNull
         @Override
-        public final Maybe<Integer> delete(@NonNull final Condition condition) {
+        public final Maybe<Integer> delete(@NonNull final Predicate predicate) {
             final Delete delete = Delete.Pool.borrow();
-            delete.init(mResolver, mUri, condition);
+            delete.init(mResolver, mUri, predicate);
             return delete.run();
         }
     }

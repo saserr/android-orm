@@ -19,7 +19,7 @@ package android.orm.dao.direct;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.orm.sql.Expression;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.ObjectPool;
@@ -45,7 +45,7 @@ public class Exists implements Expression<Boolean> {
 
     @NonNls
     private String mTable;
-    private Condition mCondition;
+    private Predicate mPredicate;
 
     private Exists(@NonNull final ObjectPool.Receipt<Exists> receipt) {
         super();
@@ -54,9 +54,9 @@ public class Exists implements Expression<Boolean> {
     }
 
     public final void init(@NonNls @NonNull final String table,
-                           @NonNull final Condition condition) {
+                           @NonNull final Predicate predicate) {
         mTable = table;
-        mCondition = condition;
+        mPredicate = predicate;
     }
 
     @NonNull
@@ -65,7 +65,7 @@ public class Exists implements Expression<Boolean> {
         final Maybe<Boolean> result;
 
         try {
-            final Cursor cursor = database.query(mTable, PROJECTION, mCondition.toSQL(), null, null, null, null, SINGLE);
+            final Cursor cursor = database.query(mTable, PROJECTION, mPredicate.toSQL(), null, null, null, null, SINGLE);
             try {
                 result = Maybes.something(cursor.getCount() > 0);
             } finally {
@@ -73,7 +73,7 @@ public class Exists implements Expression<Boolean> {
             }
         } finally {
             mTable = null;
-            mCondition = null;
+            mPredicate = null;
             mReceipt.yield();
         }
 

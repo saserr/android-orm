@@ -33,10 +33,10 @@ import android.orm.remote.watch.executor.DispatcherPerUriExecutor;
 import android.orm.remote.watch.executor.LimitedSizeExecutor;
 import android.orm.sql.AggregateFunction;
 import android.orm.sql.Value;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Cancelable;
 import android.orm.util.Lazy;
 import android.os.Handler;
@@ -268,7 +268,7 @@ public class Continuously {
             private final Reading<M> mReading;
 
             @NonNull
-            private Condition mCondition = Condition.None;
+            private Predicate mPredicate = Predicate.None;
             @Nullable
             private Order mOrder;
             @Nullable
@@ -291,8 +291,8 @@ public class Continuously {
             }
 
             @NonNull
-            public final Query<M> with(@Nullable final Condition condition) {
-                mCondition = (condition == null) ? Condition.None : condition;
+            public final Query<M> with(@Nullable final Predicate predicate) {
+                mPredicate = (predicate == null) ? Predicate.None : predicate;
                 return this;
             }
 
@@ -323,7 +323,7 @@ public class Continuously {
             @NonNull
             @Override
             public final Cancelable andOnChange(@NonNull final Result.Callback<? super M> callback) {
-                return mObservable.onChange(new Watcher<>(mExecutor, mHandler, mModel, mReading, mCondition, mOrder, mLimit, mOffset, callback));
+                return mObservable.onChange(new Watcher<>(mExecutor, mHandler, mModel, mReading, mPredicate, mOrder, mLimit, mOffset, callback));
             }
         }
 

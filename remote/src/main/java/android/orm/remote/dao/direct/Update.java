@@ -21,7 +21,7 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.orm.dao.async.ExecutionContext;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Maybes;
 import android.orm.util.ObjectPool;
@@ -50,7 +50,7 @@ public class Update implements ExecutionContext.Task<Integer> {
 
     private ContentResolver mResolver;
     private Uri mUri;
-    private Condition mCondition;
+    private Predicate mPredicate;
     private Writer mWriter;
 
     private Update(@NonNull final ObjectPool.Receipt<Update> receipt) {
@@ -61,11 +61,11 @@ public class Update implements ExecutionContext.Task<Integer> {
 
     public final void init(@NonNull final ContentResolver resolver,
                            @NonNull final Uri uri,
-                           @NonNull final Condition condition,
+                           @NonNull final Predicate predicate,
                            @NonNull final Writer writer) {
         mResolver = resolver;
         mUri = uri;
-        mCondition = condition;
+        mPredicate = predicate;
         mWriter = writer;
     }
 
@@ -79,8 +79,8 @@ public class Update implements ExecutionContext.Task<Integer> {
             mWriter.write(Update, writable(values));
 
             if (values.size() > 0) {
-                final Condition condition = mCondition.and(mWriter.onUpdate());
-                updated = mResolver.update(mUri, values, condition.toSQL(), null);
+                final Predicate predicate = mPredicate.and(mWriter.onUpdate());
+                updated = mResolver.update(mUri, values, predicate.toSQL(), null);
             } else {
                 updated = 0;
                 if (Log.isLoggable(TAG, INFO)) {
@@ -90,7 +90,7 @@ public class Update implements ExecutionContext.Task<Integer> {
         } finally {
             mResolver = null;
             mUri = null;
-            mCondition = null;
+            mPredicate = null;
             mWriter = null;
             mReceipt.yield();
         }

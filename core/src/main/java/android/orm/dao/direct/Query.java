@@ -30,10 +30,10 @@ import android.orm.sql.Reader;
 import android.orm.sql.Readers;
 import android.orm.sql.Select;
 import android.orm.sql.Value;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.orm.util.Maybe;
 import android.orm.util.ObjectPool;
@@ -128,7 +128,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             private final Executor.Direct<?, ?> mExecutor;
 
             @NonNull
-            private Condition mCondition = Condition.None;
+            private Predicate mPredicate = Predicate.None;
 
             public Single(@NonNull final Executor.Direct<?, ?> executor) {
                 super();
@@ -138,8 +138,8 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
 
             @NonNull
             @Override
-            public final Single with(@Nullable final Condition condition) {
-                mCondition = (condition == null) ? Condition.None : condition;
+            public final Single with(@Nullable final Predicate predicate) {
+                mPredicate = (predicate == null) ? Predicate.None : predicate;
                 return this;
             }
 
@@ -179,7 +179,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <V> Maybe<V> select(@NonNull final Reader.Collection<V> reader) {
-                final Maybe<Producer<Maybe<V>>> result = mExecutor.query(reader, mCondition, null, Limit.Single, null);
+                final Maybe<Producer<Maybe<V>>> result = mExecutor.query(reader, mPredicate, null, Limit.Single, null);
                 return result.flatMap(Query.<V>afterRead());
             }
         }
@@ -190,7 +190,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             private final Executor.Direct<?, ?> mExecutor;
 
             @NonNull
-            private Condition mCondition = Condition.None;
+            private Predicate mPredicate = Predicate.None;
             @Nullable
             private Order mOrder;
             @Nullable
@@ -206,8 +206,8 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
 
             @NonNull
             @Override
-            public final Many with(@Nullable final Condition condition) {
-                mCondition = (condition == null) ? Condition.None : condition;
+            public final Many with(@Nullable final Predicate predicate) {
+                mPredicate = (predicate == null) ? Predicate.None : predicate;
                 return this;
             }
 
@@ -259,7 +259,7 @@ public class Query implements Expression<Producer<Maybe<Object>>> {
             @NonNull
             @Override
             public final <V> Maybe<V> select(@NonNull final Reader.Collection<V> reader) {
-                final Maybe<Producer<Maybe<V>>> result = mExecutor.query(reader, mCondition, mOrder, mLimit, mOffset);
+                final Maybe<Producer<Maybe<V>>> result = mExecutor.query(reader, mPredicate, mOrder, mLimit, mOffset);
                 return result.flatMap(Query.<V>afterRead());
             }
         }

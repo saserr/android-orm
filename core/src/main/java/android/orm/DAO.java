@@ -25,7 +25,7 @@ import android.orm.dao.Transaction;
 import android.orm.sql.Column;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.sql.table.PrimaryKey;
 import android.orm.sql.table.UniqueKey;
 import android.orm.util.Lazy;
@@ -47,12 +47,12 @@ import static java.lang.Runtime.getRuntime;
 
 public final class DAO {
 
-    private static final Condition.ComplexPart.WithNull<Long> WHERE_ROW_ID = Condition.on(RowId);
+    private static final Predicate.ComplexPart.WithNull<Long> WHERE_ROW_ID = Predicate.on(RowId);
 
     @NonNull
     public static Executor.Direct.Single.Factory<android.orm.sql.Executor, Long> byRowId(@NonNls @NonNull final String table,
                                                                                          final long rowId) {
-        final Condition condition = WHERE_ROW_ID.isEqualTo(rowId);
+        final Predicate predicate = WHERE_ROW_ID.isEqualTo(rowId);
         final ContentValues onInsert = new ContentValues();
         RowId.write(Insert, something(rowId), writable(onInsert));
 
@@ -60,7 +60,7 @@ public final class DAO {
             @NonNull
             @Override
             public Executor.Direct.Single<Long> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, condition, onInsert, RowId);
+                return single(executor, table, predicate, onInsert, RowId);
             }
         };
     }
@@ -80,9 +80,9 @@ public final class DAO {
     public static <K> Executor.Direct.Single.Factory<android.orm.sql.Executor, K> byPrimaryKey(@NonNls @NonNull final String table,
                                                                                                @NonNull final PrimaryKey<K> key,
                                                                                                @Nullable final K value) {
-        final Condition condition = (value == null) ?
-                Condition.on(key).isNull() :
-                Condition.on(key).isEqualTo(value);
+        final Predicate predicate = (value == null) ?
+                Predicate.on(key).isNull() :
+                Predicate.on(key).isEqualTo(value);
         final ContentValues onInsert = new ContentValues();
         key.write(Insert, something(value), writable(onInsert));
 
@@ -90,7 +90,7 @@ public final class DAO {
             @NonNull
             @Override
             public Executor.Direct.Single<K> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, condition, onInsert, key);
+                return single(executor, table, predicate, onInsert, key);
             }
         };
     }
@@ -131,9 +131,9 @@ public final class DAO {
     public static <V> Executor.Direct.Single.Factory<android.orm.sql.Executor, V> byUnique(@NonNls @NonNull final String table,
                                                                                            @NonNull final UniqueKey<V> uniqueKey,
                                                                                            @Nullable final V value) {
-        final Condition condition = (value == null) ?
-                Condition.on(uniqueKey).isNull() :
-                Condition.on(uniqueKey).isEqualTo(value);
+        final Predicate predicate = (value == null) ?
+                Predicate.on(uniqueKey).isNull() :
+                Predicate.on(uniqueKey).isEqualTo(value);
         final ContentValues onInsert = new ContentValues();
         uniqueKey.write(Insert, something(value), writable(onInsert));
 
@@ -141,7 +141,7 @@ public final class DAO {
             @NonNull
             @Override
             public Executor.Direct.Single<V> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, condition, onInsert, uniqueKey);
+                return single(executor, table, predicate, onInsert, uniqueKey);
             }
         };
     }

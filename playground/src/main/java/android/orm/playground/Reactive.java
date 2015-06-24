@@ -30,7 +30,7 @@ import android.orm.playground.reactive.Transaction;
 import android.orm.remote.Route;
 import android.orm.sql.Expression;
 import android.orm.sql.Statement;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -47,7 +47,7 @@ public final class Reactive {
     public static Executor.Direct.Single.Factory<android.orm.sql.Executor, Uri> at(@NonNull final Route.Single route,
                                                                                    @NonNull final Object... arguments) {
         final String table = route.getTable();
-        final Condition condition = route.createCondition(arguments);
+        final Predicate predicate = route.createPredicate(arguments);
         final ContentValues onInsert = route.createValues(arguments);
         final Route.Single key = route.getSingleRoute();
 
@@ -55,7 +55,7 @@ public final class Reactive {
             @NonNull
             @Override
             public Executor.Direct.Single<Uri> create(@NonNull final android.orm.sql.Executor executor) {
-                return single(executor, table, condition, onInsert, key);
+                return single(executor, table, predicate, onInsert, key);
             }
         };
     }
@@ -64,7 +64,7 @@ public final class Reactive {
     public static Executor.Direct.Many.Factory<android.orm.sql.Executor, Uri> at(@NonNull final Route.Many route,
                                                                                  @NonNull final Object... arguments) {
         final String table = route.getTable();
-        final Condition condition = route.createCondition(arguments);
+        final Predicate predicate = route.createPredicate(arguments);
         final ContentValues onInsert = route.createValues(arguments);
         final Route.Single key = route.getSingleRoute();
 
@@ -72,7 +72,7 @@ public final class Reactive {
             @NonNull
             @Override
             public Executor.Direct.Many<Uri> create(@NonNull final android.orm.sql.Executor executor) {
-                return many(executor, table, condition, onInsert, key);
+                return many(executor, table, predicate, onInsert, key);
             }
         };
     }

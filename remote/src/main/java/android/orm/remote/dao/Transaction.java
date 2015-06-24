@@ -26,7 +26,7 @@ import android.orm.model.Mapper;
 import android.orm.remote.Route;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -144,8 +144,8 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final Access update(@NonNull final Condition condition, @NonNull final Model model) {
-            return update(condition, Model.toInstance(model));
+        public final Access update(@NonNull final Predicate predicate, @NonNull final Model model) {
+            return update(predicate, Model.toInstance(model));
         }
 
         @NonNull
@@ -156,22 +156,22 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final Access update(@NonNull final Condition condition,
+        public final Access update(@NonNull final Predicate predicate,
                                    @NonNull final Instance.Writable model) {
-            return update(condition, model.prepareWriter());
+            return update(predicate, model.prepareWriter());
         }
 
         @NonNull
         @Override
         public final Access update(@NonNull final Writer writer) {
-            return update(Condition.None, writer);
+            return update(Predicate.None, writer);
         }
 
         @NonNull
         @Override
-        public final Access update(@NonNull final Condition condition,
+        public final Access update(@NonNull final Predicate predicate,
                                    @NonNull final Writer writer) {
-            mBatch.add(new Update(mUri, writer, condition));
+            mBatch.add(new Update(mUri, writer, predicate));
             return this;
         }
 
@@ -184,10 +184,10 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M> Access update(@NonNull final Condition condition,
+        public final <M> Access update(@NonNull final Predicate predicate,
                                        @Nullable final M model,
                                        @NonNull final Value.Write<M> value) {
-            return update(condition, value.write(model));
+            return update(predicate, value.write(model));
         }
 
         @NonNull
@@ -199,22 +199,22 @@ public abstract class Transaction<R> {
 
         @NonNull
         @Override
-        public final <M> Access update(@NonNull final Condition condition,
+        public final <M> Access update(@NonNull final Predicate predicate,
                                        @Nullable final M model,
                                        @NonNull final Mapper.Write<M> mapper) {
-            return update(condition, mapper.prepareWriter(something(model)));
+            return update(predicate, mapper.prepareWriter(something(model)));
         }
 
         @NonNull
         @Override
         public final Access delete() {
-            return delete(Condition.None);
+            return delete(Predicate.None);
         }
 
         @NonNull
         @Override
-        public final Access delete(@NonNull final Condition condition) {
-            mBatch.add(new Delete(mUri, condition));
+        public final Access delete(@NonNull final Predicate predicate) {
+            mBatch.add(new Delete(mUri, predicate));
             return this;
         }
     }
@@ -249,16 +249,16 @@ public abstract class Transaction<R> {
         @NonNull
         private final Writer mWriter;
         @NonNull
-        private final Condition mCondition;
+        private final Predicate mPredicate;
 
         private Update(@NonNull final Uri uri,
                        @NonNull final Writer writer,
-                       @NonNull final Condition condition) {
+                       @NonNull final Predicate predicate) {
             super();
 
             mUri = uri;
             mWriter = writer;
-            mCondition = condition;
+            mPredicate = predicate;
         }
 
         @NonNull
@@ -267,7 +267,7 @@ public abstract class Transaction<R> {
             final ContentValues values = new ContentValues();
             mWriter.write(Update, writable(values));
             return ContentProviderOperation.newUpdate(mUri)
-                    .withSelection(mCondition.toSQL(), null)
+                    .withSelection(mPredicate.toSQL(), null)
                     .withValues(values)
                     .build();
         }
@@ -278,20 +278,20 @@ public abstract class Transaction<R> {
         @NonNull
         private final Uri mUri;
         @NonNull
-        private final Condition mCondition;
+        private final Predicate mPredicate;
 
-        private Delete(@NonNull final Uri uri, @NonNull final Condition condition) {
+        private Delete(@NonNull final Uri uri, @NonNull final Predicate predicate) {
             super();
 
             mUri = uri;
-            mCondition = condition;
+            mPredicate = predicate;
         }
 
         @NonNull
         @Override
         public final ContentProviderOperation produce() {
             return ContentProviderOperation.newDelete(mUri)
-                    .withSelection(mCondition.toSQL(), null)
+                    .withSelection(mPredicate.toSQL(), null)
                     .build();
         }
     }

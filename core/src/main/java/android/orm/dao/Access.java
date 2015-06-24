@@ -21,7 +21,7 @@ import android.orm.model.Instance;
 import android.orm.model.Mapper;
 import android.orm.sql.Value;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -61,13 +61,13 @@ public final class Access {
         @NonNull
         @Override
         public final E exists() {
-            return exists(Condition.None);
+            return exists(Predicate.None);
         }
 
         @NonNull
         @Override
-        public final E exists(@NonNull final Condition condition) {
-            return mExecutor.exists(condition);
+        public final E exists(@NonNull final Predicate predicate) {
+            return mExecutor.exists(predicate);
         }
 
         @NonNull
@@ -114,8 +114,8 @@ public final class Access {
 
         @NonNull
         @Override
-        public final U update(@NonNull final Condition condition, @NonNull final Model model) {
-            return update(condition, Model.toInstance(model));
+        public final U update(@NonNull final Predicate predicate, @NonNull final Model model) {
+            return update(predicate, Model.toInstance(model));
         }
 
         @NonNull
@@ -127,9 +127,9 @@ public final class Access {
 
         @NonNull
         @Override
-        public final U update(@NonNull final Condition condition, @NonNull final Instance.Writable model) {
+        public final U update(@NonNull final Predicate predicate, @NonNull final Instance.Writable model) {
             beforeUpdate(model);
-            return update(model, condition, model.prepareWriter());
+            return update(model, predicate, model.prepareWriter());
         }
 
         @NonNull
@@ -141,10 +141,10 @@ public final class Access {
 
         @NonNull
         @Override
-        public final U update(@NonNull final Condition condition,
+        public final U update(@NonNull final Predicate predicate,
                               @NonNull final Writer writer) {
             beforeUpdate(writer);
-            return update(writer, condition, writer);
+            return update(writer, predicate, writer);
         }
 
         @NonNull
@@ -157,11 +157,11 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M> U update(@NonNull final Condition condition,
+        public final <M> U update(@NonNull final Predicate predicate,
                                   @Nullable final M model,
                                   @NonNull final Value.Write<M> value) {
             beforeUpdate(model);
-            return update(model, condition, value.write(model));
+            return update(model, predicate, value.write(model));
         }
 
         @NonNull
@@ -174,23 +174,23 @@ public final class Access {
 
         @NonNull
         @Override
-        public final <M> U update(@NonNull final Condition condition,
+        public final <M> U update(@NonNull final Predicate predicate,
                                   @Nullable final M model,
                                   @NonNull final Mapper.Write<M> mapper) {
             beforeUpdate(model);
-            return update(model, condition, mapper.prepareWriter(something(model)));
+            return update(model, predicate, mapper.prepareWriter(something(model)));
         }
 
         @NonNull
         @Override
         public final D delete() {
-            return delete(Condition.None);
+            return delete(Predicate.None);
         }
 
         @NonNull
         @Override
-        public final D delete(@NonNull final Condition condition) {
-            return mExecutor.delete(condition);
+        public final D delete(@NonNull final Predicate predicate) {
+            return mExecutor.delete(predicate);
         }
 
         @NonNull
@@ -200,14 +200,14 @@ public final class Access {
 
         @NonNull
         private U update(@Nullable final Object model, @NonNull final Writer writer) {
-            return update(model, Condition.None, writer);
+            return update(model, Predicate.None, writer);
         }
 
         @NonNull
         private U update(@Nullable final Object model,
-                         @NonNull final Condition condition,
+                         @NonNull final Predicate predicate,
                          @NonNull final Writer writer) {
-            return afterUpdate(model, mExecutor.update(condition, writer));
+            return afterUpdate(model, mExecutor.update(predicate, writer));
         }
     }
 

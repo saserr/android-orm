@@ -19,10 +19,10 @@ package android.orm.sql;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Lazy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -51,7 +51,7 @@ public class Select {
     @NonNull
     private final String mTable;
     @NonNull
-    private final Condition mCondition;
+    private final Predicate mPredicate;
     @Nullable
     private final Order mOrder;
     @Nullable
@@ -60,14 +60,14 @@ public class Select {
     private final Offset mOffset;
 
     private Select(@NonNls @NonNull final String table,
-                   @NonNull final Condition condition,
+                   @NonNull final Predicate predicate,
                    @Nullable final Order order,
                    @Nullable final Limit limit,
                    @Nullable final Offset offset) {
         super();
 
         mTable = table;
-        mCondition = condition;
+        mPredicate = predicate;
         mOrder = order;
         mLimit = limit;
         mOffset = offset;
@@ -84,7 +84,7 @@ public class Select {
             }
             cursor = null;
         } else {
-            final String sql = toSQL(projection, mTable, mCondition, mOrder, mLimit, mOffset);
+            final String sql = toSQL(projection, mTable, mPredicate, mOrder, mLimit, mOffset);
             cursor = database.rawQuery(sql, null);
         }
 
@@ -93,7 +93,7 @@ public class Select {
 
     @NonNull
     public final Readable execute(@NonNull final SQLiteDatabase database) {
-        return readable(database.rawQuery(toSQL(null, mTable, mCondition, mOrder, mLimit, mOffset), null));
+        return readable(database.rawQuery(toSQL(null, mTable, mPredicate, mOrder, mLimit, mOffset), null));
     }
 
     @NonNull
@@ -120,7 +120,7 @@ public class Select {
         @NonNull
         private final String mTable;
         @NonNull
-        private Condition mCondition;
+        private Predicate mPredicate;
         @Nullable
         private Order mOrder;
         @Nullable
@@ -132,12 +132,12 @@ public class Select {
             super();
 
             mTable = table;
-            mCondition = Condition.None;
+            mPredicate = Predicate.None;
         }
 
         @NonNull
-        public final Builder with(@NonNull final Condition condition) {
-            mCondition = condition;
+        public final Builder with(@NonNull final Predicate predicate) {
+            mPredicate = predicate;
             return this;
         }
 
@@ -161,7 +161,7 @@ public class Select {
 
         @NonNull
         public final Select build() {
-            return new Select(mTable, mCondition, mOrder, mLimit, mOffset);
+            return new Select(mTable, mPredicate, mOrder, mLimit, mOffset);
         }
     }
 
@@ -169,7 +169,7 @@ public class Select {
     @NonNull
     private static String toSQL(@Nullable final Projection projection,
                                 @NonNls @NonNull final String table,
-                                @NonNull final Condition condition,
+                                @NonNull final Predicate predicate,
                                 @Nullable final Order order,
                                 @Nullable final Limit limit,
                                 @Nullable final Offset offset) {
@@ -188,8 +188,8 @@ public class Select {
         result.append('\n');
 
         result.append("from ").append(table);
-        if (!condition.isEmpty()) {
-            result.append('\n').append("where ").append(condition.toSQL());
+        if (!predicate.isEmpty()) {
+            result.append('\n').append("where ").append(predicate.toSQL());
         }
         if (order != null) {
             result.append('\n').append("order by ").append(order.toSQL());

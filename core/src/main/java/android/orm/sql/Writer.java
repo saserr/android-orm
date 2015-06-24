@@ -16,7 +16,7 @@
 
 package android.orm.sql;
 
-import android.orm.sql.fragment.Condition;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Function;
 import android.support.annotation.NonNull;
 
@@ -27,7 +27,7 @@ import java.util.LinkedList;
 public interface Writer {
 
     @NonNull
-    Condition onUpdate();
+    Predicate onUpdate();
 
     void write(@NonNull final Value.Write.Operation operation, @NonNull final Writable output);
 
@@ -35,8 +35,8 @@ public interface Writer {
 
         @NonNull
         @Override
-        public Condition onUpdate() {
-            return Condition.None;
+        public Predicate onUpdate() {
+            return Predicate.None;
         }
 
         @Override

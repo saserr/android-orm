@@ -23,8 +23,8 @@ import android.orm.model.Observer;
 import android.orm.model.Plan;
 import android.orm.sql.Reader;
 import android.orm.sql.Readers;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Functions;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
@@ -57,7 +57,7 @@ public final class Access {
         public final <M extends Instance.Readable> Maybe<M> query(@NonNull final M model) {
             beforeRead(model);
             final Reader.Collection<M> reader = Readers.single(model.getName(), Plan.Read.from(model));
-            final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, Condition.None, null, Limit.Single, null);
+            final Maybe<Producer<Maybe<M>>> result = mExecutor.query(reader, Predicate.None, null, Limit.Single, null);
             return result.flatMap(Query.<M>afterRead());
         }
 

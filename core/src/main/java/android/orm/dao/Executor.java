@@ -18,10 +18,10 @@ package android.orm.dao;
 
 import android.orm.sql.Reader;
 import android.orm.sql.Writer;
-import android.orm.sql.fragment.Condition;
 import android.orm.sql.fragment.Limit;
 import android.orm.sql.fragment.Offset;
 import android.orm.sql.fragment.Order;
+import android.orm.sql.fragment.Predicate;
 import android.orm.util.Maybe;
 import android.orm.util.Producer;
 import android.support.annotation.NonNull;
@@ -30,22 +30,22 @@ import android.support.annotation.Nullable;
 public interface Executor<E, I, U, D> {
 
     @NonNull
-    E exists(@NonNull final Condition condition);
+    E exists(@NonNull final Predicate predicate);
 
     @NonNull
     I insert(@NonNull final Writer writer);
 
     @NonNull
-    U update(@NonNull final Condition condition, @NonNull final Writer writer);
+    U update(@NonNull final Predicate predicate, @NonNull final Writer writer);
 
     @NonNull
-    D delete(@NonNull final Condition condition);
+    D delete(@NonNull final Predicate predicate);
 
     interface Direct<I, U> extends Executor<Maybe<Boolean>, Maybe<I>, Maybe<U>, Maybe<Integer>> {
 
         @NonNull
         <M> Maybe<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                            @NonNull final Condition condition,
+                                            @NonNull final Predicate predicate,
                                             @Nullable final Order order,
                                             @Nullable final Limit limit,
                                             @Nullable final Offset offset);
@@ -69,7 +69,7 @@ public interface Executor<E, I, U, D> {
 
         @NonNull
         <M> Result<Producer<Maybe<M>>> query(@NonNull final Reader.Collection<M> reader,
-                                             @NonNull final Condition condition,
+                                             @NonNull final Predicate predicate,
                                              @Nullable final Order order,
                                              @Nullable final Limit limit,
                                              @Nullable final Offset offset);
